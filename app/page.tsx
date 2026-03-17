@@ -780,37 +780,127 @@ export default function HumanSurfaceLandingPage() {
           </motion.div>
         </section>
 
-                <section id="final-cta" className="mx-auto max-w-5xl px-6 py-20 lg:px-8">
+        <section id="final-cta" className="mx-auto max-w-5xl px-6 py-20 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            className="relative overflow-hidden rounded-[36px] border border-cyan-300/15 bg-[linear-gradient(135deg,rgba(34,211,238,0.10),rgba(168,85,247,0.10))] p-10 text-center shadow-[0_0_60px_rgba(34,211,238,0.08)] backdrop-blur sm:p-14"
+            className="relative overflow-hidden rounded-[36px] border border-cyan-300/15 bg-[linear-gradient(135deg,rgba(34,211,238,0.10),rgba(168,85,247,0.10))] p-8 shadow-[0_0_60px_rgba(34,211,238,0.08)] backdrop-blur sm:p-12"
           >
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:32px_32px] opacity-40" />
-            <div className="relative">
-              <div className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-cyan-300">Get started</div>
-              <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">
-                Understand how easy your company is to target through phishing, impersonation, and fraud.
-              </h2>
-              <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-300">
-                Request an initial assessment and see which people, roles, and public information increase your exposure.
-              </p>
-              <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
-                <a
-                  href="#"
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 shadow-[0_0_36px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
-                >
-                  Request an exposure assessment <ChevronRight className="h-4 w-4" />
-                </a>
-                <a
-                  id="book-demo"
-                  href="#"
-                  className="rounded-2xl border border-white/15 bg-white/[0.05] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/10"
-                >
-                  Book a demo
-                </a>
+            <div className="relative grid gap-8 lg:grid-cols-[1fr_0.95fr] lg:items-start">
+              <div>
+                <div className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-cyan-300">Request assessment</div>
+                <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">
+                  Turn your landing page into a real lead capture flow.
+                </h2>
+                <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
+                  Request an initial assessment and tell HumanSurface which company, domain, and team exposure you want reviewed first.
+                </p>
+                <div className="mt-8 space-y-3 text-sm text-slate-300">
+                  <div className="flex items-center gap-3"><span className="h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.8)]" />Initial reply within 1–2 business days</div>
+                  <div className="flex items-center gap-3"><span className="h-2.5 w-2.5 rounded-full bg-fuchsia-300 shadow-[0_0_10px_rgba(232,121,249,0.8)]" />Built for assessment-first sales</div>
+                  <div className="flex items-center gap-3"><span className="h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.8)]" />Easy to switch later to CRM or Supabase</div>
+                </div>
+
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <a
+                    href="mailto:humansurface@soreya.app?subject=Book%20a%20HumanSurface%20demo"
+                    id="book-demo"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.05] px-5 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/10"
+                  >
+                    Book a demo <ChevronRight className="h-4 w-4" />
+                  </a>
+                  <a
+                    href="/sample-report.pdf"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-5 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/15"
+                  >
+                    See sample report
+                  </a>
+                </div>
               </div>
+
+              <GlassCard className="p-5">
+                <form
+                  action="https://formspree.io/f/xjgapyge"
+                  method="POST"
+                  className="rounded-[24px] border border-white/10 bg-[#071022] p-5"
+                >
+                  <div className="mb-5 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.18em] text-cyan-300">Lead capture</div>
+                      <h3 className="mt-2 text-2xl font-semibold">Request an exposure assessment</h3>
+                    </div>
+                    <Mail className="h-5 w-5 text-cyan-200" />
+                  </div>
+
+                  <div className="grid gap-4">
+                    <div>
+                      <label htmlFor="name" className="mb-2 block text-sm text-slate-300">Name</label>
+                      <input
+                        id="name"
+                        name="name"
+                        type="text"
+                        required
+                        className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none ring-0 placeholder:text-slate-500 focus:border-cyan-300/30"
+                        placeholder="Your name"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="email" className="mb-2 block text-sm text-slate-300">Work email</label>
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        required
+                        className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none ring-0 placeholder:text-slate-500 focus:border-cyan-300/30"
+                        placeholder="name@company.com"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="company" className="mb-2 block text-sm text-slate-300">Company</label>
+                      <input
+                        id="company"
+                        name="company"
+                        type="text"
+                        className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none ring-0 placeholder:text-slate-500 focus:border-cyan-300/30"
+                        placeholder="Company name"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="domain" className="mb-2 block text-sm text-slate-300">Company domain</label>
+                      <input
+                        id="domain"
+                        name="domain"
+                        type="text"
+                        className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none ring-0 placeholder:text-slate-500 focus:border-cyan-300/30"
+                        placeholder="company.com"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="message" className="mb-2 block text-sm text-slate-300">What do you want assessed?</label>
+                      <textarea
+                        id="message"
+                        name="message"
+                        rows={4}
+                        className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none ring-0 placeholder:text-slate-500 focus:border-cyan-300/30"
+                        placeholder="Example: executive exposure, finance fraud risk, HR contacts, public email footprint..."
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 shadow-[0_0_36px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
+                    >
+                      Send request <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </form>
+              </GlassCard>
             </div>
           </motion.div>
         </section>
@@ -835,16 +925,16 @@ export default function HumanSurfaceLandingPage() {
             <div className="mt-4 space-y-3 text-slate-400">
               <a href="#" className="block hover:text-cyan-200">Privacy</a>
               <a href="#" className="block hover:text-cyan-200">Terms</a>
-              <a href="#" className="block hover:text-cyan-200">Contact</a>
+              <a href="mailto:humansurface@soreya.app" className="block hover:text-cyan-200">Contact</a>
             </div>
           </div>
 
           <div>
             <div className="text-sm font-semibold uppercase tracking-[0.16em] text-white">Resources</div>
             <div className="mt-4 space-y-3 text-slate-400">
-              <a href="#sample-report" className="block hover:text-cyan-200">Sample report</a>
+              <a href="/sample-report.pdf" className="block hover:text-cyan-200">Sample report</a>
               <a href="#dashboard-preview" className="block hover:text-cyan-200">Dashboard preview</a>
-              <a href="#book-demo" className="block hover:text-cyan-200">Book a demo</a>
+              <a href="mailto:humansurface@soreya.app?subject=Book%20a%20HumanSurface%20demo" className="block hover:text-cyan-200">Book a demo</a>
             </div>
           </div>
         </div>
