@@ -160,14 +160,14 @@ function LandingHero() {
                       72<span className="text-2xl text-slate-500">/100</span>
                     </div>
                   </div>
-                  <div className="grid w-full max-w-sm grid-cols-3 gap-3">
+                  <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-3">
                     {[
-                      ['Impersonation', '81', 'HIGH'],
+                      ['Impersonation Risk', '81', 'HIGH'],
                       ['Finance fraud', '68', 'MED'],
                       ['HR / Social', '74', 'HIGH'],
                     ].map(([label, score, level]) => (
-                      <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-                        <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{label}</div>
+                      <div key={label} className="min-h-[150px] rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                        <div className="text-[10px] uppercase leading-5 tracking-[0.16em] text-slate-400">{label}</div>
                         <div className="mt-2 text-2xl font-semibold">{score}</div>
                         <div className="mt-1 text-[10px] tracking-[0.2em] text-cyan-200/80">{level}</div>
                       </div>
