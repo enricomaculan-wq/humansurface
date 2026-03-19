@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
-const supabase = createSupabaseBrowserClient()
 
 type Organization = {
   id: string
@@ -28,6 +27,8 @@ export default function NewPersonPage() {
     async function loadOrganizations() {
       setLoadingOrganizations(true)
       setError(null)
+
+      const supabase = createSupabaseBrowserClient()
 
       const { data, error } = await supabase
         .from('organizations')
@@ -58,28 +59,41 @@ export default function NewPersonPage() {
     setMessage(null)
     setError(null)
 
-    const { error } = await supabase.from('people').insert({
-      organization_id: organizationId,
-      full_name: fullName || null,
-      role_title: roleTitle,
-      department: department || null,
-      email: email || null,
-      is_key_person: isKeyPerson,
-    })
+    try {
+      const response = await fetch('/api/admin/people/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          organizationId,
+          fullName,
+          roleTitle,
+          department,
+          email,
+          isKeyPerson,
+        }),
+      })
 
-    setLoading(false)
+      const result = await response.json()
 
-    if (error) {
-      setError(error.message)
-      return
+      setLoading(false)
+
+      if (!response.ok) {
+        setError(result?.error || 'Failed to create person / role.')
+        return
+      }
+
+      setMessage('Person / role created successfully.')
+      setFullName('')
+      setRoleTitle('')
+      setDepartment('')
+      setEmail('')
+      setIsKeyPerson(false)
+    } catch {
+      setLoading(false)
+      setError('Network error while creating person / role.')
     }
-
-    setMessage('Person / role created successfully.')
-    setFullName('')
-    setRoleTitle('')
-    setDepartment('')
-    setEmail('')
-    setIsKeyPerson(false)
   }
 
   return (
@@ -195,17 +209,17 @@ export default function NewPersonPage() {
               {loading ? 'Saving...' : 'Create person / role'}
             </button>
 
-            {message && (
+            {message ? (
               <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
                 {message}
               </div>
-            )}
+            ) : null}
 
-            {error && (
+            {error ? (
               <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
                 {error}
               </div>
-            )}
+            ) : null}
           </form>
         </div>
       </div>

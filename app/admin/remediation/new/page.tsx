@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-
 import { createSupabaseBrowserClient } from '@/lib/supabase'
-const supabase = createSupabaseBrowserClient()
+
 type Assessment = {
   id: string
   organization_id: string
@@ -39,9 +38,14 @@ export default function NewRemediationTaskPage() {
       setLoadingData(true)
       setError(null)
 
+      const supabase = createSupabaseBrowserClient()
+
       const [{ data: assData, error: assError }, { data: orgData, error: orgError }] =
         await Promise.all([
-          supabase.from('assessments').select('*').order('created_at', { ascending: false }),
+          supabase
+            .from('assessments')
+            .select('*')
+            .order('created_at', { ascending: false }),
           supabase
             .from('organizations')
             .select('id, name, domain')
@@ -80,28 +84,41 @@ export default function NewRemediationTaskPage() {
     setMessage(null)
     setError(null)
 
-    const { error } = await supabase.from('remediation_tasks').insert({
-      assessment_id: assessmentId,
-      title,
-      priority,
-      effort,
-      impact,
-      status,
-    })
+    try {
+      const response = await fetch('/api/admin/remediation/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          assessmentId,
+          title,
+          priority,
+          effort,
+          impact,
+          status,
+        }),
+      })
 
-    setLoading(false)
+      const result = await response.json()
 
-    if (error) {
-      setError(error.message)
-      return
+      setLoading(false)
+
+      if (!response.ok) {
+        setError(result?.error || 'Failed to create remediation task.')
+        return
+      }
+
+      setMessage('Remediation task created successfully.')
+      setTitle('')
+      setPriority('medium')
+      setEffort('medium')
+      setImpact('medium')
+      setStatus('open')
+    } catch {
+      setLoading(false)
+      setError('Network error while creating remediation task.')
     }
-
-    setMessage('Remediation task created successfully.')
-    setTitle('')
-    setPriority('medium')
-    setEffort('medium')
-    setImpact('medium')
-    setStatus('open')
   }
 
   return (

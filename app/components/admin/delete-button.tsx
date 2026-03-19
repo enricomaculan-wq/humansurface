@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createSupabaseBrowserClient } from '@/lib/supabase'
-const supabase = createSupabaseBrowserClient()
+
 type DeleteButtonProps = {
   table: 'organizations' | 'assessments' | 'people' | 'findings' | 'scores' | 'remediation_tasks'
   id: string
@@ -28,22 +27,38 @@ export default function DeleteButton({
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.from(table).delete().eq('id', id)
+    try {
+      const response = await fetch('/api/admin/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          table,
+          id,
+        }),
+      })
 
-    setLoading(false)
+      const result = await response.json()
 
-    if (error) {
-      setError(error.message)
-      return
-    }
+      setLoading(false)
 
-    if (redirectTo) {
-      router.push(redirectTo)
+      if (!response.ok) {
+        setError(result?.error || 'Failed to delete item.')
+        return
+      }
+
+      if (redirectTo) {
+        router.push(redirectTo)
+        router.refresh()
+        return
+      }
+
       router.refresh()
-      return
+    } catch {
+      setLoading(false)
+      setError('Network error while deleting item.')
     }
-
-    router.refresh()
   }
 
   return (
