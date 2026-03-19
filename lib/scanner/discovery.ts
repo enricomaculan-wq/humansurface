@@ -16,7 +16,6 @@ const KEYWORDS = [
   'jobs',
   'job',
   'lavora-con-noi',
-  'lavora-con-noi',
   'work-with-us',
   'join-us',
   'people',
@@ -45,31 +44,24 @@ const COMMON_PATHS = [
   '/contacts',
   '/contatti',
   '/careers',
-  '/career',
   '/jobs',
-  '/job',
   '/lavora-con-noi',
-  '/lavora-con-noi',
-  '/work-with-us',
-  '/join-us',
   '/people',
-  '/staff',
   '/board',
   '/press',
   '/news',
-  '/media',
   '/investors',
   '/governance',
-  '/sustainability',
-  '/organization',
-  '/organizzazione',
   '/brochure.pdf',
   '/company-profile.pdf',
   '/profile.pdf',
-  '/media-kit.pdf',
-  '/press-kit.pdf',
-  '/about/company-profile.pdf',
 ]
+
+const FETCH_TIMEOUT_MS = 8000
+const MAX_FINAL_URLS = 10
+const MAX_COMMON_PATH_CHECKS = 6
+const MAX_SUBPAGES_TO_EXPLORE = 4
+const MAX_LINKS_PER_SUBPAGE = 12
 
 function cleanDomain(domain: string) {
   return domain
@@ -101,11 +93,7 @@ function isRelevant(url: string) {
 
 function isMaybeUseful(url: string) {
   const lower = url.toLowerCase()
-
-  return (
-    isRelevant(lower) ||
-    lower.split('/').filter(Boolean).length <= 2
-  )
+  return isRelevant(lower) || lower.split('/').filter(Boolean).length <= 2
 }
 
 function isSkippableHref(href: string) {
@@ -131,9 +119,23 @@ function tryBuildUrl(raw: string, base?: string) {
   }
 }
 
+async function fetchWithTimeout(input: string, init?: RequestInit) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 async function tryFetchText(url: string) {
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       headers: { 'user-agent': 'HumanSurfaceScanner/1.0' },
       cache: 'no-store',
       redirect: 'follow',
@@ -152,7 +154,7 @@ async function tryFetchText(url: string) {
 
 async function exists(url: string) {
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: 'HEAD',
       headers: { 'user-agent': 'HumanSurfaceScanner/1.0' },
       cache: 'no-store',
@@ -182,7 +184,7 @@ async function resolveHomepage(domain: string) {
 async function collectLinksFromPage(
   pageUrl: string,
   baseUrl: URL,
-  maxLinks = 30,
+  maxLinks = MAX_LINKS_PER_SUBPAGE,
 ) {
   const html = await tryFetchText(pageUrl)
   if (!html) return []
@@ -209,6 +211,20 @@ async function collectLinksFromPage(
   })
 
   return Array.from(urls)
+}
+
+function rankUrls(urls: string[]) {
+  return [...urls].sort((a, b) => {
+    const aRelevant = isRelevant(a) ? 1 : 0
+    const bRelevant = isRelevant(b) ? 1 : 0
+
+    if (aRelevant !== bRelevant) return bRelevant - aRelevant
+    if (a.endsWith('.pdf') !== b.endsWith('.pdf')) return a.endsWith('.pdf') ? 1 : -1
+
+    const aDepth = a.split('/').filter(Boolean).length
+    const bDepth = b.split('/').filter(Boolean).length
+    return aDepth - bDepth
+  })
 }
 
 export async function discoverRelevantUrls(domain: string) {
@@ -239,12 +255,17 @@ export async function discoverRelevantUrls(domain: string) {
     }
   })
 
+  let checkedCommonPaths = 0
   for (const path of COMMON_PATHS) {
+    if (checkedCommonPaths >= MAX_COMMON_PATH_CHECKS) break
+
     const resolved = tryBuildUrl(path, homepage)
     if (!resolved) continue
 
     const normalized = normalizeUrl(resolved.toString())
     if (!normalized) continue
+
+    checkedCommonPaths += 1
 
     if (await exists(normalized)) {
       if (isRelevant(normalized)) {
@@ -255,14 +276,16 @@ export async function discoverRelevantUrls(domain: string) {
     }
   }
 
-  const firstPass = Array.from(
-    new Set([...priorityUrls, ...secondaryUrls].slice(0, 12))
-  )
+  const firstPass = rankUrls([
+    ...new Set([...priorityUrls, ...secondaryUrls]),
+  ]).slice(0, MAX_SUBPAGES_TO_EXPLORE + 2)
 
   const discoveredFromSubpages = new Set<string>()
 
-  for (const url of firstPass) {
-    const subLinks = await collectLinksFromPage(url, baseUrl, 20)
+  for (const url of firstPass.slice(0, MAX_SUBPAGES_TO_EXPLORE)) {
+    if (url.toLowerCase().endsWith('.pdf')) continue
+
+    const subLinks = await collectLinksFromPage(url, baseUrl, MAX_LINKS_PER_SUBPAGE)
 
     for (const subUrl of subLinks) {
       if (isRelevant(subUrl)) {
@@ -271,13 +294,13 @@ export async function discoverRelevantUrls(domain: string) {
     }
   }
 
-  const finalUrls = Array.from(
-    new Set([
+  const finalUrls = rankUrls([
+    ...new Set([
       ...priorityUrls,
       ...discoveredFromSubpages,
       ...secondaryUrls,
-    ])
-  )
+    ]),
+  ])
 
-  return finalUrls.slice(0, 30)
+  return finalUrls.slice(0, MAX_FINAL_URLS)
 }

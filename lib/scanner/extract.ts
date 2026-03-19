@@ -20,6 +20,11 @@ export type ExtractedSignal = {
 
 const EMAIL_REGEX = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi
 
+const FETCH_TIMEOUT_MS = 8000
+const MAX_HTML_CHARS = 400_000
+const MAX_TEXT_CHARS = 30_000
+const MIN_USEFUL_TEXT_CHARS = 80
+
 const ROLE_PATTERNS = [
   { regex: /\bCEO\b/i, role: 'CEO', department: 'Executive', key: true },
   { regex: /\bCFO\b/i, role: 'CFO', department: 'Finance', key: true },
@@ -44,18 +49,43 @@ function unique<T>(items: T[]) {
   return Array.from(new Set(items))
 }
 
+function clampText(text: string, maxChars = MAX_TEXT_CHARS) {
+  if (text.length <= maxChars) return text
+  return text.slice(0, maxChars)
+}
+
+function looksLikeBoilerplate(url: string, text: string) {
+  const lower = text.toLowerCase()
+  const urlLower = url.toLowerCase()
+
+  const cookieHeavy =
+    /cookie|privacy preferences|consent preferences|accept all|reject all/.test(lower)
+
+  const noSignalWords =
+    !/ceo|cfo|coo|cto|founder|leadership|management|board|executive|director|finance|billing|invoice|accounts payable|accounts receivable|payments|procurement|bank detail|supplier|hr|human resources|recruiting|recruitment|careers|jobs|talent|candidate|contact us|contact|reach us|get in touch|email us/.test(lower)
+
+  const irrelevantPath =
+    /privacy|cookie|terms|legal|gdpr/.test(urlLower)
+
+  return (cookieHeavy && noSignalWords) || irrelevantPath
+}
+
 function extractLikelyPeople(text: string, emails: string[]) {
   const matches: ExtractedSignal['detectedPeople'] = []
   const chunks = text
     .split(/[\n\r.]/)
     .map((line) => cleanText(line))
     .filter(Boolean)
+    .slice(0, 250)
 
   for (const chunk of chunks) {
     for (const pattern of ROLE_PATTERNS) {
       if (!pattern.regex.test(chunk)) continue
 
-      const nameMatch = chunk.match(/\b([A-Z][a-zà-ÿ'-]+(?:\s+[A-Z][a-zà-ÿ'-]+){1,2})\b/)
+      const nameMatch = chunk.match(
+        /\b([A-Z][a-zà-ÿ'-]+(?:\s+[A-Z][a-zà-ÿ'-]+){1,2})\b/,
+      )
+
       const email =
         emails.find((e) => chunk.toLowerCase().includes(e.toLowerCase())) ?? null
 
@@ -76,14 +106,29 @@ function extractLikelyPeople(text: string, emails: string[]) {
     if (!deduped.has(key)) deduped.set(key, item)
   }
 
-  return Array.from(deduped.values())
+  return Array.from(deduped.values()).slice(0, 25)
+}
+
+async function fetchWithTimeout(input: string, init?: RequestInit) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 export async function extractSignalsFromUrl(url: string): Promise<ExtractedSignal | null> {
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       headers: { 'user-agent': 'HumanSurfaceScanner/1.0' },
       cache: 'no-store',
+      redirect: 'follow',
     })
 
     const contentType = response.headers.get('content-type') || ''
@@ -91,15 +136,27 @@ export async function extractSignalsFromUrl(url: string): Promise<ExtractedSigna
     if (!contentType.includes('text/html')) return null
 
     const html = await response.text()
-    const $ = cheerio.load(html)
+    if (!html) return null
 
-    $('script, style, noscript').remove()
+    const safeHtml = html.slice(0, MAX_HTML_CHARS)
+    const $ = cheerio.load(safeHtml)
+
+    $('script, style, noscript, svg, canvas, iframe').remove()
 
     const title = cleanText($('title').first().text()) || url
-    const text = cleanText($('body').text())
+    const rawText = cleanText($('body').text())
+    const text = clampText(rawText, MAX_TEXT_CHARS)
 
-    const rawEmails = unique((text.match(EMAIL_REGEX) || []).map((e) => e.toLowerCase()))
-    const emails = rawEmails.filter((email) => !email.endsWith('.png') && !email.endsWith('.jpg'))
+    if (text.length < MIN_USEFUL_TEXT_CHARS) return null
+    if (looksLikeBoilerplate(url, text)) return null
+
+    const rawEmails = unique(
+      (text.match(EMAIL_REGEX) || []).map((e) => e.toLowerCase()),
+    )
+
+    const emails = rawEmails
+      .filter((email) => !email.endsWith('.png') && !email.endsWith('.jpg'))
+      .slice(0, 20)
 
     const lower = text.toLowerCase()
     const urlLower = url.toLowerCase()
