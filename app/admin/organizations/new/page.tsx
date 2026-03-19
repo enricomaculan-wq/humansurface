@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
-import { createSupabaseBrowserClient } from '@/lib/supabase'
-const supabase = createSupabaseBrowserClient()
 export default function NewOrganizationPage() {
+  const router = useRouter()
+
   const [name, setName] = useState('')
   const [domain, setDomain] = useState('')
   const [industry, setIndustry] = useState('')
@@ -18,23 +19,37 @@ export default function NewOrganizationPage() {
     setMessage(null)
     setError(null)
 
-    const { error } = await supabase.from('organizations').insert({
-      name,
-      domain,
-      industry: industry || null,
-    })
+    try {
+      const response = await fetch('/api/admin/organizations/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          domain,
+          industry,
+        }),
+      })
 
-    setLoading(false)
+      const result = await response.json()
 
-    if (error) {
-      setError(error.message)
-      return
+      setLoading(false)
+
+      if (!response.ok) {
+        setError(result?.error || 'Failed to create organization.')
+        return
+      }
+
+      setMessage('Organization created successfully.')
+      setName('')
+      setDomain('')
+      setIndustry('')
+      router.refresh()
+    } catch {
+      setLoading(false)
+      setError('Network error while creating organization.')
     }
-
-    setMessage('Organization created successfully.')
-    setName('')
-    setDomain('')
-    setIndustry('')
   }
 
   return (
@@ -100,17 +115,17 @@ export default function NewOrganizationPage() {
               {loading ? 'Saving...' : 'Create organization'}
             </button>
 
-            {message && (
+            {message ? (
               <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
                 {message}
               </div>
-            )}
+            ) : null}
 
-            {error && (
+            {error ? (
               <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
                 {error}
               </div>
-            )}
+            ) : null}
           </form>
         </div>
       </div>
