@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import RunScanButton from '@/app/components/admin/run-scan-button'
 
 type Organization = {
   id: string
@@ -113,6 +114,8 @@ export default async function OrganizationDetailPage({
             >
               Back to organizations
             </Link>
+
+            <RunScanButton organizationId={organization.id} />
 
             <Link
               href="/admin/organizations/new"
