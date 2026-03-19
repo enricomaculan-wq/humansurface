@@ -1,134 +1,77 @@
-'use client'
+import Link from 'next/link'
+import AdminTopbar from '@/app/components/admin/admin-topbar'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+type Organization = {
+  id: string
+  name: string
+  domain: string
+  industry: string | null
+  created_at: string
+}
 
-export default function NewOrganizationPage() {
-  const router = useRouter()
+export const dynamic = 'force-dynamic'
 
-  const [name, setName] = useState('')
-  const [domain, setDomain] = useState('')
-  const [industry, setIndustry] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+export default async function OrganizationsPage() {
+  const supabase = await createSupabaseServerClient()
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setLoading(true)
-    setMessage(null)
-    setError(null)
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('*')
+    .order('created_at', { ascending: false })
 
-    try {
-      const response = await fetch('/api/admin/organizations/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          domain,
-          industry,
-        }),
-      })
-
-      const result = await response.json()
-
-      setLoading(false)
-
-      if (!response.ok) {
-        setError(result?.error || 'Failed to create organization.')
-        return
-      }
-
-      setMessage('Organization created successfully.')
-      setName('')
-      setDomain('')
-      setIndustry('')
-      router.refresh()
-    } catch {
-      setLoading(false)
-      setError('Network error while creating organization.')
-    }
+  if (error) {
+    throw new Error(error.message)
   }
 
+  const organizations = (data ?? []) as Organization[]
+
   return (
-    <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-8">
-          <div className="text-sm uppercase tracking-[0.2em] text-cyan-300">
-            Admin
-          </div>
-          <h1 className="mt-2 text-4xl font-semibold tracking-tight">
-            New Organization
-          </h1>
-          <p className="mt-3 text-slate-400">
-            Create a new company profile to start a HumanSurface assessment.
-          </p>
+    <>
+      <AdminTopbar
+        title="Organizations"
+        subtitle="Manage organizations and launch public scans."
+        primaryAction={{
+          label: 'New organization',
+          href: '/admin/organizations/new',
+        }}
+      />
+
+      <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
+        <div className="mb-5 text-sm uppercase tracking-[0.16em] text-slate-500">
+          All organizations
         </div>
 
-        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="mb-2 block text-sm text-slate-300">
-                Company name
-              </label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                placeholder="Rossi Industriali S.r.l."
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/30"
-              />
+        <div className="space-y-3">
+          {organizations.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-slate-400">
+              No organizations yet.
             </div>
+          ) : (
+            organizations.map((organization) => (
+              <Link
+                key={organization.id}
+                href={`/admin/organizations/${organization.id}`}
+                className="block rounded-2xl border border-white/10 bg-[#030815] p-5 transition hover:border-cyan-300/20"
+              >
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <div className="font-medium text-white">{organization.name}</div>
+                    <div className="mt-1 text-sm text-slate-400">
+                      {organization.domain}
+                      {organization.industry ? ` · ${organization.industry}` : ''}
+                    </div>
+                  </div>
 
-            <div>
-              <label className="mb-2 block text-sm text-slate-300">
-                Domain
-              </label>
-              <input
-                value={domain}
-                onChange={(e) => setDomain(e.target.value)}
-                required
-                placeholder="rossi-industriali.it"
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/30"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm text-slate-300">
-                Industry
-              </label>
-              <input
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
-                placeholder="Manufacturing"
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/30"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:opacity-60"
-            >
-              {loading ? 'Saving...' : 'Create organization'}
-            </button>
-
-            {message ? (
-              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
-                {message}
-              </div>
-            ) : null}
-
-            {error ? (
-              <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-                {error}
-              </div>
-            ) : null}
-          </form>
+                  <div className="text-sm text-slate-500">
+                    {new Date(organization.created_at).toLocaleString()}
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
-      </div>
-    </main>
+      </section>
+    </>
   )
 }
