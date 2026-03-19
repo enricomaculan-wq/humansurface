@@ -53,7 +53,7 @@ type Score = {
   risk_level: string
   reason_summary: string | null
 }
-const supabase = await createSupabaseServerClient()
+
 function RiskBadge({ value }: { value: string }) {
   const cls =
     value === 'high'
@@ -75,6 +75,7 @@ export default async function AssessmentDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const supabase = await createSupabaseServerClient()
 
   const [
     { data: assessmentData },

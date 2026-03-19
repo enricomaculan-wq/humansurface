@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-
+import { createSupabaseBrowserClient } from '@/lib/supabase'
+const supabase = createSupabaseBrowserClient()
 type DeleteButtonProps = {
   table: 'organizations' | 'assessments' | 'people' | 'findings' | 'scores' | 'remediation_tasks'
   id: string

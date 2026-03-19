@@ -1,4 +1,5 @@
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
+
 
 type Organization = {
   id: string
@@ -86,6 +87,7 @@ function ScoreCard({
 }
 
 export default async function DashboardPage() {
+  const supabase = await createSupabaseServerClient()
   const [
     { data: organizations, error: organizationsError },
     { data: assessments, error: assessmentsError },

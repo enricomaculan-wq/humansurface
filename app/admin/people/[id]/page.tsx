@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import DeleteButton from '@/app/components/admin/delete-button'
 import PersonEditor from './person-editor'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
+
 
 type Person = {
   id: string
@@ -59,11 +60,13 @@ function RiskBadge({ value }: { value: string }) {
 }
 
 export default async function PersonDetailPage({
+  
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const supabase = await createSupabaseServerClient()
 
   const [
     { data: personData },
@@ -76,7 +79,7 @@ export default async function PersonDetailPage({
     supabase.from('findings').select('*').eq('person_id', id).order('created_at', { ascending: false }),
     supabase.from('scores').select('*').eq('person_id', id).order('created_at', { ascending: false }),
   ])
-
+  
   const person = personData as Person | null
   if (!person) notFound()
 

@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import { calculateAssessmentScores, calculatePersonScores } from '@/lib/scoring'
 
+import { calculateAssessmentScores, calculatePersonScores } from '@/lib/scoring'
+import { createSupabaseBrowserClient } from '@/lib/supabase'
+const supabase = createSupabaseBrowserClient()
 type AssessmentRow = {
   id: string
   organization_id: string

@@ -1,6 +1,8 @@
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
+
 
 export default async function TestDbPage() {
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase.from('organizations').select('*').order('created_at', { ascending: false })
 
   return (

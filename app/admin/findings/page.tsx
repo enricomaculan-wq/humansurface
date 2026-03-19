@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 type Finding = {
   id: string
@@ -46,6 +46,7 @@ function RiskBadge({ value }: { value: string }) {
 }
 
 export default async function FindingsListPage() {
+  const supabase = await createSupabaseServerClient()
   const [
     { data: findingsData, error: findingsError },
     { data: assessmentsData, error: assessmentsError },

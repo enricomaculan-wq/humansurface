@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 type RemediationTask = {
   id: string
@@ -47,6 +47,7 @@ function Pill({
 }
 
 export default async function RemediationListPage() {
+  const supabase = await createSupabaseServerClient()
   const [
     { data: remediationData, error: remediationError },
     { data: assessmentsData, error: assessmentsError },

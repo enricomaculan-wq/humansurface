@@ -61,7 +61,7 @@ type RemediationTask = {
   impact: string
   status: string
 }
-const supabase = await createSupabaseServerClient()
+
 function RiskBadge({ value }: { value: string }) {
   const cls =
     value === 'high'
@@ -103,6 +103,7 @@ export default async function AssessmentReportPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const supabase = await createSupabaseServerClient()
 
   const [
     { data: assessmentData },

@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 
+import { createSupabaseBrowserClient } from '@/lib/supabase'
+const supabase = createSupabaseBrowserClient()
 export default function NewOrganizationPage() {
   const [name, setName] = useState('')
   const [domain, setDomain] = useState('')
