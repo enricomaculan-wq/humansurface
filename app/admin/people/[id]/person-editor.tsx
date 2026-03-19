@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createSupabaseBrowserClient } from '@/lib/supabase'
-const supabase = createSupabaseBrowserClient()
 
 type PersonEditorProps = {
   id: string
@@ -40,26 +38,37 @@ export default function PersonEditor({
     setMessage(null)
     setError(null)
 
-    const { error } = await supabase
-      .from('people')
-      .update({
-        full_name: fullName || null,
-        role_title: roleTitle,
-        department: department || null,
-        email: email || null,
-        is_key_person: isKeyPerson,
+    try {
+      const response = await fetch('/api/admin/people/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id,
+          fullName,
+          roleTitle,
+          department,
+          email,
+          isKeyPerson,
+        }),
       })
-      .eq('id', id)
 
-    setLoading(false)
+      const result = await response.json()
 
-    if (error) {
-      setError(error.message)
-      return
+      setLoading(false)
+
+      if (!response.ok) {
+        setError(result?.error || 'Failed to update person / role.')
+        return
+      }
+
+      setMessage('Person / role updated successfully.')
+      router.refresh()
+    } catch {
+      setLoading(false)
+      setError('Network error while updating person / role.')
     }
-
-    setMessage('Person / role updated successfully.')
-    router.refresh()
   }
 
   return (

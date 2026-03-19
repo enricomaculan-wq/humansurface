@@ -3,8 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { createSupabaseBrowserClient } from '@/lib/supabase'
-const supabase = createSupabaseBrowserClient()
 type OrganizationEditorProps = {
   id: string
   initialName: string
@@ -34,24 +32,35 @@ export default function OrganizationEditor({
     setMessage(null)
     setError(null)
 
-    const { error } = await supabase
-      .from('organizations')
-      .update({
-        name,
-        domain,
-        industry: industry || null,
+    try {
+      const response = await fetch('/api/admin/organizations/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id,
+          name,
+          domain,
+          industry,
+        }),
       })
-      .eq('id', id)
 
-    setLoading(false)
+      const result = await response.json()
 
-    if (error) {
-      setError(error.message)
-      return
+      setLoading(false)
+
+      if (!response.ok) {
+        setError(result?.error || 'Failed to update organization.')
+        return
+      }
+
+      setMessage('Organization updated successfully.')
+      router.refresh()
+    } catch {
+      setLoading(false)
+      setError('Network error while updating organization.')
     }
-
-    setMessage('Organization updated successfully.')
-    router.refresh()
   }
 
   return (

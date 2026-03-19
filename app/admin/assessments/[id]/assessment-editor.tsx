@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createSupabaseBrowserClient } from '@/lib/supabase'
-const supabase = createSupabaseBrowserClient()
 
 type AssessmentEditorProps = {
   id: string
@@ -34,26 +32,35 @@ export default function AssessmentEditor({
     setMessage(null)
     setError(null)
 
-    const parsedScore = Number(overallScore)
-
-    const { error } = await supabase
-      .from('assessments')
-      .update({
-        status,
-        overall_score: Number.isNaN(parsedScore) ? 0 : parsedScore,
-        overall_risk_level: overallRiskLevel,
+    try {
+      const response = await fetch('/api/admin/assessments/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id,
+          status,
+          overallScore,
+          overallRiskLevel,
+        }),
       })
-      .eq('id', id)
 
-    setLoading(false)
+      const result = await response.json()
 
-    if (error) {
-      setError(error.message)
-      return
+      setLoading(false)
+
+      if (!response.ok) {
+        setError(result?.error || 'Failed to update assessment.')
+        return
+      }
+
+      setMessage('Assessment updated successfully.')
+      router.refresh()
+    } catch {
+      setLoading(false)
+      setError('Network error while updating assessment.')
     }
-
-    setMessage('Assessment updated successfully.')
-    router.refresh()
   }
 
   return (
