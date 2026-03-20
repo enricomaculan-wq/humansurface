@@ -56,6 +56,7 @@ type ScannerFinding = {
 
 const HTML_SIGNAL_TIMEOUT_MS = 10_000
 const PDF_SIGNAL_TIMEOUT_MS = 18_000
+const DISCOVERY_TIMEOUT_MS = 25_000
 const SCAN_FAILSAFE_TIMEOUT_MS = 180_000
 
 function riskFromOverall(score: number): 'low' | 'medium' | 'high' {
@@ -316,7 +317,7 @@ export async function runPublicScanForOrganization(organizationId: string) {
       (async () => {
         const discoveredUrls = await withTimeout(
           discoverRelevantUrls(organization.domain),
-          25_000,
+          DISCOVERY_TIMEOUT_MS,
           `Discovery for ${organization.domain}`,
         )
 
@@ -369,6 +370,11 @@ export async function runPublicScanForOrganization(organizationId: string) {
                   ...pdfSignal,
                   detectedPeople: [],
                 })
+              } else {
+                failedUrls.push({
+                  url,
+                  error: 'No usable PDF signals extracted',
+                })
               }
 
               continue
@@ -382,6 +388,11 @@ export async function runPublicScanForOrganization(organizationId: string) {
 
             if (signal) {
               extractedSignals.push(signal)
+            } else {
+              failedUrls.push({
+                url,
+                error: 'No usable HTML signals extracted',
+              })
             }
           } catch (error) {
             failedUrls.push({
@@ -639,7 +650,7 @@ export async function runPublicScanForOrganization(organizationId: string) {
     )
 
     return result
- } catch (error) {
+  } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Unknown scan error'
 
