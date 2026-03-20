@@ -61,9 +61,8 @@ const COMMON_PATHS = [
 
 const FETCH_TIMEOUT_MS = 4000
 const MAX_FINAL_URLS = 12
-const MAX_COMMON_PATH_CHECKS = 8
-const MAX_SUBPAGES_TO_EXPLORE = 4
-const MAX_LINKS_PER_SUBPAGE = 12
+const MAX_SUBPAGES_TO_EXPLORE = 3
+const MAX_LINKS_PER_SUBPAGE = 10
 
 function cleanDomain(domain: string) {
   return domain
@@ -209,34 +208,6 @@ async function tryFetchText(url: string) {
   }
 }
 
-async function exists(url: string) {
-  try {
-    const headResponse = await fetchWithTimeout(url, {
-      method: 'HEAD',
-      headers: { 'user-agent': 'HumanSurfaceScanner/1.0' },
-      cache: 'no-store',
-      redirect: 'follow',
-    })
-
-    if (headResponse.ok) return true
-  } catch {
-    // fallback to GET
-  }
-
-  try {
-    const getResponse = await fetchWithTimeout(url, {
-      method: 'GET',
-      headers: { 'user-agent': 'HumanSurfaceScanner/1.0' },
-      cache: 'no-store',
-      redirect: 'follow',
-    })
-
-    return getResponse.ok
-  } catch {
-    return false
-  }
-}
-
 async function resolveHomepage(domain: string) {
   const cleaned = cleanDomain(domain)
   const candidates = [
@@ -246,23 +217,19 @@ async function resolveHomepage(domain: string) {
     `http://www.${cleaned}`,
   ]
 
-  for (const candidate of candidates) {
-    const html = await tryFetchText(candidate)
-    if (html) {
-      return { homepage: candidate, html }
-    }
+  const attempts = await Promise.all(
+    candidates.map(async (candidate) => ({
+      candidate,
+      html: await tryFetchText(candidate),
+    })),
+  )
+
+  const success = attempts.find((item) => item.html)
+  if (success?.html) {
+    return { homepage: success.candidate, html: success.html }
   }
 
-  for (const candidate of candidates) {
-    try {
-      const parsed = new URL(candidate)
-      return { homepage: parsed.origin, html: '' }
-    } catch {
-      // continue
-    }
-  }
-
-  throw new Error(`Unable to build base URL for domain: ${domain}`)
+  return { homepage: `https://${cleaned}`, html: '' }
 }
 
 async function collectLinksFromPage(
@@ -322,6 +289,22 @@ export async function discoverRelevantUrls(domain: string) {
 
   priorityUrls.add(normalizeUrl(homepage))
 
+  for (const path of COMMON_PATHS) {
+    const resolved = tryBuildUrl(path, homepage)
+    if (!resolved) continue
+
+    const normalized = normalizeUrl(resolved.toString())
+    if (!normalized) continue
+    if (isSpamLikeUrl(normalized)) continue
+    if (isLikelyIrrelevantArticle(normalized)) continue
+
+    if (isRelevant(normalized)) {
+      priorityUrls.add(normalized)
+    } else if (isMaybeUseful(normalized)) {
+      secondaryUrls.add(normalized)
+    }
+  }
+
   if (html) {
     const $ = cheerio.load(html)
 
@@ -346,46 +329,20 @@ export async function discoverRelevantUrls(domain: string) {
     })
   }
 
-  const candidateCommonUrls = COMMON_PATHS
-    .map((path) => tryBuildUrl(path, homepage))
-    .filter((value): value is URL => !!value)
-    .map((url) => normalizeUrl(url.toString()))
-    .filter(Boolean)
-    .filter((url) => !isSpamLikeUrl(url))
-    .filter((url) => !isLikelyIrrelevantArticle(url))
-    .slice(0, MAX_COMMON_PATH_CHECKS)
-
-  const commonPathChecks = await Promise.all(
-    candidateCommonUrls.map(async (url) => ({
-      url,
-      ok: await exists(url),
-    })),
-  )
-
-  for (const item of commonPathChecks) {
-    if (!item.ok) continue
-
-    if (isRelevant(item.url)) {
-      priorityUrls.add(item.url)
-    } else {
-      secondaryUrls.add(item.url)
-    }
-  }
-
   const firstPass = rankUrls([
     ...new Set([...priorityUrls, ...secondaryUrls]),
-  ]).slice(0, MAX_SUBPAGES_TO_EXPLORE + 2)
+  ]).slice(0, MAX_SUBPAGES_TO_EXPLORE)
 
   const discoveredFromSubpages = new Set<string>()
 
-  for (const url of firstPass.slice(0, MAX_SUBPAGES_TO_EXPLORE)) {
-    if (url.toLowerCase().endsWith('.pdf')) continue
-    if (isSpamLikeUrl(url)) continue
-    if (isLikelyIrrelevantArticle(url)) continue
+  const subpageResults = await Promise.all(
+    firstPass
+      .filter((url) => !url.toLowerCase().endsWith('.pdf'))
+      .map((url) => collectLinksFromPage(url, baseUrl, MAX_LINKS_PER_SUBPAGE)),
+  )
 
-    const subLinks = await collectLinksFromPage(url, baseUrl, MAX_LINKS_PER_SUBPAGE)
-
-    for (const subUrl of subLinks) {
+  for (const links of subpageResults) {
+    for (const subUrl of links) {
       if (isRelevant(subUrl)) {
         discoveredFromSubpages.add(subUrl)
       }
