@@ -18,6 +18,10 @@ export type ExtractedSignal = {
   }>
 }
 
+export type ExtractAttempt =
+  | { ok: true; signal: ExtractedSignal }
+  | { ok: false; reason: string }
+
 const EMAIL_REGEX = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi
 
 const FETCH_TIMEOUT_MS = 8000
@@ -121,7 +125,7 @@ async function fetchWithTimeout(input: string, init?: RequestInit) {
   }
 }
 
-export async function extractSignalsFromUrl(url: string): Promise<ExtractedSignal | null> {
+export async function extractSignalsAttempt(url: string): Promise<ExtractAttempt> {
   try {
     const response = await fetchWithTimeout(url, {
       headers: { 'user-agent': 'HumanSurfaceScanner/1.0' },
@@ -129,12 +133,19 @@ export async function extractSignalsFromUrl(url: string): Promise<ExtractedSigna
       redirect: 'follow',
     })
 
+    if (!response.ok) {
+      return { ok: false, reason: `HTTP ${response.status}` }
+    }
+
     const contentType = response.headers.get('content-type') || ''
-    if (!response.ok) return null
-    if (!contentType.includes('text/html')) return null
+    if (!contentType.includes('text/html')) {
+      return { ok: false, reason: `Unsupported content-type: ${contentType || 'unknown'}` }
+    }
 
     const html = await response.text()
-    if (!html) return null
+    if (!html) {
+      return { ok: false, reason: 'Empty HTML response' }
+    }
 
     const safeHtml = html.slice(0, MAX_HTML_CHARS)
     const $ = cheerio.load(safeHtml)
@@ -145,8 +156,13 @@ export async function extractSignalsFromUrl(url: string): Promise<ExtractedSigna
     const rawText = cleanText($('body').text())
     const text = clampText(rawText, MAX_TEXT_CHARS)
 
-    if (text.length < MIN_USEFUL_TEXT_CHARS) return null
-    if (looksLikeBoilerplate(url, text)) return null
+    if (text.length < MIN_USEFUL_TEXT_CHARS) {
+      return { ok: false, reason: `Text too short (${text.length} chars)` }
+    }
+
+    if (looksLikeBoilerplate(url, text)) {
+      return { ok: false, reason: 'Boilerplate or legal/cookie page' }
+    }
 
     const rawEmails = unique(
       (text.match(EMAIL_REGEX) || []).map((e) => e.toLowerCase()),
@@ -177,17 +193,28 @@ export async function extractSignalsFromUrl(url: string): Promise<ExtractedSigna
     const detectedPeople = extractLikelyPeople(text, emails)
 
     return {
-      url,
-      title,
-      text,
-      emails,
-      hasLeadershipSignals,
-      hasFinanceSignals,
-      hasHrSignals,
-      hasContactSignals,
-      detectedPeople,
+      ok: true,
+      signal: {
+        url,
+        title,
+        text,
+        emails,
+        hasLeadershipSignals,
+        hasFinanceSignals,
+        hasHrSignals,
+        hasContactSignals,
+        detectedPeople,
+      },
     }
-  } catch {
-    return null
+  } catch (error) {
+    return {
+      ok: false,
+      reason: error instanceof Error ? error.message : 'Unknown extraction error',
+    }
   }
+}
+
+export async function extractSignalsFromUrl(url: string): Promise<ExtractedSignal | null> {
+  const result = await extractSignalsAttempt(url)
+  return result.ok ? result.signal : null
 }

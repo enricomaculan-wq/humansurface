@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { discoverRelevantUrls } from './discovery'
-import { extractSignalsFromUrl } from './extract'
+import { extractSignalsAttempt } from './extract'
 import { extractSignalsFromPdfUrl } from './pdf'
 import { classifySignals } from './classify'
 import { calculateAssessmentScores, calculatePersonScores } from '@/lib/scoring'
@@ -380,18 +380,18 @@ export async function runPublicScanForOrganization(organizationId: string) {
               continue
             }
 
-            const signal = await withTimeout(
-              extractSignalsFromUrl(url),
+            const attempt = await withTimeout(
+              extractSignalsAttempt(url),
               HTML_SIGNAL_TIMEOUT_MS,
               `HTML scan for ${url}`,
             )
 
-            if (signal) {
-              extractedSignals.push(signal)
+            if (attempt.ok) {
+              extractedSignals.push(attempt.signal)
             } else {
               failedUrls.push({
                 url,
-                error: 'No usable HTML signals extracted',
+                error: attempt.reason,
               })
             }
           } catch (error) {
