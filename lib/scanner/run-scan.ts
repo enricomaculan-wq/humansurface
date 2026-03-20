@@ -54,6 +54,10 @@ type ScannerFinding = {
   sourceType: 'html' | 'pdf' | 'fallback'
 }
 
+const HTML_SIGNAL_TIMEOUT_MS = 10_000
+const PDF_SIGNAL_TIMEOUT_MS = 18_000
+const SCAN_FAILSAFE_TIMEOUT_MS = 180_000
+
 function riskFromOverall(score: number): 'low' | 'medium' | 'high' {
   if (score >= 70) return 'high'
   if (score >= 35) return 'medium'
@@ -163,6 +167,26 @@ function dedupeScannedPeopleAgainstExisting(
   }
 }
 
+async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string,
+): Promise<T> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null
+
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${ms}ms`))
+    }, ms)
+  })
+
+  try {
+    return await Promise.race([promise, timeoutPromise])
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle)
+  }
+}
+
 export async function runPublicScanForOrganization(organizationId: string) {
   const { data: orgData, error: orgError } = await supabaseAdmin
     .from('organizations')
@@ -224,293 +248,309 @@ export async function runPublicScanForOrganization(organizationId: string) {
   const assessmentId = assessmentData.id as string
 
   try {
-    const discoveredUrls = await discoverRelevantUrls(organization.domain)
-    const urls = discoveredUrls.filter(isLikelyValidUrl)
+    const result = await withTimeout(
+      (async () => {
+        const discoveredUrls = await discoverRelevantUrls(organization.domain)
+        const urls = discoveredUrls.filter(isLikelyValidUrl)
 
-    const extractedSignals: Array<{
-      url: string
-      title: string
-      text: string
-      emails: string[]
-      hasLeadershipSignals: boolean
-      hasFinanceSignals: boolean
-      hasHrSignals: boolean
-      hasContactSignals: boolean
-      detectedPeople: Array<{
-        fullName: string | null
-        roleTitle: string
-        department: string | null
-        email: string | null
-        isKeyPerson: boolean
-      }>
-    }> = []
+        const extractedSignals: Array<{
+          url: string
+          title: string
+          text: string
+          emails: string[]
+          hasLeadershipSignals: boolean
+          hasFinanceSignals: boolean
+          hasHrSignals: boolean
+          hasContactSignals: boolean
+          detectedPeople: Array<{
+            fullName: string | null
+            roleTitle: string
+            department: string | null
+            email: string | null
+            isKeyPerson: boolean
+          }>
+        }> = []
 
-    const failedUrls: Array<{ url: string; error: string }> = []
+        const failedUrls: Array<{ url: string; error: string }> = []
 
-    for (const url of urls) {
-      try {
-        if (isPdfUrl(url)) {
-          const pdfSignal = await extractSignalsFromPdfUrl(url)
+        for (const url of urls) {
+          try {
+            if (isPdfUrl(url)) {
+              const pdfSignal = await withTimeout(
+                extractSignalsFromPdfUrl(url),
+                PDF_SIGNAL_TIMEOUT_MS,
+                `PDF scan for ${url}`,
+              )
 
-          if (pdfSignal) {
-            extractedSignals.push({
-              ...pdfSignal,
-              detectedPeople: [],
+              if (pdfSignal) {
+                extractedSignals.push({
+                  ...pdfSignal,
+                  detectedPeople: [],
+                })
+              }
+
+              continue
+            }
+
+            const signal = await withTimeout(
+              extractSignalsFromUrl(url),
+              HTML_SIGNAL_TIMEOUT_MS,
+              `HTML scan for ${url}`,
+            )
+
+            if (signal) {
+              extractedSignals.push(signal)
+            }
+          } catch (error) {
+            failedUrls.push({
+              url,
+              error: error instanceof Error ? error.message : 'Unknown URL processing error',
             })
           }
-
-          continue
         }
 
-        const signal = await extractSignalsFromUrl(url)
+        const classified = classifySignals(extractedSignals)
 
-        if (signal) {
-          extractedSignals.push(signal)
-        }
-      } catch (error) {
-        failedUrls.push({
-          url,
-          error: error instanceof Error ? error.message : 'Unknown URL processing error',
-        })
-      }
-    }
-
-    const classified = classifySignals(extractedSignals)
-
-    const hasPersonLinkedFindings = classified.findings.some(
-      (finding) => !!finding.linkedPersonEmail || !!finding.linkedPersonSignature,
-    )
-
-    let finalClassified = classified
-
-    if (classified.people.length > 0 && !hasPersonLinkedFindings) {
-      const personFallbackFindings = buildPersonFirstFallbackFindings(
-        classified.people,
-        extractedSignals,
-      )
-
-      finalClassified = {
-        ...classified,
-        findings: [...classified.findings, ...personFallbackFindings],
-      }
-    } else if (classified.findings.length === 0 && extractedSignals.length > 0) {
-      finalClassified = {
-        ...classified,
-        findings: [
-          {
-            title: 'Public organizational visibility detected',
-            description: `The scan identified ${extractedSignals.length} publicly reachable page(s) relevant to exposure analysis. This indicates publicly accessible organizational context that may support targeted social engineering.`,
-            severity: extractedSignals.length >= 4 ? 'medium' : 'low',
-            category: 'org_visibility',
-            linkedPersonEmail: null,
-            linkedPersonSignature: null,
-            sourceUrl: extractedSignals[0]?.url ?? null,
-            sourceTitle: extractedSignals[0]?.title ?? null,
-            sourceType: 'fallback',
-          },
-        ],
-      }
-    }
-
-    const { uniqueToInsert } = dedupeScannedPeopleAgainstExisting(
-      finalClassified.people,
-      existingPeople,
-    )
-
-    let insertedPeople: InsertedPersonRow[] | null = null
-
-    if (uniqueToInsert.length > 0) {
-      const { data: peopleData, error: peopleError } = await supabaseAdmin
-        .from('people')
-        .insert(
-          uniqueToInsert.map((person) => ({
-            organization_id: organization.id,
-            full_name: person.fullName,
-            role_title: person.roleTitle,
-            department: person.department,
-            email: person.email,
-            is_key_person: person.isKeyPerson,
-          })),
+        const hasPersonLinkedFindings = classified.findings.some(
+          (finding) => !!finding.linkedPersonEmail || !!finding.linkedPersonSignature,
         )
-        .select('id, email, full_name, role_title')
 
-      if (peopleError) {
-        throw new Error(`people insert failed: ${peopleError.message}`)
-      }
+        let finalClassified = classified
 
-      insertedPeople = (peopleData ?? []) as InsertedPersonRow[]
-    }
+        if (classified.people.length > 0 && !hasPersonLinkedFindings) {
+          const personFallbackFindings = buildPersonFirstFallbackFindings(
+            classified.people,
+            extractedSignals,
+          )
 
-    const allKnownPeople = [...existingPeople, ...(insertedPeople ?? [])]
+          finalClassified = {
+            ...classified,
+            findings: [...classified.findings, ...personFallbackFindings],
+          }
+        } else if (classified.findings.length === 0 && extractedSignals.length > 0) {
+          finalClassified = {
+            ...classified,
+            findings: [
+              {
+                title: 'Public organizational visibility detected',
+                description: `The scan identified ${extractedSignals.length} publicly reachable page(s) relevant to exposure analysis. This indicates publicly accessible organizational context that may support targeted social engineering.`,
+                severity: extractedSignals.length >= 4 ? 'medium' : 'low',
+                category: 'org_visibility',
+                linkedPersonEmail: null,
+                linkedPersonSignature: null,
+                sourceUrl: extractedSignals[0]?.url ?? null,
+                sourceTitle: extractedSignals[0]?.title ?? null,
+                sourceType: 'fallback',
+              },
+            ],
+          }
+        }
 
-    const personIdByEmail = new Map<string, string>()
-    const personIdBySignature = new Map<string, string>()
+        const { uniqueToInsert } = dedupeScannedPeopleAgainstExisting(
+          finalClassified.people,
+          existingPeople,
+        )
 
-    for (const person of allKnownPeople) {
-      if (person.email) {
-        personIdByEmail.set(person.email.toLowerCase(), person.id)
-      }
+        let insertedPeople: InsertedPersonRow[] | null = null
 
-      personIdBySignature.set(buildInsertedPersonSignature(person), person.id)
-    }
+        if (uniqueToInsert.length > 0) {
+          const { data: peopleData, error: peopleError } = await supabaseAdmin
+            .from('people')
+            .insert(
+              uniqueToInsert.map((person) => ({
+                organization_id: organization.id,
+                full_name: person.fullName,
+                role_title: person.roleTitle,
+                department: person.department,
+                email: person.email,
+                is_key_person: person.isKeyPerson,
+              })),
+            )
+            .select('id, email, full_name, role_title')
 
-    let insertedFindings: FindingRow[] = []
+          if (peopleError) {
+            throw new Error(`people insert failed: ${peopleError.message}`)
+          }
 
-    if (finalClassified.findings.length > 0) {
-      const findingsPayload = finalClassified.findings.map((finding) => {
-        const personId =
-          (finding.linkedPersonEmail
-            ? personIdByEmail.get(finding.linkedPersonEmail.toLowerCase()) ?? null
-            : null) ||
-          (finding.linkedPersonSignature
-            ? personIdBySignature.get(finding.linkedPersonSignature) ?? null
-            : null)
+          insertedPeople = (peopleData ?? []) as InsertedPersonRow[]
+        }
+
+        const allKnownPeople = [...existingPeople, ...(insertedPeople ?? [])]
+
+        const personIdByEmail = new Map<string, string>()
+        const personIdBySignature = new Map<string, string>()
+
+        for (const person of allKnownPeople) {
+          if (person.email) {
+            personIdByEmail.set(person.email.toLowerCase(), person.id)
+          }
+
+          personIdBySignature.set(buildInsertedPersonSignature(person), person.id)
+        }
+
+        let insertedFindings: FindingRow[] = []
+
+        if (finalClassified.findings.length > 0) {
+          const findingsPayload = finalClassified.findings.map((finding) => {
+            const personId =
+              (finding.linkedPersonEmail
+                ? personIdByEmail.get(finding.linkedPersonEmail.toLowerCase()) ?? null
+                : null) ||
+              (finding.linkedPersonSignature
+                ? personIdBySignature.get(finding.linkedPersonSignature) ?? null
+                : null)
+
+            return {
+              assessment_id: assessmentId,
+              person_id: personId,
+              title: finding.title,
+              description: finding.description,
+              severity: finding.severity,
+              category: finding.category,
+              source_url: finding.sourceUrl,
+              source_title: finding.sourceTitle,
+              source_type: finding.sourceType,
+            }
+          })
+
+          const { data: findingsData, error: findingsError } = await supabaseAdmin
+            .from('findings')
+            .insert(findingsPayload)
+            .select('id, person_id, title, description, severity, category')
+
+          if (findingsError) {
+            throw new Error(`findings insert failed: ${findingsError.message}`)
+          }
+
+          insertedFindings = (findingsData ?? []) as FindingRow[]
+        }
+
+        const assessmentScores = calculateAssessmentScores(insertedFindings)
+        const personScores = calculatePersonScores(insertedFindings)
+
+        const scoresPayload = [
+          {
+            assessment_id: assessmentId,
+            person_id: null,
+            score_type: 'impersonation_risk',
+            score_value: assessmentScores.impersonationScore,
+            risk_level: assessmentScores.impersonationRiskLevel,
+            reason_summary: 'Calculated from publicly discovered findings and category weights.',
+          },
+          {
+            assessment_id: assessmentId,
+            person_id: null,
+            score_type: 'finance_fraud_risk',
+            score_value: assessmentScores.financeScore,
+            risk_level: assessmentScores.financeRiskLevel,
+            reason_summary: 'Calculated from publicly discovered findings and category weights.',
+          },
+          {
+            assessment_id: assessmentId,
+            person_id: null,
+            score_type: 'hr_social_engineering_risk',
+            score_value: assessmentScores.hrScore,
+            risk_level: assessmentScores.hrRiskLevel,
+            reason_summary: 'Calculated from publicly discovered findings and category weights.',
+          },
+          {
+            assessment_id: assessmentId,
+            person_id: null,
+            score_type: 'overall',
+            score_value: assessmentScores.overallScore,
+            risk_level: assessmentScores.overallRiskLevel,
+            reason_summary: 'Average of the three primary score dimensions.',
+          },
+          ...personScores.map((item) => ({
+            assessment_id: assessmentId,
+            person_id: item.personId,
+            score_type: 'person_overall_risk',
+            score_value: item.overallScore,
+            risk_level: item.overallRiskLevel,
+            reason_summary: item.reasonSummary,
+          })),
+        ]
+
+        const { error: scoreInsertError } = await supabaseAdmin
+          .from('scores')
+          .insert(scoresPayload)
+
+        if (scoreInsertError) {
+          throw new Error(`scores insert failed: ${scoreInsertError.message}`)
+        }
+
+        const remediationSeed = [
+          {
+            title: 'Reduce direct public exposure of corporate email addresses',
+            priority: 'high',
+            effort: 'low',
+            impact: 'high',
+            status: 'open',
+          },
+          {
+            title: 'Review leadership and team pages for unnecessary role visibility',
+            priority: 'medium',
+            effort: 'low',
+            impact: 'medium',
+            status: 'open',
+          },
+          {
+            title: 'Introduce verification controls for finance-related requests',
+            priority: 'high',
+            effort: 'medium',
+            impact: 'high',
+            status: 'open',
+          },
+        ]
+
+        const { error: remediationError } = await supabaseAdmin
+          .from('remediation_tasks')
+          .insert(
+            remediationSeed.map((task) => ({
+              assessment_id: assessmentId,
+              ...task,
+            })),
+          )
+
+        if (remediationError) {
+          throw new Error(`remediation insert failed: ${remediationError.message}`)
+        }
+
+        const { error: updateAssessmentError } = await supabaseAdmin
+          .from('assessments')
+          .update({
+            status: 'completed',
+            overall_score: assessmentScores.overallScore,
+            overall_risk_level: riskFromOverall(assessmentScores.overallScore),
+          })
+          .eq('id', assessmentId)
+
+        if (updateAssessmentError) {
+          throw new Error(`assessment update failed: ${updateAssessmentError.message}`)
+        }
 
         return {
-          assessment_id: assessmentId,
-          person_id: personId,
-          title: finding.title,
-          description: finding.description,
-          severity: finding.severity,
-          category: finding.category,
-          source_url: finding.sourceUrl,
-          source_title: finding.sourceTitle,
-          source_type: finding.sourceType,
+          assessmentId,
+          organizationId: organization.id,
+          scannedUrls: urls,
+          failedUrls,
+          scannedPages: extractedSignals.length,
+          insertedPeople: insertedPeople?.length ?? 0,
+          totalKnownPeople: allKnownPeople.length,
+          insertedFindings: insertedFindings.length,
+          overallScore: assessmentScores.overallScore,
+          overallRiskLevel: assessmentScores.overallRiskLevel,
+          summary: {
+            ...finalClassified.summary,
+            fallbackUsed: finalClassified.findings.length > classified.findings.length,
+          },
         }
-      })
+      })(),
+      SCAN_FAILSAFE_TIMEOUT_MS,
+      `Scan for organization ${organization.id}`,
+    )
 
-      const { data: findingsData, error: findingsError } = await supabaseAdmin
-        .from('findings')
-        .insert(findingsPayload)
-        .select('id, person_id, title, description, severity, category')
-
-      if (findingsError) {
-        throw new Error(`findings insert failed: ${findingsError.message}`)
-      }
-
-      insertedFindings = (findingsData ?? []) as FindingRow[]
-    }
-
-    const assessmentScores = calculateAssessmentScores(insertedFindings)
-    const personScores = calculatePersonScores(insertedFindings)
-
-    const scoresPayload = [
-      {
-        assessment_id: assessmentId,
-        person_id: null,
-        score_type: 'impersonation_risk',
-        score_value: assessmentScores.impersonationScore,
-        risk_level: assessmentScores.impersonationRiskLevel,
-        reason_summary: 'Calculated from publicly discovered findings and category weights.',
-      },
-      {
-        assessment_id: assessmentId,
-        person_id: null,
-        score_type: 'finance_fraud_risk',
-        score_value: assessmentScores.financeScore,
-        risk_level: assessmentScores.financeRiskLevel,
-        reason_summary: 'Calculated from publicly discovered findings and category weights.',
-      },
-      {
-        assessment_id: assessmentId,
-        person_id: null,
-        score_type: 'hr_social_engineering_risk',
-        score_value: assessmentScores.hrScore,
-        risk_level: assessmentScores.hrRiskLevel,
-        reason_summary: 'Calculated from publicly discovered findings and category weights.',
-      },
-      {
-        assessment_id: assessmentId,
-        person_id: null,
-        score_type: 'overall',
-        score_value: assessmentScores.overallScore,
-        risk_level: assessmentScores.overallRiskLevel,
-        reason_summary: 'Average of the three primary score dimensions.',
-      },
-      ...personScores.map((item) => ({
-        assessment_id: assessmentId,
-        person_id: item.personId,
-        score_type: 'person_overall_risk',
-        score_value: item.overallScore,
-        risk_level: item.overallRiskLevel,
-        reason_summary: item.reasonSummary,
-      })),
-    ]
-
-    const { error: scoreInsertError } = await supabaseAdmin
-      .from('scores')
-      .insert(scoresPayload)
-
-    if (scoreInsertError) {
-      throw new Error(`scores insert failed: ${scoreInsertError.message}`)
-    }
-
-    const remediationSeed = [
-      {
-        title: 'Reduce direct public exposure of corporate email addresses',
-        priority: 'high',
-        effort: 'low',
-        impact: 'high',
-        status: 'open',
-      },
-      {
-        title: 'Review leadership and team pages for unnecessary role visibility',
-        priority: 'medium',
-        effort: 'low',
-        impact: 'medium',
-        status: 'open',
-      },
-      {
-        title: 'Introduce verification controls for finance-related requests',
-        priority: 'high',
-        effort: 'medium',
-        impact: 'high',
-        status: 'open',
-      },
-    ]
-
-    const { error: remediationError } = await supabaseAdmin
-      .from('remediation_tasks')
-      .insert(
-        remediationSeed.map((task) => ({
-          assessment_id: assessmentId,
-          ...task,
-        })),
-      )
-
-    if (remediationError) {
-      throw new Error(`remediation insert failed: ${remediationError.message}`)
-    }
-
-    const { error: updateAssessmentError } = await supabaseAdmin
-      .from('assessments')
-      .update({
-        status: 'completed',
-        overall_score: assessmentScores.overallScore,
-        overall_risk_level: riskFromOverall(assessmentScores.overallScore),
-      })
-      .eq('id', assessmentId)
-
-    if (updateAssessmentError) {
-      throw new Error(`assessment update failed: ${updateAssessmentError.message}`)
-    }
-
-    return {
-      assessmentId,
-      organizationId: organization.id,
-      scannedUrls: urls,
-      failedUrls,
-      scannedPages: extractedSignals.length,
-      insertedPeople: insertedPeople?.length ?? 0,
-      totalKnownPeople: allKnownPeople.length,
-      insertedFindings: insertedFindings.length,
-      overallScore: assessmentScores.overallScore,
-      overallRiskLevel: assessmentScores.overallRiskLevel,
-      summary: {
-        ...finalClassified.summary,
-        fallbackUsed: finalClassified.findings.length > classified.findings.length,
-      },
-    }
+    return result
   } catch (error) {
     await supabaseAdmin
       .from('assessments')
