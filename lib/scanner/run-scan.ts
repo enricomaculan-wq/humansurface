@@ -166,6 +166,13 @@ function buildLooseScannerPersonSignature(person: ScannerPerson) {
   return `${normalizeText(person.fullName)}|${normalizeText(person.roleTitle)}`
 }
 
+function normalizeSignature(signature: string) {
+  return signature
+    .split('|')
+    .map((part) => part.trim().toLowerCase())
+    .join('|')
+}
+
 function buildPersonFirstFallbackFindings(
   people: ScannerPerson[],
   extractedSignals: Array<{ url: string; title: string }>,
@@ -519,19 +526,20 @@ export async function runPublicScanForOrganization(organizationId: string) {
         if (finalClassified.findings.length > 0) {
           const findingsPayload = finalClassified.findings.map((finding) => {
             const normalizedLinkedEmail = normalizeEmail(finding.linkedPersonEmail)
+            const normalizedLinkedSignature = finding.linkedPersonSignature
+              ? normalizeSignature(finding.linkedPersonSignature)
+              : null
 
             let personId =
               (normalizedLinkedEmail
                 ? personIdByEmail.get(normalizedLinkedEmail) ?? null
                 : null) ||
-              (finding.linkedPersonSignature
-                ? personIdBySignature.get(
-                    `${finding.linkedPersonSignature}`.toLowerCase(),
-                  ) ?? null
+              (normalizedLinkedSignature
+                ? personIdBySignature.get(normalizedLinkedSignature) ?? null
                 : null)
 
-            if (!personId && finding.linkedPersonSignature) {
-              const parts = finding.linkedPersonSignature.toLowerCase().split('|')
+            if (!personId && normalizedLinkedSignature) {
+              const parts = normalizedLinkedSignature.split('|')
               const looseSignature = `${parts[0] ?? ''}|${parts[1] ?? ''}`
               personId = personIdByLooseSignature.get(looseSignature) ?? null
             }
@@ -648,9 +656,22 @@ export async function runPublicScanForOrganization(organizationId: string) {
             })),
           )
 
-          if (remediationError) {
-            throw new Error(`remediation insert failed: ${remediationError.message}`)
-          }
+        if (remediationError) {
+          throw new Error(`remediation insert failed: ${remediationError.message}`)
+        }
+
+        const scanDiagnostics: Record<string, unknown> = {
+          scannedUrls: urls,
+          failedUrls,
+          scannedPages: extractedSignals.length,
+          completedAt: new Date().toISOString(),
+          peopleDetected: finalClassified.people.length,
+          peopleInserted: insertedPeople.length,
+          peopleMatchedExisting: matchedExisting.length,
+          findingsInserted: insertedFindings.length,
+          findingsLinkedToPeople: insertedFindings.filter((f) => !!f.person_id).length,
+          personScoresGenerated: personScores.length,
+        }
 
         const { error: updateAssessmentError } = await supabaseAdmin
           .from('assessments')
@@ -658,12 +679,7 @@ export async function runPublicScanForOrganization(organizationId: string) {
             status: 'completed',
             overall_score: assessmentScores.overallScore,
             overall_risk_level: riskFromOverall(assessmentScores.overallScore),
-            scan_diagnostics: {
-              scannedUrls: urls,
-              failedUrls,
-              scannedPages: extractedSignals.length,
-              completedAt: new Date().toISOString(),
-            },
+            scan_diagnostics: scanDiagnostics,
           })
           .eq('id', assessmentId)
 
@@ -699,24 +715,26 @@ export async function runPublicScanForOrganization(organizationId: string) {
     const message =
       error instanceof Error ? error.message : 'Unknown scan error'
 
+    const failedScanDiagnostics: Record<string, unknown> = {
+      scannedUrls: [],
+      failedUrls: [],
+      scannedPages: 0,
+      failedAt: new Date().toISOString(),
+      error: message,
+      phase: message.toLowerCase().includes('discovery')
+        ? 'discovery'
+        : message.toLowerCase().includes('pdf')
+          ? 'pdf'
+          : message.toLowerCase().includes('html')
+            ? 'html'
+            : 'scan',
+    }
+
     await supabaseAdmin
       .from('assessments')
       .update({
         status: 'failed',
-        scan_diagnostics: {
-          scannedUrls: [],
-          failedUrls: [],
-          scannedPages: 0,
-          failedAt: new Date().toISOString(),
-          error: message,
-          phase: message.toLowerCase().includes('discovery')
-            ? 'discovery'
-            : message.toLowerCase().includes('pdf')
-              ? 'pdf'
-              : message.toLowerCase().includes('html')
-                ? 'html'
-                : 'scan',
-        },
+        scan_diagnostics: failedScanDiagnostics,
       })
       .eq('id', assessmentId)
 
