@@ -56,6 +56,64 @@ function sourceTypeFromUrl(url: string): 'html' | 'pdf' {
   return url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'html'
 }
 
+function isSpamLikeText(value: string) {
+  const lower = value.toLowerCase()
+
+  return [
+    'bonus',
+    'senza deposito',
+    'casino',
+    'slot',
+    'bet',
+    'scommesse',
+    'free-spin',
+    'free spins',
+    'apk',
+    'volna',
+    'luckyadda',
+    'gnbet',
+    'intellectbet',
+    'bucuresti',
+    'palaces',
+    'play your bet',
+    'hyper-frais',
+    'dg-bonus',
+    'site-bonus',
+    'tsi-bonus',
+    'porn',
+    'levitra',
+  ].some((term) => lower.includes(term))
+}
+
+function isLikelyIrrelevantArticle(url: string, title: string) {
+  const lowerUrl = url.toLowerCase()
+  const lowerTitle = title.toLowerCase()
+
+  const isNewsLike =
+    lowerUrl.includes('/news') ||
+    lowerUrl.includes('/media') ||
+    lowerUrl.includes('/press') ||
+    lowerUrl.includes('/blog')
+
+  const hasCorporateSignals =
+    /about|chi-siamo|team|leadership|management|company|contact|contacts|contatti|careers|jobs|people|staff|board|investors|governance|organization|organizzazione|certificazioni|certifications|private-label/.test(
+      lowerUrl,
+    ) ||
+    /about|chi siamo|team|leadership|management|contact|careers|jobs|board|certificazioni|certifications|private label/.test(
+      lowerTitle,
+    )
+
+  return isNewsLike && !hasCorporateSignals
+}
+
+function isUsableSignal(signal: ExtractedSignal) {
+  if (!signal.url) return false
+  if (isSpamLikeText(signal.url)) return false
+  if (isSpamLikeText(signal.title || '')) return false
+  if (isLikelyIrrelevantArticle(signal.url, signal.title || '')) return false
+  return true
+}
+
 function personRiskProfile(person: ScannerPerson) {
   const role = person.roleTitle.toLowerCase()
   const department = (person.department ?? '').toLowerCase()
@@ -115,7 +173,9 @@ export function classifySignals(signals: ExtractedSignal[]): ClassifiedSignals {
   const people: ScannerPerson[] = []
   const allEmails = new Set<string>()
 
-  for (const signal of signals) {
+  const usableSignals = signals.filter(isUsableSignal)
+
+  for (const signal of usableSignals) {
     const emails = signal.emails.map(normalizeEmail)
 
     for (const email of emails) allEmails.add(email)
@@ -268,8 +328,8 @@ export function classifySignals(signals: ExtractedSignal[]): ClassifiedSignals {
     }
   }
 
-  if (signals.length >= 4) {
-    const firstSignal = signals[0]
+  if (usableSignals.length >= 4) {
+    const firstSignal = usableSignals[0]
     pushFinding(
       findings,
       {
@@ -293,7 +353,7 @@ export function classifySignals(signals: ExtractedSignal[]): ClassifiedSignals {
     people: finalPeople,
     summary: {
       publicEmailCount: allEmails.size,
-      scannedPages: signals.length,
+      scannedPages: usableSignals.length,
       detectedPeople: finalPeople.length,
       detectedFindings: findings.length,
     },
