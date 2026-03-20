@@ -23,7 +23,7 @@ const EMAIL_REGEX = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi
 const FETCH_TIMEOUT_MS = 8000
 const MAX_HTML_CHARS = 400_000
 const MAX_TEXT_CHARS = 30_000
-const MIN_USEFUL_TEXT_CHARS = 80
+const MIN_USEFUL_TEXT_CHARS = 30
 
 const ROLE_PATTERNS = [
   { regex: /\bCEO\b/i, role: 'CEO', department: 'Executive', key: true },
@@ -58,16 +58,14 @@ function looksLikeBoilerplate(url: string, text: string) {
   const lower = text.toLowerCase()
   const urlLower = url.toLowerCase()
 
-  const cookieHeavy =
-    /cookie|privacy preferences|consent preferences|accept all|reject all/.test(lower)
-
-  const noSignalWords =
-    !/ceo|cfo|coo|cto|founder|leadership|management|board|executive|director|finance|billing|invoice|accounts payable|accounts receivable|payments|procurement|bank detail|supplier|hr|human resources|recruiting|recruitment|careers|jobs|talent|candidate|contact us|contact|reach us|get in touch|email us/.test(lower)
-
   const irrelevantPath =
     /privacy|cookie|terms|legal|gdpr/.test(urlLower)
 
-  return (cookieHeavy && noSignalWords) || irrelevantPath
+  const veryShortAndCookieHeavy =
+    text.length < 120 &&
+    /cookie|privacy preferences|consent preferences|accept all|reject all/.test(lower)
+
+  return irrelevantPath || veryShortAndCookieHeavy
 }
 
 function extractLikelyPeople(text: string, emails: string[]) {
@@ -174,7 +172,7 @@ export async function extractSignalsFromUrl(url: string): Promise<ExtractedSigna
 
     const hasContactSignals =
       /contact us|contact|reach us|get in touch|email us/.test(lower) ||
-      /contact|contacts/.test(urlLower)
+      /contact|contacts|contatti/.test(urlLower)
 
     const detectedPeople = extractLikelyPeople(text, emails)
 
