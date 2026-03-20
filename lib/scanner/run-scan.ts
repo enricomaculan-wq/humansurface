@@ -77,6 +77,70 @@ function isLikelyValidUrl(url: string) {
   }
 }
 
+function isSpamLikeUrl(url: string) {
+  const lower = url.toLowerCase()
+
+  return [
+    'bonus',
+    'casino',
+    'deposito',
+    'slot',
+    'bet',
+    'scommesse',
+    'free-spin',
+    'free-spins',
+    'apk',
+    'volna',
+    'luckyadda',
+    'gnbet',
+    'intellectbet',
+    'bucuresti',
+    'palaces',
+    'play-your-bet',
+    'hyper-frais',
+    'dg-bonus',
+    'site-bonus',
+    'tsi-bonus',
+    'porn',
+    'levitra',
+  ].some((term) => lower.includes(term))
+}
+
+function isLikelyIrrelevantArticle(url: string) {
+  const lower = url.toLowerCase()
+
+  const isNewsLike =
+    lower.includes('/news') ||
+    lower.includes('/media') ||
+    lower.includes('/press') ||
+    lower.includes('/blog')
+
+  const hasCorporateSignals =
+    lower.includes('about') ||
+    lower.includes('chi-siamo') ||
+    lower.includes('team') ||
+    lower.includes('leadership') ||
+    lower.includes('management') ||
+    lower.includes('company') ||
+    lower.includes('contact') ||
+    lower.includes('contacts') ||
+    lower.includes('contatti') ||
+    lower.includes('careers') ||
+    lower.includes('jobs') ||
+    lower.includes('people') ||
+    lower.includes('staff') ||
+    lower.includes('board') ||
+    lower.includes('investors') ||
+    lower.includes('governance') ||
+    lower.includes('organization') ||
+    lower.includes('organizzazione') ||
+    lower.includes('certificazioni') ||
+    lower.includes('certifications') ||
+    lower.includes('private-label')
+
+  return isNewsLike && !hasCorporateSignals
+}
+
 function buildPersonSignature(person: ScannerPerson) {
   return `${person.fullName ?? ''}|${person.roleTitle}|${person.email ?? ''}`
 }
@@ -251,7 +315,13 @@ export async function runPublicScanForOrganization(organizationId: string) {
     const result = await withTimeout(
       (async () => {
         const discoveredUrls = await discoverRelevantUrls(organization.domain)
-        const urls = discoveredUrls.filter(isLikelyValidUrl)
+
+        const urls = discoveredUrls.filter(
+          (url) =>
+            isLikelyValidUrl(url) &&
+            !isSpamLikeUrl(url) &&
+            !isLikelyIrrelevantArticle(url),
+        )
 
         const extractedSignals: Array<{
           url: string
@@ -274,6 +344,14 @@ export async function runPublicScanForOrganization(organizationId: string) {
         const failedUrls: Array<{ url: string; error: string }> = []
 
         for (const url of urls) {
+          if (isSpamLikeUrl(url) || isLikelyIrrelevantArticle(url)) {
+            failedUrls.push({
+              url,
+              error: 'Skipped non-corporate or spam-like URL',
+            })
+            continue
+          }
+
           try {
             if (isPdfUrl(url)) {
               const pdfSignal = await withTimeout(
@@ -522,6 +600,12 @@ export async function runPublicScanForOrganization(organizationId: string) {
             status: 'completed',
             overall_score: assessmentScores.overallScore,
             overall_risk_level: riskFromOverall(assessmentScores.overallScore),
+            scan_diagnostics: {
+              scannedUrls: urls,
+              failedUrls,
+              scannedPages: extractedSignals.length,
+              completedAt: new Date().toISOString(),
+            },
           })
           .eq('id', assessmentId)
 
@@ -554,7 +638,13 @@ export async function runPublicScanForOrganization(organizationId: string) {
   } catch (error) {
     await supabaseAdmin
       .from('assessments')
-      .update({ status: 'failed' })
+      .update({
+        status: 'failed',
+        scan_diagnostics: {
+          failedAt: new Date().toISOString(),
+          error: error instanceof Error ? error.message : 'Unknown scan error',
+        },
+      })
       .eq('id', assessmentId)
 
     throw error

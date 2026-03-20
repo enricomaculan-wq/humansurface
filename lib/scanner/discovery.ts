@@ -29,6 +29,9 @@ const KEYWORDS = [
   'sustainability',
   'organization',
   'organizzazione',
+  'certificazioni',
+  'certifications',
+  'private-label',
 ]
 
 const COMMON_PATHS = [
@@ -52,6 +55,8 @@ const COMMON_PATHS = [
   '/news',
   '/investors',
   '/governance',
+  '/certificazioni',
+  '/certifications',
   '/brochure.pdf',
   '/company-profile.pdf',
   '/profile.pdf',
@@ -86,13 +91,68 @@ function isSameHost(base: URL, target: URL) {
   )
 }
 
+function isSpamLikeUrl(url: string) {
+  const lower = url.toLowerCase()
+
+  return [
+    'bonus',
+    'casino',
+    'deposito',
+    'slot',
+    'bet',
+    'scommesse',
+    'free-spin',
+    'free-spins',
+    'apk',
+    'volna',
+    'luckyadda',
+    'gnbet',
+    'intellectbet',
+    'bucuresti',
+    'palaces',
+    'play-your-bet',
+    'hyper-frais',
+    'dg-bonus',
+    'site-bonus',
+    'tsi-bonus',
+    'porn',
+    'levitra',
+  ].some((term) => lower.includes(term))
+}
+
+function isLikelyIrrelevantArticle(url: string) {
+  const lower = url.toLowerCase()
+
+  const isNewsLike =
+    lower.includes('/news') ||
+    lower.includes('/media') ||
+    lower.includes('/press') ||
+    lower.includes('/blog')
+
+  const hasCorporateSignals =
+    KEYWORDS.some((keyword) => lower.includes(keyword)) ||
+    lower.includes('certificazioni') ||
+    lower.includes('certifications') ||
+    lower.includes('private-label')
+
+  return isNewsLike && !hasCorporateSignals
+}
+
 function isRelevant(url: string) {
   const lower = url.toLowerCase()
+
+  if (isSpamLikeUrl(lower)) return false
+  if (isLikelyIrrelevantArticle(lower)) return false
+
   return KEYWORDS.some((keyword) => lower.includes(keyword)) || lower.endsWith('.pdf')
 }
 
 function isMaybeUseful(url: string) {
   const lower = url.toLowerCase()
+
+  if (isSpamLikeUrl(lower)) return false
+  if (isLikelyIrrelevantArticle(lower)) return false
+
   return isRelevant(lower) || lower.split('/').filter(Boolean).length <= 2
 }
 
@@ -204,6 +264,8 @@ async function collectLinksFromPage(
 
     const normalized = normalizeUrl(resolved.toString())
     if (!normalized) return
+    if (isSpamLikeUrl(normalized)) return
+    if (isLikelyIrrelevantArticle(normalized)) return
 
     if (isMaybeUseful(normalized)) {
       urls.add(normalized)
@@ -247,6 +309,8 @@ export async function discoverRelevantUrls(domain: string) {
 
     const normalized = normalizeUrl(resolved.toString())
     if (!normalized) return
+    if (isSpamLikeUrl(normalized)) return
+    if (isLikelyIrrelevantArticle(normalized)) return
 
     if (isRelevant(normalized)) {
       priorityUrls.add(normalized)
@@ -264,6 +328,8 @@ export async function discoverRelevantUrls(domain: string) {
 
     const normalized = normalizeUrl(resolved.toString())
     if (!normalized) continue
+    if (isSpamLikeUrl(normalized)) continue
+    if (isLikelyIrrelevantArticle(normalized)) continue
 
     checkedCommonPaths += 1
 
@@ -284,6 +350,8 @@ export async function discoverRelevantUrls(domain: string) {
 
   for (const url of firstPass.slice(0, MAX_SUBPAGES_TO_EXPLORE)) {
     if (url.toLowerCase().endsWith('.pdf')) continue
+    if (isSpamLikeUrl(url)) continue
+    if (isLikelyIrrelevantArticle(url)) continue
 
     const subLinks = await collectLinksFromPage(url, baseUrl, MAX_LINKS_PER_SUBPAGE)
 

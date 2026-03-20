@@ -9,6 +9,14 @@ type Assessment = {
   overall_score: number
   overall_risk_level: string
   created_at: string
+  scan_diagnostics: {
+    scannedUrls?: string[]
+    failedUrls?: Array<{ url: string; error: string }>
+    scannedPages?: number
+    completedAt?: string
+    failedAt?: string
+    error?: string
+  } | null
 }
 
 type Organization = {
@@ -135,7 +143,10 @@ export default async function AssessmentReportPage({
 
   const assessment = assessmentData as Assessment | null
   if (!assessment) notFound()
-
+  const scanDiagnostics = assessment.scan_diagnostics ?? null
+  const scannedUrls = scanDiagnostics?.scannedUrls ?? []
+  const failedUrls = scanDiagnostics?.failedUrls ?? []
+  const scannedPages = scanDiagnostics?.scannedPages ?? 0
   const organizations = (organizationsData ?? []) as Organization[]
   const findings = (findingsData ?? []) as Finding[]
   const people = (peopleData ?? []) as Person[]
@@ -208,6 +219,59 @@ export default async function AssessmentReportPage({
                   signals that may enable phishing, impersonation, and fraud.
                 </p>
               </div>
+
+            <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
+              <h2 className="mb-5 text-2xl font-semibold">Scan diagnostics</h2>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                    Scanned URLs
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {scannedUrls.length}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                    Processed pages
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {scannedPages}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                    Skipped / failed URLs
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {failedUrls.length}
+                  </div>
+                </div>
+              </div>
+
+              {failedUrls.length > 0 ? (
+                <div className="mt-5 rounded-2xl border border-white/10 bg-[#030815] p-4">
+                  <div className="mb-3 text-sm font-medium text-white">
+                    Failed or skipped URLs
+                  </div>
+
+                  <div className="space-y-3">
+                    {failedUrls.slice(0, 10).map((item, index) => (
+                      <div
+                        key={`${item.url}-${index}`}
+                        className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
+                      >
+                        <div className="break-all text-sm text-slate-200">{item.url}</div>
+                        <div className="mt-1 text-xs text-slate-500">{item.error}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </section>
 
               <div className="flex items-center gap-4">
                 <div className="text-right">
