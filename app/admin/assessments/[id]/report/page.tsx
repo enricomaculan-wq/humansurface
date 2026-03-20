@@ -223,6 +223,20 @@ export default async function AssessmentReportPage({
             <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
               <h2 className="mb-5 text-2xl font-semibold">Scan diagnostics</h2>
 
+              {scanDiagnostics?.error ? (
+                <div className="mt-5 rounded-2xl border border-red-400/20 bg-red-400/10 p-4">
+                  <div className="text-sm font-medium text-red-200">Scan error</div>
+                  <div className="mt-2 text-sm text-red-100 break-words">
+                    {scanDiagnostics.error}
+                  </div>
+                  {scanDiagnostics.failedAt ? (
+                    <div className="mt-2 text-xs text-red-200/70">
+                      Failed at: {scanDiagnostics.failedAt}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <div className="text-xs uppercase tracking-[0.16em] text-slate-500">

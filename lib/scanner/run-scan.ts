@@ -635,12 +635,15 @@ export async function runPublicScanForOrganization(organizationId: string) {
     )
 
     return result
-  } catch (error) {
+    } catch (error) {
     await supabaseAdmin
       .from('assessments')
       .update({
         status: 'failed',
         scan_diagnostics: {
+          scannedUrls: [],
+          failedUrls: [],
+          scannedPages: 0,
           failedAt: new Date().toISOString(),
           error: error instanceof Error ? error.message : 'Unknown scan error',
         },
