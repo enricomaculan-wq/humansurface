@@ -17,6 +17,12 @@ type Assessment = {
     completedAt?: string
     failedAt?: string
     error?: string
+    peopleDetected?: number
+    peopleInserted?: number
+    peopleMatchedExisting?: number
+    findingsInserted?: number
+    findingsLinkedToPeople?: number
+    personScoresGenerated?: number
   } | null
 }
 
@@ -106,6 +112,21 @@ function ScoreCard({
   )
 }
 
+function DiagnosticCard({
+  label,
+  value,
+}: {
+  label: string
+  value: number
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+      <div className="text-xs uppercase tracking-[0.16em] text-slate-500">{label}</div>
+      <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
+    </div>
+  )
+}
+
 export default async function AssessmentReportPage({
   params,
 }: {
@@ -149,6 +170,12 @@ export default async function AssessmentReportPage({
   const scannedUrls = scanDiagnostics?.scannedUrls ?? []
   const failedUrls = scanDiagnostics?.failedUrls ?? []
   const scannedPages = scanDiagnostics?.scannedPages ?? 0
+  const peopleDetected = scanDiagnostics?.peopleDetected ?? 0
+  const peopleInserted = scanDiagnostics?.peopleInserted ?? 0
+  const peopleMatchedExisting = scanDiagnostics?.peopleMatchedExisting ?? 0
+  const findingsInserted = scanDiagnostics?.findingsInserted ?? 0
+  const findingsLinkedToPeople = scanDiagnostics?.findingsLinkedToPeople ?? 0
+  const personScoresGenerated = scanDiagnostics?.personScoresGenerated ?? 0
 
   const organizations = (organizationsData ?? []) as Organization[]
   const findings = (findingsData ?? []) as Finding[]
@@ -289,32 +316,21 @@ export default async function AssessmentReportPage({
             ) : null}
 
             <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                  Scanned URLs
-                </div>
-                <div className="mt-2 text-2xl font-semibold text-white">
-                  {scannedUrls.length}
-                </div>
-              </div>
+              <DiagnosticCard label="Scanned URLs" value={scannedUrls.length} />
+              <DiagnosticCard label="Processed pages" value={scannedPages} />
+              <DiagnosticCard label="Skipped / failed URLs" value={failedUrls.length} />
+            </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                  Processed pages
-                </div>
-                <div className="mt-2 text-2xl font-semibold text-white">
-                  {scannedPages}
-                </div>
-              </div>
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <DiagnosticCard label="People detected" value={peopleDetected} />
+              <DiagnosticCard label="People inserted" value={peopleInserted} />
+              <DiagnosticCard label="People matched existing" value={peopleMatchedExisting} />
+            </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                  Skipped / failed URLs
-                </div>
-                <div className="mt-2 text-2xl font-semibold text-white">
-                  {failedUrls.length}
-                </div>
-              </div>
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <DiagnosticCard label="Findings inserted" value={findingsInserted} />
+              <DiagnosticCard label="Findings linked to people" value={findingsLinkedToPeople} />
+              <DiagnosticCard label="Person scores generated" value={personScoresGenerated} />
             </div>
 
             {failedUrls.length > 0 ? (
