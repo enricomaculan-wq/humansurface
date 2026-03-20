@@ -142,12 +142,28 @@ function isLikelyIrrelevantArticle(url: string) {
   return isNewsLike && !hasCorporateSignals
 }
 
+function normalizeEmail(email: string | null | undefined) {
+  return email?.trim().toLowerCase() ?? null
+}
+
+function normalizeText(value: string | null | undefined) {
+  return value?.trim().toLowerCase() ?? ''
+}
+
 function buildPersonSignature(person: ScannerPerson) {
-  return `${person.fullName ?? ''}|${person.roleTitle}|${person.email ?? ''}`
+  return `${normalizeText(person.fullName)}|${normalizeText(person.roleTitle)}|${normalizeEmail(person.email) ?? ''}`
 }
 
 function buildInsertedPersonSignature(person: InsertedPersonRow) {
-  return `${person.full_name ?? ''}|${person.role_title}|${person.email ?? ''}`
+  return `${normalizeText(person.full_name)}|${normalizeText(person.role_title)}|${normalizeEmail(person.email) ?? ''}`
+}
+
+function buildLooseInsertedPersonSignature(person: InsertedPersonRow) {
+  return `${normalizeText(person.full_name)}|${normalizeText(person.role_title)}`
+}
+
+function buildLooseScannerPersonSignature(person: ScannerPerson) {
+  return `${normalizeText(person.fullName)}|${normalizeText(person.roleTitle)}`
 }
 
 function buildPersonFirstFallbackFindings(
@@ -197,30 +213,39 @@ function dedupeScannedPeopleAgainstExisting(
   existingPeople: InsertedPersonRow[],
 ) {
   const existingBySignature = new Map<string, InsertedPersonRow>()
+  const existingByLooseSignature = new Map<string, InsertedPersonRow>()
   const existingByEmail = new Map<string, InsertedPersonRow>()
 
   for (const person of existingPeople) {
     existingBySignature.set(buildInsertedPersonSignature(person), person)
+    existingByLooseSignature.set(buildLooseInsertedPersonSignature(person), person)
 
-    if (person.email) {
-      existingByEmail.set(person.email.toLowerCase(), person)
+    const email = normalizeEmail(person.email)
+    if (email) {
+      existingByEmail.set(email, person)
     }
   }
 
   const uniqueToInsert: ScannerPerson[] = []
   const matchedExisting: InsertedPersonRow[] = []
+  const matchedIds = new Set<string>()
 
   for (const person of scannedPeople) {
     const signature = buildPersonSignature(person)
-    const email = person.email?.toLowerCase() ?? null
+    const looseSignature = buildLooseScannerPersonSignature(person)
+    const email = normalizeEmail(person.email)
 
     const match =
       (email ? existingByEmail.get(email) ?? null : null) ||
       existingBySignature.get(signature) ||
+      existingByLooseSignature.get(looseSignature) ||
       null
 
     if (match) {
-      matchedExisting.push(match)
+      if (!matchedIds.has(match.id)) {
+        matchedIds.add(match.id)
+        matchedExisting.push(match)
+      }
     } else {
       uniqueToInsert.push(person)
     }
@@ -395,15 +420,16 @@ export async function runPublicScanForOrganization(organizationId: string) {
               })
             }
           } catch (error) {
-              if (error instanceof Error && error.name === 'AbortError') {
-                return { ok: false, reason: 'Request timed out' }
-              }
-
-              return {
-                ok: false,
-                reason: error instanceof Error ? error.message : 'Unknown extraction error',
-              }
-            }
+            failedUrls.push({
+              url,
+              error:
+                error instanceof Error && error.name === 'AbortError'
+                  ? 'Request timed out'
+                  : error instanceof Error
+                    ? error.message
+                    : 'Unknown extraction error',
+            })
+          }
         }
 
         const classified = classifySignals(extractedSignals)
@@ -443,12 +469,12 @@ export async function runPublicScanForOrganization(organizationId: string) {
           }
         }
 
-        const { uniqueToInsert } = dedupeScannedPeopleAgainstExisting(
+        const { uniqueToInsert, matchedExisting } = dedupeScannedPeopleAgainstExisting(
           finalClassified.people,
           existingPeople,
         )
 
-        let insertedPeople: InsertedPersonRow[] | null = null
+        let insertedPeople: InsertedPersonRow[] = []
 
         if (uniqueToInsert.length > 0) {
           const { data: peopleData, error: peopleError } = await supabaseAdmin
@@ -472,30 +498,43 @@ export async function runPublicScanForOrganization(organizationId: string) {
           insertedPeople = (peopleData ?? []) as InsertedPersonRow[]
         }
 
-        const allKnownPeople = [...existingPeople, ...(insertedPeople ?? [])]
+        const allKnownPeople = [...existingPeople, ...matchedExisting, ...insertedPeople]
 
         const personIdByEmail = new Map<string, string>()
         const personIdBySignature = new Map<string, string>()
+        const personIdByLooseSignature = new Map<string, string>()
 
         for (const person of allKnownPeople) {
-          if (person.email) {
-            personIdByEmail.set(person.email.toLowerCase(), person.id)
+          const email = normalizeEmail(person.email)
+          if (email) {
+            personIdByEmail.set(email, person.id)
           }
 
           personIdBySignature.set(buildInsertedPersonSignature(person), person.id)
+          personIdByLooseSignature.set(buildLooseInsertedPersonSignature(person), person.id)
         }
 
         let insertedFindings: FindingRow[] = []
 
         if (finalClassified.findings.length > 0) {
           const findingsPayload = finalClassified.findings.map((finding) => {
-            const personId =
-              (finding.linkedPersonEmail
-                ? personIdByEmail.get(finding.linkedPersonEmail.toLowerCase()) ?? null
+            const normalizedLinkedEmail = normalizeEmail(finding.linkedPersonEmail)
+
+            let personId =
+              (normalizedLinkedEmail
+                ? personIdByEmail.get(normalizedLinkedEmail) ?? null
                 : null) ||
               (finding.linkedPersonSignature
-                ? personIdBySignature.get(finding.linkedPersonSignature) ?? null
+                ? personIdBySignature.get(
+                    `${finding.linkedPersonSignature}`.toLowerCase(),
+                  ) ?? null
                 : null)
+
+            if (!personId && finding.linkedPersonSignature) {
+              const parts = finding.linkedPersonSignature.toLowerCase().split('|')
+              const looseSignature = `${parts[0] ?? ''}|${parts[1] ?? ''}`
+              personId = personIdByLooseSignature.get(looseSignature) ?? null
+            }
 
             return {
               assessment_id: assessmentId,
@@ -609,9 +648,9 @@ export async function runPublicScanForOrganization(organizationId: string) {
             })),
           )
 
-        if (remediationError) {
-          throw new Error(`remediation insert failed: ${remediationError.message}`)
-        }
+          if (remediationError) {
+            throw new Error(`remediation insert failed: ${remediationError.message}`)
+          }
 
         const { error: updateAssessmentError } = await supabaseAdmin
           .from('assessments')
@@ -638,9 +677,11 @@ export async function runPublicScanForOrganization(organizationId: string) {
           scannedUrls: urls,
           failedUrls,
           scannedPages: extractedSignals.length,
-          insertedPeople: insertedPeople?.length ?? 0,
+          insertedPeople: insertedPeople.length,
+          matchedPeople: matchedExisting.length,
           totalKnownPeople: allKnownPeople.length,
           insertedFindings: insertedFindings.length,
+          personScoresGenerated: personScores.length,
           overallScore: assessmentScores.overallScore,
           overallRiskLevel: assessmentScores.overallRiskLevel,
           summary: {
