@@ -314,7 +314,11 @@ export async function runPublicScanForOrganization(organizationId: string) {
   try {
     const result = await withTimeout(
       (async () => {
-        const discoveredUrls = await discoverRelevantUrls(organization.domain)
+        const discoveredUrls = await withTimeout(
+          discoverRelevantUrls(organization.domain),
+          25_000,
+          `Discovery for ${organization.domain}`,
+        )
 
         const urls = discoveredUrls.filter(
           (url) =>
@@ -635,7 +639,10 @@ export async function runPublicScanForOrganization(organizationId: string) {
     )
 
     return result
-    } catch (error) {
+ } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown scan error'
+
     await supabaseAdmin
       .from('assessments')
       .update({
@@ -645,7 +652,14 @@ export async function runPublicScanForOrganization(organizationId: string) {
           failedUrls: [],
           scannedPages: 0,
           failedAt: new Date().toISOString(),
-          error: error instanceof Error ? error.message : 'Unknown scan error',
+          error: message,
+          phase: message.toLowerCase().includes('discovery')
+            ? 'discovery'
+            : message.toLowerCase().includes('pdf')
+              ? 'pdf'
+              : message.toLowerCase().includes('html')
+                ? 'html'
+                : 'scan',
         },
       })
       .eq('id', assessmentId)
