@@ -9,8 +9,12 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase()
 }
 
+function normalizeText(value: string | null | undefined) {
+  return value?.trim().toLowerCase() ?? ''
+}
+
 function buildPersonSignature(person: ScannerPerson) {
-  return `${person.fullName ?? ''}|${person.roleTitle}|${person.email ?? ''}`
+  return `${normalizeText(person.fullName)}|${normalizeText(person.roleTitle)}|${normalizeText(person.email)}`
 }
 
 function dedupePeople(people: ScannerPerson[]) {
@@ -26,18 +30,66 @@ function dedupePeople(people: ScannerPerson[]) {
   return Array.from(map.values())
 }
 
+function canonicalSourceGroup(url: string | null | undefined) {
+  const lower = normalizeText(url)
+
+  if (!lower) return 'unknown'
+
+  if (
+    lower.includes('/contact') ||
+    lower.includes('/contacts') ||
+    lower.includes('/contatti') ||
+    lower.includes('contact-us') ||
+    lower.includes('contattaci')
+  ) {
+    return 'contact_family'
+  }
+
+  if (
+    lower.includes('/about') ||
+    lower.includes('/about-us') ||
+    lower.includes('/chi-siamo') ||
+    lower.includes('/company')
+  ) {
+    return 'about_family'
+  }
+
+  if (
+    lower.includes('/team') ||
+    lower.includes('/leadership') ||
+    lower.includes('/management') ||
+    lower.includes('/board') ||
+    lower.includes('/people')
+  ) {
+    return 'leadership_family'
+  }
+
+  if (
+    lower.includes('/careers') ||
+    lower.includes('/career') ||
+    lower.includes('/jobs') ||
+    lower.includes('/lavora-con-noi')
+  ) {
+    return 'careers_family'
+  }
+
+  return lower
+}
+
 function pushFinding(
   findings: ScannerFinding[],
   finding: ScannerFinding,
   seen: Set<string>,
 ) {
+  const sourceGroup = canonicalSourceGroup(finding.sourceUrl)
+
   const key = [
     finding.title,
     finding.category,
     finding.severity,
     finding.linkedPersonEmail ?? '',
     finding.linkedPersonSignature ?? '',
-    finding.sourceUrl ?? '',
+    sourceGroup,
   ].join('|')
 
   if (!seen.has(key)) {
