@@ -34,7 +34,7 @@ const KEYWORDS = [
   'private-label',
 ]
 
-const COMMON_PATHS = [
+const HIGH_PRIORITY_PATHS = [
   '/',
   '/contact',
   '/contacts',
@@ -50,6 +50,9 @@ const COMMON_PATHS = [
   '/board',
   '/certificazioni',
   '/certifications',
+]
+
+const SECONDARY_PATHS = [
   '/careers',
   '/jobs',
   '/investors',
@@ -60,7 +63,7 @@ const COMMON_PATHS = [
 ]
 
 const FETCH_TIMEOUT_MS = 4000
-const MAX_FINAL_URLS = 12
+const MAX_FINAL_URLS = 10
 const MAX_SUBPAGES_TO_EXPLORE = 3
 const MAX_LINKS_PER_SUBPAGE = 10
 
@@ -289,7 +292,7 @@ export async function discoverRelevantUrls(domain: string) {
 
   priorityUrls.add(normalizeUrl(homepage))
 
-  for (const path of COMMON_PATHS) {
+  for (const path of HIGH_PRIORITY_PATHS) {
     const resolved = tryBuildUrl(path, homepage)
     if (!resolved) continue
 
@@ -298,11 +301,19 @@ export async function discoverRelevantUrls(domain: string) {
     if (isSpamLikeUrl(normalized)) continue
     if (isLikelyIrrelevantArticle(normalized)) continue
 
-    if (isRelevant(normalized)) {
-      priorityUrls.add(normalized)
-    } else if (isMaybeUseful(normalized)) {
-      secondaryUrls.add(normalized)
-    }
+    priorityUrls.add(normalized)
+  }
+
+  for (const path of SECONDARY_PATHS) {
+    const resolved = tryBuildUrl(path, homepage)
+    if (!resolved) continue
+
+    const normalized = normalizeUrl(resolved.toString())
+    if (!normalized) continue
+    if (isSpamLikeUrl(normalized)) continue
+    if (isLikelyIrrelevantArticle(normalized)) continue
+
+    secondaryUrls.add(normalized)
   }
 
   if (html) {

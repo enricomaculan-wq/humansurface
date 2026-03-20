@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { formatDateTime } from '@/lib/date'
 
 type Assessment = {
   id: string
@@ -143,10 +144,12 @@ export default async function AssessmentReportPage({
 
   const assessment = assessmentData as Assessment | null
   if (!assessment) notFound()
+
   const scanDiagnostics = assessment.scan_diagnostics ?? null
   const scannedUrls = scanDiagnostics?.scannedUrls ?? []
   const failedUrls = scanDiagnostics?.failedUrls ?? []
   const scannedPages = scanDiagnostics?.scannedPages ?? 0
+
   const organizations = (organizationsData ?? []) as Organization[]
   const findings = (findingsData ?? []) as Finding[]
   const people = (peopleData ?? []) as Person[]
@@ -171,6 +174,11 @@ export default async function AssessmentReportPage({
   const topPeople = [...personScores]
     .sort((a, b) => b.score_value - a.score_value)
     .slice(0, 5)
+
+  const summaryLine =
+    scannedUrls.length > 0
+      ? `${scannedPages} pagine analizzate, ${failedUrls.length} URL saltate o non disponibili.`
+      : 'Nessuna pagina pubblica utile è stata ancora analizzata.'
 
   return (
     <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
@@ -208,86 +216,23 @@ export default async function AssessmentReportPage({
 
         <div className="space-y-6">
           <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-8 backdrop-blur-xl">
-            <div className="flex flex-col gap-6 border-b border-white/10 pb-6 lg:flex-row lg:items-end lg:justify-between">
-              <div>
+            <div className="flex flex-col gap-6 border-b border-white/10 pb-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-3xl">
                 <div className="text-sm uppercase tracking-[0.18em] text-cyan-300">
                   HumanSurface report
                 </div>
                 <h2 className="mt-2 text-3xl font-semibold">Assessment summary</h2>
-                <p className="mt-3 max-w-3xl text-slate-400">
+                <p className="mt-3 text-slate-400">
                   Executive-ready overview of publicly exposed people, roles, and
                   signals that may enable phishing, impersonation, and fraud.
                 </p>
+                <p className="mt-3 text-sm text-slate-500">{summaryLine}</p>
+                <p className="mt-2 text-xs text-slate-500">
+                  Created: {formatDateTime(assessment.created_at)}
+                </p>
               </div>
 
-            <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
-              <h2 className="mb-5 text-2xl font-semibold">Scan diagnostics</h2>
-
-              {scanDiagnostics?.error ? (
-                <div className="mt-5 rounded-2xl border border-red-400/20 bg-red-400/10 p-4">
-                  <div className="text-sm font-medium text-red-200">Scan error</div>
-                  <div className="mt-2 text-sm text-red-100 break-words">
-                    {scanDiagnostics.error}
-                  </div>
-                  {scanDiagnostics.failedAt ? (
-                    <div className="mt-2 text-xs text-red-200/70">
-                      Failed at: {scanDiagnostics.failedAt}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                    Scanned URLs
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-white">
-                    {scannedUrls.length}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                    Processed pages
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-white">
-                    {scannedPages}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                    Skipped / failed URLs
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-white">
-                    {failedUrls.length}
-                  </div>
-                </div>
-              </div>
-
-              {failedUrls.length > 0 ? (
-                <div className="mt-5 rounded-2xl border border-white/10 bg-[#030815] p-4">
-                  <div className="mb-3 text-sm font-medium text-white">
-                    Failed or skipped URLs
-                  </div>
-
-                  <div className="space-y-3">
-                    {failedUrls.slice(0, 10).map((item, index) => (
-                      <div
-                        key={`${item.url}-${index}`}
-                        className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
-                      >
-                        <div className="break-all text-sm text-slate-200">{item.url}</div>
-                        <div className="mt-1 text-xs text-slate-500">{item.error}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </section>
-
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 self-start lg:self-end">
                 <div className="text-right">
                   <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
                     Overall score
@@ -324,6 +269,73 @@ export default async function AssessmentReportPage({
                 risk={hrScore?.risk_level ?? 'low'}
               />
             </div>
+          </div>
+
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
+            <h2 className="mb-5 text-2xl font-semibold">Scan diagnostics</h2>
+
+            {scanDiagnostics?.error ? (
+              <div className="mb-5 rounded-2xl border border-red-400/20 bg-red-400/10 p-4">
+                <div className="text-sm font-medium text-red-200">Scan error</div>
+                <div className="mt-2 break-words text-sm text-red-100">
+                  {scanDiagnostics.error}
+                </div>
+                {scanDiagnostics.failedAt ? (
+                  <div className="mt-2 text-xs text-red-200/70">
+                    Failed at: {formatDateTime(scanDiagnostics.failedAt)}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                  Scanned URLs
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-white">
+                  {scannedUrls.length}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                  Processed pages
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-white">
+                  {scannedPages}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                  Skipped / failed URLs
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-white">
+                  {failedUrls.length}
+                </div>
+              </div>
+            </div>
+
+            {failedUrls.length > 0 ? (
+              <div className="mt-5 rounded-2xl border border-white/10 bg-[#030815] p-4">
+                <div className="mb-3 text-sm font-medium text-white">
+                  Failed or skipped URLs
+                </div>
+
+                <div className="space-y-3">
+                  {failedUrls.slice(0, 10).map((item, index) => (
+                    <div
+                      key={`${item.url}-${index}`}
+                      className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
+                    >
+                      <div className="break-all text-sm text-slate-200">{item.url}</div>
+                      <div className="mt-1 text-xs text-slate-500">{item.error}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">

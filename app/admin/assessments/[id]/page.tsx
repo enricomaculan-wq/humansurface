@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { formatDateTime } from '@/lib/date'
 import DeleteButton from '@/app/components/admin/delete-button'
 import AssessmentEditor from './assessment-editor'
 
@@ -69,6 +70,51 @@ function RiskBadge({ value }: { value: string }) {
   )
 }
 
+function RunningScanNotice() {
+  return (
+    <div className="rounded-[28px] border border-cyan-300/20 bg-cyan-300/[0.08] p-6 backdrop-blur-xl">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="text-sm uppercase tracking-[0.18em] text-cyan-200">
+            Scan in progress
+          </div>
+          <h2 className="mt-2 text-2xl font-semibold text-white">
+            HumanSurface is analyzing public pages
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+            The page refreshes automatically while the assessment is running. New findings,
+            scores, and people will appear as soon as processing is completed.
+          </p>
+        </div>
+
+        <div className="min-w-[180px] rounded-2xl border border-cyan-200/10 bg-[#030815]/50 p-4">
+          <div className="mb-3 flex items-center gap-2 text-sm text-cyan-100">
+            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-cyan-300" />
+            Running
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full w-2/3 animate-pulse rounded-full bg-cyan-300" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AutoRefreshWhileRunning() {
+  return (
+    <script
+      dangerouslySetInnerHTML={{
+        __html: `
+          setTimeout(() => {
+            window.location.reload();
+          }, 7000);
+        `,
+      }}
+    />
+  )
+}
+
 export default async function AssessmentDetailPage({
   params,
 }: {
@@ -112,9 +158,12 @@ export default async function AssessmentDetailPage({
 
   const assessmentScores = scores.filter((score) => score.person_id === null)
   const personScores = scores.filter((score) => score.person_id !== null)
+  const isRunning = assessment.status === 'running'
 
   return (
     <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
+      {isRunning ? <AutoRefreshWhileRunning /> : null}
+
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4">
           <div>
@@ -170,6 +219,12 @@ export default async function AssessmentDetailPage({
           </div>
         </div>
 
+        {isRunning ? (
+          <div className="mb-6">
+            <RunningScanNotice />
+          </div>
+        ) : null}
+
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
             <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
@@ -184,7 +239,7 @@ export default async function AssessmentDetailPage({
                     Status
                   </div>
                   <div className="mt-2">
-                    {assessment.status === 'running' ? (
+                    {isRunning ? (
                       <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-medium uppercase text-cyan-100">
                         <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-300" />
                         running
@@ -211,7 +266,7 @@ export default async function AssessmentDetailPage({
                     Created
                   </div>
                   <div className="mt-2 text-sm text-slate-300">
-                    {new Date(assessment.created_at).toLocaleString()}
+                    {formatDateTime(assessment.created_at)}
                   </div>
                 </div>
               </div>
