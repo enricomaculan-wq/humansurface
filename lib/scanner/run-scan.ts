@@ -54,8 +54,8 @@ type ScannerFinding = {
   sourceType: 'html' | 'pdf' | 'fallback'
 }
 
-const HTML_SIGNAL_TIMEOUT_MS = 10_000
-const PDF_SIGNAL_TIMEOUT_MS = 18_000
+const HTML_SIGNAL_TIMEOUT_MS = 18_000
+const PDF_SIGNAL_TIMEOUT_MS = 25_000
 const DISCOVERY_TIMEOUT_MS = 25_000
 const SCAN_FAILSAFE_TIMEOUT_MS = 180_000
 
@@ -395,11 +395,15 @@ export async function runPublicScanForOrganization(organizationId: string) {
               })
             }
           } catch (error) {
-            failedUrls.push({
-              url,
-              error: error instanceof Error ? error.message : 'Unknown URL processing error',
-            })
-          }
+              if (error instanceof Error && error.name === 'AbortError') {
+                return { ok: false, reason: 'Request timed out' }
+              }
+
+              return {
+                ok: false,
+                reason: error instanceof Error ? error.message : 'Unknown extraction error',
+              }
+            }
         }
 
         const classified = classifySignals(extractedSignals)

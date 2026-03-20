@@ -24,7 +24,7 @@ export type ExtractAttempt =
 
 const EMAIL_REGEX = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi
 
-const FETCH_TIMEOUT_MS = 8000
+const FETCH_TIMEOUT_MS = 15000
 const MAX_HTML_CHARS = 400_000
 const MAX_TEXT_CHARS = 30_000
 const MIN_USEFUL_TEXT_CHARS = 30
