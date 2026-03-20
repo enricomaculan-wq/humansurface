@@ -36,35 +36,32 @@ const KEYWORDS = [
 
 const COMMON_PATHS = [
   '/',
-  '/about',
-  '/about-us',
-  '/chi-siamo',
-  '/team',
-  '/leadership',
-  '/management',
-  '/company',
   '/contact',
   '/contacts',
   '/contatti',
-  '/careers',
-  '/jobs',
-  '/lavora-con-noi',
+  '/about',
+  '/about-us',
+  '/chi-siamo',
+  '/company',
+  '/team',
+  '/leadership',
+  '/management',
   '/people',
   '/board',
-  '/press',
-  '/news',
-  '/investors',
-  '/governance',
   '/certificazioni',
   '/certifications',
+  '/careers',
+  '/jobs',
+  '/investors',
+  '/governance',
   '/brochure.pdf',
   '/company-profile.pdf',
   '/profile.pdf',
 ]
 
 const FETCH_TIMEOUT_MS = 8000
-const MAX_FINAL_URLS = 10
-const MAX_COMMON_PATH_CHECKS = 6
+const MAX_FINAL_URLS = 12
+const MAX_COMMON_PATH_CHECKS = 12
 const MAX_SUBPAGES_TO_EXPLORE = 4
 const MAX_LINKS_PER_SUBPAGE = 12
 
