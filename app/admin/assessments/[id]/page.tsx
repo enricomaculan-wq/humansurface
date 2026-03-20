@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { formatDateTime } from '@/lib/date'
 import DeleteButton from '@/app/components/admin/delete-button'
 import AssessmentEditor from './assessment-editor'
+import RunExternalScanButton from '@/app/components/admin/run-external-scan-button'
 
 type Assessment = {
   id: string
@@ -193,6 +194,11 @@ export default async function AssessmentDetailPage({
             >
               Open report
             </Link>
+
+            <RunExternalScanButton
+              assessmentId={assessment.id}
+              organizationId={assessment.organization_id}
+            />
 
             <Link
               href={`/admin/assessments/${assessment.id}/print`}
