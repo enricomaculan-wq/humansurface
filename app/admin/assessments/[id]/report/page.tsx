@@ -23,6 +23,16 @@ type Assessment = {
     findingsInserted?: number
     findingsLinkedToPeople?: number
     personScoresGenerated?: number
+
+    externalSourcesScanned?: number
+    externalSignalsAccepted?: number
+    externalPeopleDetected?: number
+    externalPeopleInserted?: number
+    externalPeopleMatchedExisting?: number
+    externalFindingsInserted?: number
+    externalFindingsLinkedToPeople?: number
+    externalPersonScoresGenerated?: number
+    externalCompletedAt?: string
   } | null
 }
 
@@ -176,6 +186,18 @@ export default async function AssessmentReportPage({
   const findingsInserted = scanDiagnostics?.findingsInserted ?? 0
   const findingsLinkedToPeople = scanDiagnostics?.findingsLinkedToPeople ?? 0
   const personScoresGenerated = scanDiagnostics?.personScoresGenerated ?? 0
+
+  const externalSourcesScanned = scanDiagnostics?.externalSourcesScanned ?? 0
+  const externalSignalsAccepted = scanDiagnostics?.externalSignalsAccepted ?? 0
+  const externalPeopleDetected = scanDiagnostics?.externalPeopleDetected ?? 0
+  const externalPeopleInserted = scanDiagnostics?.externalPeopleInserted ?? 0
+  const externalPeopleMatchedExisting =
+    scanDiagnostics?.externalPeopleMatchedExisting ?? 0
+  const externalFindingsInserted = scanDiagnostics?.externalFindingsInserted ?? 0
+  const externalFindingsLinkedToPeople =
+    scanDiagnostics?.externalFindingsLinkedToPeople ?? 0
+  const externalPersonScoresGenerated =
+    scanDiagnostics?.externalPersonScoresGenerated ?? 0
 
   const organizations = (organizationsData ?? []) as Organization[]
   const findings = (findingsData ?? []) as Finding[]
@@ -352,6 +374,46 @@ export default async function AssessmentReportPage({
                 </div>
               </div>
             ) : null}
+          </div>
+
+          <div className="rounded-[28px] border border-fuchsia-400/20 bg-fuchsia-400/[0.08] p-6 backdrop-blur-xl">
+            <h2 className="mb-5 text-2xl font-semibold">External exposure diagnostics</h2>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <DiagnosticCard label="External sources scanned" value={externalSourcesScanned} />
+              <DiagnosticCard label="External signals accepted" value={externalSignalsAccepted} />
+              <DiagnosticCard label="External findings inserted" value={externalFindingsInserted} />
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <DiagnosticCard label="External people detected" value={externalPeopleDetected} />
+              <DiagnosticCard label="External people inserted" value={externalPeopleInserted} />
+              <DiagnosticCard
+                label="External people matched existing"
+                value={externalPeopleMatchedExisting}
+              />
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <DiagnosticCard
+                label="External findings linked to people"
+                value={externalFindingsLinkedToPeople}
+              />
+              <DiagnosticCard
+                label="External person scores generated"
+                value={externalPersonScoresGenerated}
+              />
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                  External completed
+                </div>
+                <div className="mt-2 text-sm text-white">
+                  {scanDiagnostics?.externalCompletedAt
+                    ? formatDateTime(scanDiagnostics.externalCompletedAt)
+                    : '—'}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
