@@ -229,7 +229,12 @@ async function exists(url: string) {
 
 async function resolveHomepage(domain: string) {
   const cleaned = cleanDomain(domain)
-  const candidates = [`https://${cleaned}`, `http://${cleaned}`]
+  const candidates = [
+    `https://${cleaned}`,
+    `https://www.${cleaned}`,
+    `http://${cleaned}`,
+    `http://www.${cleaned}`,
+  ]
 
   for (const candidate of candidates) {
     const html = await tryFetchText(candidate)
@@ -238,7 +243,16 @@ async function resolveHomepage(domain: string) {
     }
   }
 
-  throw new Error(`Unable to load homepage for domain: ${domain}`)
+  for (const candidate of candidates) {
+    try {
+      const parsed = new URL(candidate)
+      return { homepage: parsed.origin, html: '' }
+    } catch {
+      // continue
+    }
+  }
+
+  throw new Error(`Unable to build base URL for domain: ${domain}`)
 }
 
 async function collectLinksFromPage(
@@ -292,32 +306,35 @@ function rankUrls(urls: string[]) {
 export async function discoverRelevantUrls(domain: string) {
   const { homepage, html } = await resolveHomepage(domain)
   const baseUrl = new URL(homepage)
-  const $ = cheerio.load(html)
 
   const priorityUrls = new Set<string>()
   const secondaryUrls = new Set<string>()
 
   priorityUrls.add(normalizeUrl(homepage))
 
-  $('a[href]').each((_, el) => {
-    const href = $(el).attr('href')
-    if (!href || isSkippableHref(href)) return
+  if (html) {
+    const $ = cheerio.load(html)
 
-    const resolved = tryBuildUrl(href, homepage)
-    if (!resolved) return
-    if (!isSameHost(baseUrl, resolved)) return
+    $('a[href]').each((_, el) => {
+      const href = $(el).attr('href')
+      if (!href || isSkippableHref(href)) return
 
-    const normalized = normalizeUrl(resolved.toString())
-    if (!normalized) return
-    if (isSpamLikeUrl(normalized)) return
-    if (isLikelyIrrelevantArticle(normalized)) return
+      const resolved = tryBuildUrl(href, homepage)
+      if (!resolved) return
+      if (!isSameHost(baseUrl, resolved)) return
 
-    if (isRelevant(normalized)) {
-      priorityUrls.add(normalized)
-    } else if (isMaybeUseful(normalized)) {
-      secondaryUrls.add(normalized)
-    }
-  })
+      const normalized = normalizeUrl(resolved.toString())
+      if (!normalized) return
+      if (isSpamLikeUrl(normalized)) return
+      if (isLikelyIrrelevantArticle(normalized)) return
+
+      if (isRelevant(normalized)) {
+        priorityUrls.add(normalized)
+      } else if (isMaybeUseful(normalized)) {
+        secondaryUrls.add(normalized)
+      }
+    })
+  }
 
   let checkedCommonPaths = 0
   for (const path of COMMON_PATHS) {
