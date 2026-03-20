@@ -59,9 +59,9 @@ const COMMON_PATHS = [
   '/profile.pdf',
 ]
 
-const FETCH_TIMEOUT_MS = 8000
+const FETCH_TIMEOUT_MS = 4000
 const MAX_FINAL_URLS = 12
-const MAX_COMMON_PATH_CHECKS = 12
+const MAX_COMMON_PATH_CHECKS = 8
 const MAX_SUBPAGES_TO_EXPLORE = 4
 const MAX_LINKS_PER_SUBPAGE = 12
 
@@ -346,26 +346,29 @@ export async function discoverRelevantUrls(domain: string) {
     })
   }
 
-  let checkedCommonPaths = 0
-  for (const path of COMMON_PATHS) {
-    if (checkedCommonPaths >= MAX_COMMON_PATH_CHECKS) break
+  const candidateCommonUrls = COMMON_PATHS
+    .map((path) => tryBuildUrl(path, homepage))
+    .filter((value): value is URL => !!value)
+    .map((url) => normalizeUrl(url.toString()))
+    .filter(Boolean)
+    .filter((url) => !isSpamLikeUrl(url))
+    .filter((url) => !isLikelyIrrelevantArticle(url))
+    .slice(0, MAX_COMMON_PATH_CHECKS)
 
-    const resolved = tryBuildUrl(path, homepage)
-    if (!resolved) continue
+  const commonPathChecks = await Promise.all(
+    candidateCommonUrls.map(async (url) => ({
+      url,
+      ok: await exists(url),
+    })),
+  )
 
-    const normalized = normalizeUrl(resolved.toString())
-    if (!normalized) continue
-    if (isSpamLikeUrl(normalized)) continue
-    if (isLikelyIrrelevantArticle(normalized)) continue
+  for (const item of commonPathChecks) {
+    if (!item.ok) continue
 
-    checkedCommonPaths += 1
-
-    if (await exists(normalized)) {
-      if (isRelevant(normalized)) {
-        priorityUrls.add(normalized)
-      } else {
-        secondaryUrls.add(normalized)
-      }
+    if (isRelevant(item.url)) {
+      priorityUrls.add(item.url)
+    } else {
+      secondaryUrls.add(item.url)
     }
   }
 
