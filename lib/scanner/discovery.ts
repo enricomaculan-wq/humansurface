@@ -214,14 +214,27 @@ async function tryFetchText(url: string) {
 
 async function exists(url: string) {
   try {
-    const response = await fetchWithTimeout(url, {
+    const headResponse = await fetchWithTimeout(url, {
       method: 'HEAD',
       headers: { 'user-agent': 'HumanSurfaceScanner/1.0' },
       cache: 'no-store',
       redirect: 'follow',
     })
 
-    return response.ok
+    if (headResponse.ok) return true
+  } catch {
+    // fallback to GET
+  }
+
+  try {
+    const getResponse = await fetchWithTimeout(url, {
+      method: 'GET',
+      headers: { 'user-agent': 'HumanSurfaceScanner/1.0' },
+      cache: 'no-store',
+      redirect: 'follow',
+    })
+
+    return getResponse.ok
   } catch {
     return false
   }
