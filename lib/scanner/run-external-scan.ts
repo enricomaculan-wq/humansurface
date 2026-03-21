@@ -144,12 +144,13 @@ export async function runExternalPublicScanForAssessment(
 
   const existingPeople = (existingPeopleData ?? []) as InsertedPersonRow[]
 
-  const externalResults = await searchExternalPublicSources({
+  const externalSearch = await searchExternalPublicSources({
     organizationId: organization.id,
     organizationName: organization.name,
     domain: organization.domain,
   })
 
+  const externalResults = externalSearch.results
   const extracted = await extractExternalSignals(externalResults)
 
   const { uniqueToInsert, matchedExisting } = dedupeScannedPeopleAgainstExisting(
@@ -340,6 +341,7 @@ export async function runExternalPublicScanForAssessment(
     externalFindingsLinkedToPeople: insertedFindings.filter((f) => !!f.person_id).length,
     externalPersonScoresGenerated: personScores.length,
     externalCompletedAt: new Date().toISOString(),
+    externalSearchDebug: externalSearch.debug,
   }
 
   const { error: updateAssessmentError } = await supabaseAdmin

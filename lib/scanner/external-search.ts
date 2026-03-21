@@ -22,6 +22,18 @@ export type ExternalSearchResult = {
   sourceDomain: string | null
 }
 
+export type ExternalSearchDebug = {
+  query: string
+  ok: boolean
+  resultCount: number
+  error?: string
+}
+
+export type ExternalSearchResponse = {
+  results: ExternalSearchResult[]
+  debug: ExternalSearchDebug[]
+}
+
 const FETCH_TIMEOUT_MS = 12000
 const MAX_RESULTS_PER_QUERY = 5
 const MAX_TOTAL_RESULTS = 20
@@ -88,7 +100,12 @@ function isSpamLikeText(value: string) {
   ].some((term) => lower.includes(term))
 }
 
-function isLikelyUsefulResult(url: string, title: string, snippet: string, companyDomain: string) {
+function isLikelyUsefulResult(
+  url: string,
+  title: string,
+  snippet: string,
+  companyDomain: string,
+) {
   const lower = `${url} ${title} ${snippet}`.toLowerCase()
 
   if (isSpamLikeText(lower)) return false
@@ -98,33 +115,20 @@ function isLikelyUsefulResult(url: string, title: string, snippet: string, compa
 
   const host = parsed.hostname.toLowerCase()
 
+  // buttiamo fuori solo social molto rumorosi
   if (
     host.includes('facebook.com') ||
     host.includes('instagram.com') ||
-    host.includes('youtube.com') ||
     host.includes('tiktok.com')
   ) {
     return false
   }
 
+  // accettiamo risultati che menzionano chiaramente l'azienda o ruoli sensibili
   if (
-    host.includes('linkedin.com') ||
-    host.includes('crunchbase.com') ||
-    host.includes('bloomberg.com') ||
-    host.includes('rocketreach.co') ||
-    host.includes('signalhire.com') ||
-    host.includes('theorg.com') ||
-    host.includes('indeed.') ||
-    host.includes('glassdoor.') ||
-    host.includes('welcome to the jungle')
-  ) {
-    return true
-  }
-
-  if (host.includes(companyDomain)) return true
-
-  if (
-    /ceo|cfo|coo|cto|founder|president|director|leadership|team|management|human resources|hr|finance|amministrazione|risorse umane|recruiting|careers|jobs|press|news|company/.test(
+    host.includes(companyDomain) ||
+    lower.includes(companyDomain) ||
+    /ceo|cfo|coo|cto|founder|president|director|leadership|team|management|human resources|hr|finance|amministrazione|risorse umane|recruiting|careers|jobs|linkedin/.test(
       lower,
     )
   ) {
@@ -169,19 +173,21 @@ function buildQueries(seed: ExternalSearchSeed) {
   const name = cleanText(seed.organizationName)
   const domain = cleanDomain(seed.domain)
 
-  const queries = [
-    `"${name}" CEO`,
-    `"${name}" CFO`,
-    `"${name}" HR`,
-    `"${name}" amministrazione`,
-    `"${name}" finance`,
-    `"${name}" recruiting`,
-    `"${name}" LinkedIn`,
-    `"${name}" site:linkedin.com/in`,
-    `"${name}" site:${domain}`,
-  ]
-
-  return Array.from(new Set(queries))
+  return Array.from(
+    new Set([
+      `"${name}" CEO`,
+      `"${name}" CFO`,
+      `"${name}" HR`,
+      `"${name}" amministrazione`,
+      `"${name}" finance`,
+      `"${name}" recruiting`,
+      `"${name}" LinkedIn`,
+      `"${name}" team`,
+      `"${name}" management`,
+      `"${name}" site:linkedin.com`,
+      `"${name}" site:${domain}`,
+    ]),
+  )
 }
 
 async function fetchWithTimeout(input: string, init?: RequestInit) {
@@ -204,6 +210,8 @@ async function searchDuckDuckGoHtml(query: string) {
   const response = await fetchWithTimeout(url, {
     headers: {
       'user-agent': 'Mozilla/5.0 HumanSurfaceExternalScanner/1.0',
+      accept: 'text/html,application/xhtml+xml',
+      'accept-language': 'en-US,en;q=0.9,it;q=0.8',
     },
     cache: 'no-store',
     redirect: 'follow',
@@ -225,36 +233,54 @@ function parseSearchResults(
   const results: ExternalSearchResult[] = []
   const seen = new Set<string>()
 
-  $('.result').each((_, el) => {
-    if (results.length >= MAX_RESULTS_PER_QUERY) return
+  const candidates = [
+    '.result',
+    '.result.results_links',
+    '.web-result',
+    '.links_main',
+  ]
 
-    const linkEl = $(el).find('.result__title a').first()
-    const snippetEl = $(el).find('.result__snippet').first()
+  for (const selector of candidates) {
+    $(selector).each((_, el) => {
+      if (results.length >= MAX_RESULTS_PER_QUERY) return
 
-    const rawHref = linkEl.attr('href') || ''
-    const decodedHref = normalizeUrl(decodeDuckDuckGoRedirect(rawHref))
-    const title = cleanText(linkEl.text())
-    const snippet = cleanText(snippetEl.text())
+      const linkEl =
+        $(el).find('.result__title a').first().length > 0
+          ? $(el).find('.result__title a').first()
+          : $(el).find('a').first()
 
-    if (!decodedHref || !title) return
-    if (seen.has(decodedHref)) return
+      const snippetEl =
+        $(el).find('.result__snippet').first().length > 0
+          ? $(el).find('.result__snippet').first()
+          : $(el).find('.snippet').first()
 
-    const parsed = tryParseUrl(decodedHref)
-    if (!parsed) return
+      const rawHref = linkEl.attr('href') || ''
+      const decodedHref = normalizeUrl(decodeDuckDuckGoRedirect(rawHref))
+      const title = cleanText(linkEl.text())
+      const snippet = cleanText(snippetEl.text())
 
-    if (!isLikelyUsefulResult(decodedHref, title, snippet, companyDomain)) return
+      if (!decodedHref || !title) return
+      if (seen.has(decodedHref)) return
 
-    seen.add(decodedHref)
+      const parsed = tryParseUrl(decodedHref)
+      if (!parsed) return
 
-    results.push({
-      query,
-      title,
-      url: decodedHref,
-      snippet,
-      sourceType: classifySourceType(decodedHref),
-      sourceDomain: parsed.hostname || null,
+      if (!isLikelyUsefulResult(decodedHref, title, snippet, companyDomain)) return
+
+      seen.add(decodedHref)
+
+      results.push({
+        query,
+        title,
+        url: decodedHref,
+        snippet,
+        sourceType: classifySourceType(decodedHref),
+        sourceDomain: parsed.hostname || null,
+      })
     })
-  })
+
+    if (results.length > 0) break
+  }
 
   return results
 }
@@ -272,22 +298,40 @@ function dedupeResults(results: ExternalSearchResult[]) {
   return Array.from(map.values())
 }
 
-export async function searchExternalPublicSources(seed: ExternalSearchSeed) {
+export async function searchExternalPublicSources(
+  seed: ExternalSearchSeed,
+): Promise<ExternalSearchResponse> {
   const queries = buildQueries(seed)
   const companyDomain = cleanDomain(seed.domain)
   const collected: ExternalSearchResult[] = []
+  const debug: ExternalSearchDebug[] = []
 
   for (const query of queries) {
     try {
       const html = await searchDuckDuckGoHtml(query)
       const parsed = parseSearchResults(html, query, companyDomain)
+
       collected.push(...parsed)
-    } catch {
-      // ignore single-query failures for now
+
+      debug.push({
+        query,
+        ok: true,
+        resultCount: parsed.length,
+      })
+    } catch (error) {
+      debug.push({
+        query,
+        ok: false,
+        resultCount: 0,
+        error: error instanceof Error ? error.message : 'Unknown search error',
+      })
     }
 
     if (collected.length >= MAX_TOTAL_RESULTS) break
   }
 
-  return dedupeResults(collected).slice(0, MAX_TOTAL_RESULTS)
+  return {
+    results: dedupeResults(collected).slice(0, MAX_TOTAL_RESULTS),
+    debug,
+  }
 }
