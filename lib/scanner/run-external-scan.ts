@@ -1,5 +1,9 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { calculateAssessmentScores, calculatePersonScores } from '@/lib/scoring'
+import {
+  calculateAssessmentScores,
+  calculatePersonScores,
+  calculateCombinedScores,
+} from '@/lib/scoring'
 import { searchExternalPublicSources } from './external-search'
 import { extractExternalSignals } from './external-extract'
 
@@ -262,16 +266,65 @@ export async function runExternalPublicScanForAssessment(
     insertedFindings = (findingsData ?? []) as ExternalFindingRow[]
   }
 
-  const assessmentScores = calculateAssessmentScores(insertedFindings)
+  const externalScores = calculateAssessmentScores(insertedFindings)
   const personScores = calculatePersonScores(insertedFindings)
+
+  const { data: existingWebsiteScoresData, error: existingWebsiteScoresError } =
+    await supabaseAdmin
+      .from('scores')
+      .select('*')
+      .eq('assessment_id', assessmentId)
+      .eq('person_id', null)
+
+  if (existingWebsiteScoresError) {
+    throw new Error(`website scores read failed: ${existingWebsiteScoresError.message}`)
+  }
+
+  const existingWebsiteScores = (existingWebsiteScoresData ?? []) as Array<{
+    score_type: string
+    score_value: number
+    risk_level: string
+    score_scope?: string | null
+  }>
+
+  const websiteScoresOnly = existingWebsiteScores.filter(
+    (score) =>
+      (score.score_scope ?? 'website') !== 'external' &&
+      (score.score_scope ?? 'website') !== 'combined',
+  )
+
+  function pickScore(type: string) {
+    return websiteScoresOnly.find((s) => s.score_type === type)?.score_value ?? 0
+  }
+
+  function pickRisk(type: string): 'low' | 'medium' | 'high' {
+    const value = websiteScoresOnly.find((s) => s.score_type === type)?.risk_level
+    return value === 'high' || value === 'medium' ? value : 'low'
+  }
+
+  const websiteScoreSummary = {
+    impersonationScore: pickScore('impersonation_risk'),
+    impersonationRiskLevel: pickRisk('impersonation_risk'),
+    financeScore: pickScore('finance_fraud_risk'),
+    financeRiskLevel: pickRisk('finance_fraud_risk'),
+    hrScore: pickScore('hr_social_engineering_risk'),
+    hrRiskLevel: pickRisk('hr_social_engineering_risk'),
+    overallScore: pickScore('overall'),
+    overallRiskLevel: pickRisk('overall'),
+  }
+
+  const combinedScores = calculateCombinedScores({
+    website: websiteScoreSummary,
+    external: externalScores,
+  })
 
   const scoresPayload = [
     {
       assessment_id: assessmentId,
       person_id: null,
       score_type: 'impersonation_risk',
-      score_value: assessmentScores.impersonationScore,
-      risk_level: assessmentScores.impersonationRiskLevel,
+      score_value: externalScores.impersonationScore,
+      risk_level: externalScores.impersonationRiskLevel,
       reason_summary: 'Calculated from external public exposure findings.',
       score_scope: 'external',
     },
@@ -279,8 +332,8 @@ export async function runExternalPublicScanForAssessment(
       assessment_id: assessmentId,
       person_id: null,
       score_type: 'finance_fraud_risk',
-      score_value: assessmentScores.financeScore,
-      risk_level: assessmentScores.financeRiskLevel,
+      score_value: externalScores.financeScore,
+      risk_level: externalScores.financeRiskLevel,
       reason_summary: 'Calculated from external public exposure findings.',
       score_scope: 'external',
     },
@@ -288,8 +341,8 @@ export async function runExternalPublicScanForAssessment(
       assessment_id: assessmentId,
       person_id: null,
       score_type: 'hr_social_engineering_risk',
-      score_value: assessmentScores.hrScore,
-      risk_level: assessmentScores.hrRiskLevel,
+      score_value: externalScores.hrScore,
+      risk_level: externalScores.hrRiskLevel,
       reason_summary: 'Calculated from external public exposure findings.',
       score_scope: 'external',
     },
@@ -297,11 +350,49 @@ export async function runExternalPublicScanForAssessment(
       assessment_id: assessmentId,
       person_id: null,
       score_type: 'overall',
-      score_value: assessmentScores.overallScore,
-      risk_level: assessmentScores.overallRiskLevel,
+      score_value: externalScores.overallScore,
+      risk_level: externalScores.overallRiskLevel,
       reason_summary: 'Average of the three primary external score dimensions.',
       score_scope: 'external',
     },
+
+    {
+      assessment_id: assessmentId,
+      person_id: null,
+      score_type: 'impersonation_risk',
+      score_value: combinedScores.impersonationScore,
+      risk_level: combinedScores.impersonationRiskLevel,
+      reason_summary: 'Weighted combination of website and external exposure scores.',
+      score_scope: 'combined',
+    },
+    {
+      assessment_id: assessmentId,
+      person_id: null,
+      score_type: 'finance_fraud_risk',
+      score_value: combinedScores.financeScore,
+      risk_level: combinedScores.financeRiskLevel,
+      reason_summary: 'Weighted combination of website and external exposure scores.',
+      score_scope: 'combined',
+    },
+    {
+      assessment_id: assessmentId,
+      person_id: null,
+      score_type: 'hr_social_engineering_risk',
+      score_value: combinedScores.hrScore,
+      risk_level: combinedScores.hrRiskLevel,
+      reason_summary: 'Weighted combination of website and external exposure scores.',
+      score_scope: 'combined',
+    },
+    {
+      assessment_id: assessmentId,
+      person_id: null,
+      score_type: 'overall',
+      score_value: combinedScores.overallScore,
+      risk_level: combinedScores.overallRiskLevel,
+      reason_summary: 'Weighted combination of website and external exposure scores.',
+      score_scope: 'combined',
+    },
+
     ...personScores.map((item) => ({
       assessment_id: assessmentId,
       person_id: item.personId,
@@ -366,7 +457,9 @@ export async function runExternalPublicScanForAssessment(
     externalFindingsInserted: insertedFindings.length,
     externalFindingsLinkedToPeople: insertedFindings.filter((f) => !!f.person_id).length,
     externalPersonScoresGenerated: personScores.length,
-    externalOverallScore: assessmentScores.overallScore,
-    externalOverallRiskLevel: riskFromOverall(assessmentScores.overallScore),
+    externalOverallScore: externalScores.overallScore,
+    externalOverallRiskLevel: riskFromOverall(externalScores.overallScore),
+    combinedOverallScore: combinedScores.overallScore,
+    combinedOverallRiskLevel: riskFromOverall(combinedScores.overallScore),
   }
 }

@@ -400,14 +400,17 @@ export default async function AssessmentReportPage({
   const personScores = scores.filter((score) => score.person_id !== null)
 
   const websiteAssessmentScores = assessmentScores.filter(
-    (score) => (score.score_scope ?? 'website') !== 'external',
+    (score) => (score.score_scope ?? 'website') === 'website',
   )
   const externalAssessmentScores = assessmentScores.filter(
     (score) => score.score_scope === 'external',
   )
+  const combinedAssessmentScores = assessmentScores.filter(
+    (score) => score.score_scope === 'combined',
+  )
 
   const websitePersonScores = personScores.filter(
-    (score) => (score.score_scope ?? 'website') !== 'external',
+    (score) => (score.score_scope ?? 'website') === 'website',
   )
   const externalPersonScores = personScores.filter(
     (score) => score.score_scope === 'external',
@@ -430,6 +433,15 @@ export default async function AssessmentReportPage({
     externalAssessmentScores.find((s) => s.score_type === 'finance_fraud_risk') ?? null
   const externalHrScore =
     externalAssessmentScores.find((s) => s.score_type === 'hr_social_engineering_risk') ?? null
+
+  const combinedOverallScore =
+    combinedAssessmentScores.find((s) => s.score_type === 'overall') ?? null
+  const combinedImpersonationScore =
+    combinedAssessmentScores.find((s) => s.score_type === 'impersonation_risk') ?? null
+  const combinedFinanceScore =
+    combinedAssessmentScores.find((s) => s.score_type === 'finance_fraud_risk') ?? null
+  const combinedHrScore =
+    combinedAssessmentScores.find((s) => s.score_type === 'hr_social_engineering_risk') ?? null
 
   const summaryLine =
     scannedUrls.length > 0
@@ -550,6 +562,33 @@ export default async function AssessmentReportPage({
                 label="External HR / social"
                 value={externalHrScore?.score_value ?? 0}
                 risk={externalHrScore?.risk_level ?? 'low'}
+              />
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-emerald-300/20 bg-emerald-300/[0.08] p-6 backdrop-blur-xl">
+            <h2 className="mb-5 text-2xl font-semibold">Combined exposure scores</h2>
+
+            <div className="grid gap-4 md:grid-cols-4">
+              <ScoreCard
+                label="Combined overall"
+                value={combinedOverallScore?.score_value ?? 0}
+                risk={combinedOverallScore?.risk_level ?? 'low'}
+              />
+              <ScoreCard
+                label="Combined impersonation"
+                value={combinedImpersonationScore?.score_value ?? 0}
+                risk={combinedImpersonationScore?.risk_level ?? 'low'}
+              />
+              <ScoreCard
+                label="Combined finance"
+                value={combinedFinanceScore?.score_value ?? 0}
+                risk={combinedFinanceScore?.risk_level ?? 'low'}
+              />
+              <ScoreCard
+                label="Combined HR / social"
+                value={combinedHrScore?.score_value ?? 0}
+                risk={combinedHrScore?.risk_level ?? 'low'}
               />
             </div>
           </div>

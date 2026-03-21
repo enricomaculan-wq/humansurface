@@ -186,3 +186,49 @@ export function calculatePersonScores(findings: FindingRow[]): PersonScoreSummar
     }
   })
 }
+
+  export function calculateCombinedScores(args: {
+    website: AssessmentScoreSummary
+    external: AssessmentScoreSummary
+  }): AssessmentScoreSummary {
+    const { website, external } = args
+
+    function combine(a: number, b: number) {
+      return Math.round(a * 0.55 + b * 0.45)
+    }
+
+    const impersonationScore = combine(
+      website.impersonationScore,
+      external.impersonationScore,
+    )
+    const financeScore = combine(
+      website.financeScore,
+      external.financeScore,
+    )
+    const hrScore = combine(
+      website.hrScore,
+      external.hrScore,
+    )
+    const overallScore = combine(
+      website.overallScore,
+      external.overallScore,
+    )
+
+    function riskLevel(score: number): RiskLevel {
+      if (score >= 78) return 'high'
+      if (score >= 42) return 'medium'
+      return 'low'
+    }
+
+    return {
+      impersonationScore,
+      impersonationRiskLevel: riskLevel(impersonationScore),
+      financeScore,
+      financeRiskLevel: riskLevel(financeScore),
+      hrScore,
+      hrRiskLevel: riskLevel(hrScore),
+      overallScore,
+      overallRiskLevel: riskLevel(overallScore),
+    }
+  }
+
