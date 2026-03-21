@@ -1,38 +1,9 @@
-import * as cheerio from 'cheerio'
-
-export type ExternalSearchSeed = {
-  organizationId: string
-  organizationName: string
-  domain: string
-}
-
-export type ExternalSearchResult = {
-  query: string
-  title: string
-  url: string
-  snippet: string
-  sourceType:
-    | 'linkedin'
-    | 'press'
-    | 'directory'
-    | 'job_board'
-    | 'news'
-    | 'company_page'
-    | 'other'
-  sourceDomain: string | null
-}
-
-export type ExternalSearchDebug = {
-  query: string
-  ok: boolean
-  resultCount: number
-  error?: string
-}
-
-export type ExternalSearchResponse = {
-  results: ExternalSearchResult[]
-  debug: ExternalSearchDebug[]
-}
+import type {
+  ExternalSearchResult,
+  ExternalSearchSeed,
+  ExternalSearchResponse,
+  ExternalSearchDebug,
+} from './external-search-types'
 
 const FETCH_TIMEOUT_MS = 12000
 const MAX_RESULTS_PER_QUERY = 5
@@ -51,34 +22,15 @@ function cleanDomain(domain: string) {
     .toLowerCase()
 }
 
+function normalizeUrl(url: string) {
+  return url.replace(/#.*$/, '').replace(/\/+$/, '').trim()
+}
+
 function tryParseUrl(value: string) {
   try {
     return new URL(value)
   } catch {
     return null
-  }
-}
-
-function normalizeUrl(url: string) {
-  return url
-    .replace(/#.*$/, '')
-    .replace(/\/+$/, '')
-    .trim()
-}
-
-function decodeDuckDuckGoRedirect(rawUrl: string) {
-  try {
-    const parsed = new URL(rawUrl)
-    if (
-      parsed.hostname.includes('duckduckgo.com') &&
-      parsed.pathname.startsWith('/l/')
-    ) {
-      const uddg = parsed.searchParams.get('uddg')
-      if (uddg) return decodeURIComponent(uddg)
-    }
-    return rawUrl
-  } catch {
-    return rawUrl
   }
 }
 
@@ -105,6 +57,7 @@ function isLikelyUsefulResult(
   title: string,
   snippet: string,
   companyDomain: string,
+  companyName: string,
 ) {
   const lower = `${url} ${title} ${snippet}`.toLowerCase()
 
@@ -115,7 +68,6 @@ function isLikelyUsefulResult(
 
   const host = parsed.hostname.toLowerCase()
 
-  // buttiamo fuori solo social molto rumorosi
   if (
     host.includes('facebook.com') ||
     host.includes('instagram.com') ||
@@ -124,10 +76,10 @@ function isLikelyUsefulResult(
     return false
   }
 
-  // accettiamo risultati che menzionano chiaramente l'azienda o ruoli sensibili
   if (
     host.includes(companyDomain) ||
     lower.includes(companyDomain) ||
+    lower.includes(companyName.toLowerCase()) ||
     /ceo|cfo|coo|cto|founder|president|director|leadership|team|management|human resources|hr|finance|amministrazione|risorse umane|recruiting|careers|jobs|linkedin/.test(
       lower,
     )
@@ -166,6 +118,7 @@ function classifySourceType(url: string): ExternalSearchResult['sourceType'] {
     return 'directory'
   }
   if (lower.includes('/company') || lower.includes('/about')) return 'company_page'
+  if (lower.includes('news')) return 'news'
   return 'other'
 }
 
@@ -204,82 +157,69 @@ async function fetchWithTimeout(input: string, init?: RequestInit) {
   }
 }
 
-async function searchDuckDuckGoHtml(query: string) {
-  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`
+async function searchBraveWeb(query: string) {
+  const apiKey = process.env.BRAVE_SEARCH_API_KEY
+
+  if (!apiKey) {
+    throw new Error('Missing BRAVE_SEARCH_API_KEY')
+  }
+
+  const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${MAX_RESULTS_PER_QUERY}`
 
   const response = await fetchWithTimeout(url, {
     headers: {
-      'user-agent': 'Mozilla/5.0 HumanSurfaceExternalScanner/1.0',
-      accept: 'text/html,application/xhtml+xml',
-      'accept-language': 'en-US,en;q=0.9,it;q=0.8',
+      Accept: 'application/json',
+      'Accept-Encoding': 'gzip',
+      'X-Subscription-Token': apiKey,
     },
     cache: 'no-store',
     redirect: 'follow',
   })
 
   if (!response.ok) {
-    throw new Error(`DuckDuckGo search failed with HTTP ${response.status}`)
+    throw new Error(`Brave search failed with HTTP ${response.status}`)
   }
 
-  return await response.text()
+  return await response.json()
 }
 
-function parseSearchResults(
-  html: string,
+function parseBraveResults(
+  payload: any,
   query: string,
   companyDomain: string,
+  companyName: string,
 ): ExternalSearchResult[] {
-  const $ = cheerio.load(html)
+  const rawResults = Array.isArray(payload?.web?.results) ? payload.web.results : []
   const results: ExternalSearchResult[] = []
   const seen = new Set<string>()
 
-  const candidates = [
-    '.result',
-    '.result.results_links',
-    '.web-result',
-    '.links_main',
-  ]
+  for (const item of rawResults) {
+    if (results.length >= MAX_RESULTS_PER_QUERY) break
 
-  for (const selector of candidates) {
-    $(selector).each((_, el) => {
-      if (results.length >= MAX_RESULTS_PER_QUERY) return
+    const url = normalizeUrl(String(item?.url || ''))
+    const title = cleanText(String(item?.title || ''))
+    const snippet = cleanText(String(item?.description || item?.snippet || ''))
 
-      const linkEl =
-        $(el).find('.result__title a').first().length > 0
-          ? $(el).find('.result__title a').first()
-          : $(el).find('a').first()
+    if (!url || !title) continue
+    if (seen.has(url)) continue
 
-      const snippetEl =
-        $(el).find('.result__snippet').first().length > 0
-          ? $(el).find('.result__snippet').first()
-          : $(el).find('.snippet').first()
+    const parsed = tryParseUrl(url)
+    if (!parsed) continue
 
-      const rawHref = linkEl.attr('href') || ''
-      const decodedHref = normalizeUrl(decodeDuckDuckGoRedirect(rawHref))
-      const title = cleanText(linkEl.text())
-      const snippet = cleanText(snippetEl.text())
+    if (!isLikelyUsefulResult(url, title, snippet, companyDomain, companyName)) {
+      continue
+    }
 
-      if (!decodedHref || !title) return
-      if (seen.has(decodedHref)) return
+    seen.add(url)
 
-      const parsed = tryParseUrl(decodedHref)
-      if (!parsed) return
-
-      if (!isLikelyUsefulResult(decodedHref, title, snippet, companyDomain)) return
-
-      seen.add(decodedHref)
-
-      results.push({
-        query,
-        title,
-        url: decodedHref,
-        snippet,
-        sourceType: classifySourceType(decodedHref),
-        sourceDomain: parsed.hostname || null,
-      })
+    results.push({
+      query,
+      title,
+      url,
+      snippet,
+      sourceType: classifySourceType(url),
+      sourceDomain: parsed.hostname || null,
     })
-
-    if (results.length > 0) break
   }
 
   return results
@@ -308,8 +248,13 @@ export async function searchExternalPublicSources(
 
   for (const query of queries) {
     try {
-      const html = await searchDuckDuckGoHtml(query)
-      const parsed = parseSearchResults(html, query, companyDomain)
+      const payload = await searchBraveWeb(query)
+      const parsed = parseBraveResults(
+        payload,
+        query,
+        companyDomain,
+        seed.organizationName,
+      )
 
       collected.push(...parsed)
 
