@@ -33,6 +33,12 @@ type Assessment = {
     externalFindingsLinkedToPeople?: number
     externalPersonScoresGenerated?: number
     externalCompletedAt?: string
+    externalSearchDebug?: Array<{
+      query: string
+      ok: boolean
+      resultCount: number
+      error?: string
+    }>
   } | null
 }
 
@@ -198,6 +204,7 @@ export default async function AssessmentReportPage({
     scanDiagnostics?.externalFindingsLinkedToPeople ?? 0
   const externalPersonScoresGenerated =
     scanDiagnostics?.externalPersonScoresGenerated ?? 0
+  const externalSearchDebug = scanDiagnostics?.externalSearchDebug ?? []
 
   const organizations = (organizationsData ?? []) as Organization[]
   const findings = (findingsData ?? []) as Finding[]
@@ -393,6 +400,49 @@ export default async function AssessmentReportPage({
                 value={externalPeopleMatchedExisting}
               />
             </div>
+
+            {externalSearchDebug.length > 0 ? (
+              <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
+                <h3 className="mb-5 text-2xl font-semibold">External search debug</h3>
+
+                <div className="space-y-3">
+                  {externalSearchDebug.map((item, index) => (
+                    <div
+                      key={`${item.query}-${index}`}
+                      className="rounded-2xl border border-white/10 bg-[#030815] p-4"
+                    >
+                      <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                          <div className="break-words text-sm font-medium text-white">
+                            {item.query}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {item.ok ? 'ok' : 'failed'}
+                            {' · '}
+                            results: {item.resultCount}
+                          </div>
+                          {item.error ? (
+                            <div className="mt-2 text-xs text-red-300">{item.error}</div>
+                          ) : null}
+                        </div>
+
+                        <div className="shrink-0">
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${
+                              item.ok
+                                ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
+                                : 'border-red-400/20 bg-red-400/10 text-red-200'
+                            }`}
+                          >
+                            {item.ok ? 'ok' : 'failed'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             <div className="mt-4 grid gap-4 md:grid-cols-3">
               <DiagnosticCard
