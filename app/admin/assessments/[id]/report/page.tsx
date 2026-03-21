@@ -61,6 +61,9 @@ type Finding = {
   source_url: string | null
   source_title: string | null
   source_type: string | null
+  evidence_origin?: string | null
+  source_domain?: string | null
+  confidence?: number | null
 }
 
 type Person = {
@@ -71,6 +74,9 @@ type Person = {
   department: string | null
   email: string | null
   is_key_person: boolean
+  evidence_origin?: string | null
+  source_url?: string | null
+  confidence?: number | null
 }
 
 type Score = {
@@ -81,6 +87,7 @@ type Score = {
   score_value: number
   risk_level: string
   reason_summary: string | null
+  score_scope?: string | null
 }
 
 type RemediationTask = {
@@ -139,6 +146,166 @@ function DiagnosticCard({
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
       <div className="text-xs uppercase tracking-[0.16em] text-slate-500">{label}</div>
       <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
+    </div>
+  )
+}
+
+function FindingsSection({
+  title,
+  findings,
+  people,
+}: {
+  title: string
+  findings: Finding[]
+  people: Person[]
+}) {
+  return (
+    <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
+      <h3 className="mb-5 text-2xl font-semibold">{title}</h3>
+
+      <div className="space-y-4">
+        {findings.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-slate-400">
+            No findings yet.
+          </div>
+        ) : (
+          findings.slice(0, 8).map((finding) => {
+            const linkedPerson = finding.person_id
+              ? people.find((p) => p.id === finding.person_id)
+              : null
+
+            return (
+              <div
+                key={finding.id}
+                className="rounded-2xl border border-white/10 bg-[#030815] p-4"
+              >
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <div className="font-medium text-white">{finding.title}</div>
+
+                    {finding.description ? (
+                      <div className="mt-2 text-sm leading-7 text-slate-400">
+                        {finding.description}
+                      </div>
+                    ) : null}
+
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-slate-500">
+                      <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
+                        {finding.category}
+                      </span>
+
+                      {linkedPerson ? (
+                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
+                          {linkedPerson.full_name || linkedPerson.role_title}
+                        </span>
+                      ) : null}
+
+                      {finding.evidence_origin ? (
+                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
+                          {finding.evidence_origin}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {finding.source_url ? (
+                      <div className="mt-3 text-xs text-slate-500">
+                        Source: {finding.source_title || finding.source_url} ·{' '}
+                        {finding.source_type || 'unknown'}
+                        {finding.source_domain ? ` · ${finding.source_domain}` : ''}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <RiskBadge value={finding.severity} />
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
+
+function PeopleScoresSection({
+  title,
+  scores,
+  people,
+  accent = 'cyan',
+}: {
+  title: string
+  scores: Score[]
+  people: Person[]
+  accent?: 'cyan' | 'fuchsia'
+}) {
+  const accentClasses =
+    accent === 'fuchsia'
+      ? 'border-fuchsia-400/20 bg-fuchsia-400/[0.08]'
+      : 'border-cyan-300/20 bg-cyan-300/[0.08]'
+
+  const itemClasses =
+    accent === 'fuchsia'
+      ? 'border-fuchsia-200/10 bg-[#030815]/40'
+      : 'border-cyan-200/10 bg-[#030815]/40'
+
+  const textAccent =
+    accent === 'fuchsia' ? 'text-fuchsia-200' : 'text-cyan-200'
+
+  return (
+    <div className={`rounded-[28px] p-6 backdrop-blur-xl ${accentClasses}`}>
+      <h3 className="mb-5 text-2xl font-semibold">{title}</h3>
+
+      <div className="space-y-3">
+        {scores.length === 0 ? (
+          <div className={`rounded-2xl p-4 ${itemClasses} text-slate-300`}>
+            No person-level scores yet.
+          </div>
+        ) : (
+          scores.slice(0, 6).map((score) => {
+            const linkedPerson = people.find((p) => p.id === score.person_id)
+
+            return (
+              <div
+                key={score.id}
+                className={`rounded-2xl border p-4 ${itemClasses}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-medium text-white">
+                      {linkedPerson?.full_name ||
+                        linkedPerson?.role_title ||
+                        'Unknown person'}
+                    </div>
+
+                    {linkedPerson ? (
+                      <div className="mt-1 text-sm text-slate-300">
+                        {linkedPerson.role_title}
+                        {linkedPerson.department ? ` · ${linkedPerson.department}` : ''}
+                        {linkedPerson.evidence_origin
+                          ? ` · ${linkedPerson.evidence_origin}`
+                          : ''}
+                      </div>
+                    ) : null}
+
+                    {score.reason_summary ? (
+                      <div className="mt-2 text-sm leading-6 text-slate-400">
+                        {score.reason_summary}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-col items-end gap-2">
+                    <div className={`text-3xl font-semibold ${textAccent}`}>
+                      {score.score_value}
+                    </div>
+                    <RiskBadge value={score.risk_level} />
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
     </div>
   )
 }
@@ -215,21 +382,54 @@ export default async function AssessmentReportPage({
   const organization =
     organizations.find((org) => org.id === assessment.organization_id) ?? null
 
+  const websiteFindings = findings.filter(
+    (finding) => (finding.evidence_origin ?? 'website') === 'website',
+  )
+  const externalFindings = findings.filter(
+    (finding) => finding.evidence_origin === 'external',
+  )
+
+  const websitePeople = people.filter(
+    (person) => (person.evidence_origin ?? 'website') !== 'external',
+  )
+  const externalPeople = people.filter(
+    (person) => person.evidence_origin === 'external',
+  )
+
   const assessmentScores = scores.filter((score) => score.person_id === null)
   const personScores = scores.filter((score) => score.person_id !== null)
 
-  const overallScore =
-    assessmentScores.find((s) => s.score_type === 'overall') ?? null
-  const impersonationScore =
-    assessmentScores.find((s) => s.score_type === 'impersonation_risk') ?? null
-  const financeScore =
-    assessmentScores.find((s) => s.score_type === 'finance_fraud_risk') ?? null
-  const hrScore =
-    assessmentScores.find((s) => s.score_type === 'hr_social_engineering_risk') ?? null
+  const websiteAssessmentScores = assessmentScores.filter(
+    (score) => (score.score_scope ?? 'website') !== 'external',
+  )
+  const externalAssessmentScores = assessmentScores.filter(
+    (score) => score.score_scope === 'external',
+  )
 
-  const topPeople = [...personScores]
-    .sort((a, b) => b.score_value - a.score_value)
-    .slice(0, 5)
+  const websitePersonScores = personScores.filter(
+    (score) => (score.score_scope ?? 'website') !== 'external',
+  )
+  const externalPersonScores = personScores.filter(
+    (score) => score.score_scope === 'external',
+  )
+
+  const overallScore =
+    websiteAssessmentScores.find((s) => s.score_type === 'overall') ?? null
+  const impersonationScore =
+    websiteAssessmentScores.find((s) => s.score_type === 'impersonation_risk') ?? null
+  const financeScore =
+    websiteAssessmentScores.find((s) => s.score_type === 'finance_fraud_risk') ?? null
+  const hrScore =
+    websiteAssessmentScores.find((s) => s.score_type === 'hr_social_engineering_risk') ?? null
+
+  const externalOverallScore =
+    externalAssessmentScores.find((s) => s.score_type === 'overall') ?? null
+  const externalImpersonationScore =
+    externalAssessmentScores.find((s) => s.score_type === 'impersonation_risk') ?? null
+  const externalFinanceScore =
+    externalAssessmentScores.find((s) => s.score_type === 'finance_fraud_risk') ?? null
+  const externalHrScore =
+    externalAssessmentScores.find((s) => s.score_type === 'hr_social_engineering_risk') ?? null
 
   const summaryLine =
     scannedUrls.length > 0
@@ -279,8 +479,8 @@ export default async function AssessmentReportPage({
                 </div>
                 <h2 className="mt-2 text-3xl font-semibold">Assessment summary</h2>
                 <p className="mt-3 text-slate-400">
-                  Executive-ready overview of publicly exposed people, roles, and
-                  signals that may enable phishing, impersonation, and fraud.
+                  Executive-ready overview of corporate website exposure and external
+                  public exposure that may enable phishing, impersonation, and fraud.
                 </p>
                 <p className="mt-3 text-sm text-slate-500">{summaryLine}</p>
                 <p className="mt-2 text-xs text-slate-500">
@@ -291,7 +491,7 @@ export default async function AssessmentReportPage({
               <div className="flex items-center gap-4 self-start lg:self-end">
                 <div className="text-right">
                   <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                    Overall score
+                    Website overall score
                   </div>
                   <div className="mt-1 text-5xl font-semibold text-white">
                     {overallScore?.score_value ?? assessment.overall_score}
@@ -305,30 +505,57 @@ export default async function AssessmentReportPage({
 
             <div className="mt-6 grid gap-4 md:grid-cols-4">
               <ScoreCard
-                label="Overall"
+                label="Website overall"
                 value={overallScore?.score_value ?? assessment.overall_score}
                 risk={overallScore?.risk_level ?? assessment.overall_risk_level}
               />
               <ScoreCard
-                label="Impersonation"
+                label="Website impersonation"
                 value={impersonationScore?.score_value ?? 0}
                 risk={impersonationScore?.risk_level ?? 'low'}
               />
               <ScoreCard
-                label="Finance Fraud"
+                label="Website finance"
                 value={financeScore?.score_value ?? 0}
                 risk={financeScore?.risk_level ?? 'low'}
               />
               <ScoreCard
-                label="HR / Social"
+                label="Website HR / social"
                 value={hrScore?.score_value ?? 0}
                 risk={hrScore?.risk_level ?? 'low'}
               />
             </div>
           </div>
 
+          <div className="rounded-[28px] border border-fuchsia-400/20 bg-fuchsia-400/[0.08] p-6 backdrop-blur-xl">
+            <h2 className="mb-5 text-2xl font-semibold">External exposure scores</h2>
+
+            <div className="grid gap-4 md:grid-cols-4">
+              <ScoreCard
+                label="External overall"
+                value={externalOverallScore?.score_value ?? 0}
+                risk={externalOverallScore?.risk_level ?? 'low'}
+              />
+              <ScoreCard
+                label="External impersonation"
+                value={externalImpersonationScore?.score_value ?? 0}
+                risk={externalImpersonationScore?.risk_level ?? 'low'}
+              />
+              <ScoreCard
+                label="External finance"
+                value={externalFinanceScore?.score_value ?? 0}
+                risk={externalFinanceScore?.risk_level ?? 'low'}
+              />
+              <ScoreCard
+                label="External HR / social"
+                value={externalHrScore?.score_value ?? 0}
+                risk={externalHrScore?.risk_level ?? 'low'}
+              />
+            </div>
+          </div>
+
           <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
-            <h2 className="mb-5 text-2xl font-semibold">Scan diagnostics</h2>
+            <h2 className="mb-5 text-2xl font-semibold">Website scan diagnostics</h2>
 
             {scanDiagnostics?.error ? (
               <div className="mb-5 rounded-2xl border border-red-400/20 bg-red-400/10 p-4">
@@ -401,49 +628,6 @@ export default async function AssessmentReportPage({
               />
             </div>
 
-            {externalSearchDebug.length > 0 ? (
-              <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
-                <h3 className="mb-5 text-2xl font-semibold">External search debug</h3>
-
-                <div className="space-y-3">
-                  {externalSearchDebug.map((item, index) => (
-                    <div
-                      key={`${item.query}-${index}`}
-                      className="rounded-2xl border border-white/10 bg-[#030815] p-4"
-                    >
-                      <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="min-w-0">
-                          <div className="break-words text-sm font-medium text-white">
-                            {item.query}
-                          </div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {item.ok ? 'ok' : 'failed'}
-                            {' · '}
-                            results: {item.resultCount}
-                          </div>
-                          {item.error ? (
-                            <div className="mt-2 text-xs text-red-300">{item.error}</div>
-                          ) : null}
-                        </div>
-
-                        <div className="shrink-0">
-                          <span
-                            className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${
-                              item.ok
-                                ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
-                                : 'border-red-400/20 bg-red-400/10 text-red-200'
-                            }`}
-                          >
-                            {item.ok ? 'ok' : 'failed'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
             <div className="mt-4 grid gap-4 md:grid-cols-3">
               <DiagnosticCard
                 label="External findings linked to people"
@@ -466,152 +650,107 @@ export default async function AssessmentReportPage({
             </div>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          {externalSearchDebug.length > 0 ? (
             <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
-              <h3 className="mb-5 text-2xl font-semibold">Top findings</h3>
+              <h3 className="mb-5 text-2xl font-semibold">External search debug</h3>
 
-              <div className="space-y-4">
-                {findings.length === 0 ? (
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-slate-400">
-                    No findings yet.
-                  </div>
-                ) : (
-                  findings.slice(0, 6).map((finding) => {
-                    const linkedPerson = finding.person_id
-                      ? people.find((p) => p.id === finding.person_id)
-                      : null
-
-                    return (
-                      <div
-                        key={finding.id}
-                        className="rounded-2xl border border-white/10 bg-[#030815] p-4"
-                      >
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                          <div>
-                            <div className="font-medium text-white">{finding.title}</div>
-
-                            {finding.description ? (
-                              <div className="mt-2 text-sm leading-7 text-slate-400">
-                                {finding.description}
-                              </div>
-                            ) : null}
-
-                            <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-slate-500">
-                              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
-                                {finding.category}
-                              </span>
-                              {linkedPerson ? (
-                                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
-                                  {linkedPerson.full_name || linkedPerson.role_title}
-                                </span>
-                              ) : null}
-                            </div>
-
-                            {finding.source_url ? (
-                              <div className="mt-3 text-xs text-slate-500">
-                                Source: {finding.source_title || finding.source_url} ·{' '}
-                                {finding.source_type || 'unknown'}
-                              </div>
-                            ) : null}
-                          </div>
-
-                          <RiskBadge value={finding.severity} />
+              <div className="space-y-3">
+                {externalSearchDebug.map((item, index) => (
+                  <div
+                    key={`${item.query}-${index}`}
+                    className="rounded-2xl border border-white/10 bg-[#030815] p-4"
+                  >
+                    <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="break-words text-sm font-medium text-white">
+                          {item.query}
                         </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {item.ok ? 'ok' : 'failed'} · results: {item.resultCount}
+                        </div>
+                        {item.error ? (
+                          <div className="mt-2 text-xs text-red-300">{item.error}</div>
+                        ) : null}
                       </div>
-                    )
-                  })
-                )}
+
+                      <div className="shrink-0">
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${
+                            item.ok
+                              ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
+                              : 'border-red-400/20 bg-red-400/10 text-red-200'
+                          }`}
+                        >
+                          {item.ok ? 'ok' : 'failed'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
+          ) : null}
 
-            <div className="space-y-6">
-              <div className="rounded-[28px] border border-cyan-300/20 bg-cyan-300/[0.08] p-6 backdrop-blur-xl">
-                <h3 className="mb-5 text-2xl font-semibold">Most exposed people / roles</h3>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <FindingsSection
+              title="Website findings"
+              findings={websiteFindings}
+              people={people}
+            />
+            <FindingsSection
+              title="External findings"
+              findings={externalFindings}
+              people={people}
+            />
+          </div>
 
-                <div className="space-y-3">
-                  {topPeople.length === 0 ? (
-                    <div className="rounded-2xl border border-cyan-200/10 bg-[#030815]/40 p-4 text-cyan-50/80">
-                      No person-level scores yet.
-                    </div>
-                  ) : (
-                    topPeople.map((score) => {
-                      const linkedPerson = people.find((p) => p.id === score.person_id)
+          <div className="grid gap-6 xl:grid-cols-2">
+            <PeopleScoresSection
+              title="Website exposed people / roles"
+              scores={websitePersonScores}
+              people={websitePeople}
+              accent="cyan"
+            />
+            <PeopleScoresSection
+              title="External exposed people / roles"
+              scores={externalPersonScores}
+              people={externalPeople}
+              accent="fuchsia"
+            />
+          </div>
 
-                      return (
-                        <div
-                          key={score.id}
-                          className="rounded-2xl border border-cyan-200/10 bg-[#030815]/40 p-4"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="font-medium text-white">
-                                {linkedPerson?.full_name ||
-                                  linkedPerson?.role_title ||
-                                  'Unknown person'}
-                              </div>
-                              {linkedPerson ? (
-                                <div className="mt-1 text-sm text-slate-300">
-                                  {linkedPerson.role_title}
-                                  {linkedPerson.department
-                                    ? ` · ${linkedPerson.department}`
-                                    : ''}
-                                </div>
-                              ) : null}
-                              {score.reason_summary ? (
-                                <div className="mt-2 text-sm leading-6 text-slate-400">
-                                  {score.reason_summary}
-                                </div>
-                              ) : null}
-                            </div>
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
+            <h3 className="mb-5 text-2xl font-semibold">Immediate remediation</h3>
 
-                            <div className="flex flex-col items-end gap-2">
-                              <div className="text-3xl font-semibold text-white">
-                                {score.score_value}
-                              </div>
-                              <RiskBadge value={score.risk_level} />
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })
-                  )}
+            <div className="space-y-3">
+              {remediationTasks.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-slate-400">
+                  No remediation tasks yet.
                 </div>
-              </div>
-
-              <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
-                <h3 className="mb-5 text-2xl font-semibold">Immediate remediation</h3>
-
-                <div className="space-y-3">
-                  {remediationTasks.length === 0 ? (
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-slate-400">
-                      No remediation tasks yet.
+              ) : (
+                remediationTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="rounded-2xl border border-white/10 bg-[#030815] p-4"
+                  >
+                    <div className="font-medium text-white">{task.title}</div>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-slate-500">
+                      <span className="rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-1 text-fuchsia-200">
+                        priority · {task.priority}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
+                        effort · {task.effort}
+                      </span>
+                      <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-cyan-100">
+                        impact · {task.impact}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
+                        status · {task.status}
+                      </span>
                     </div>
-                  ) : (
-                    remediationTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="rounded-2xl border border-white/10 bg-[#030815] p-4"
-                      >
-                        <div className="font-medium text-white">{task.title}</div>
-                        <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-slate-500">
-                          <span className="rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-1 text-fuchsia-200">
-                            priority · {task.priority}
-                          </span>
-                          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
-                            effort · {task.effort}
-                          </span>
-                          <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-cyan-100">
-                            impact · {task.impact}
-                          </span>
-                          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
-                            status · {task.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
