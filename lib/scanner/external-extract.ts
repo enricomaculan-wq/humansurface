@@ -29,18 +29,43 @@ const MAX_TEXT_CHARS = 20_000
 
 const ROLE_PATTERNS = [
   { regex: /\bCEO\b/i, role: 'CEO', department: 'Executive', key: true },
-  { regex: /\bChief Executive Officer\b/i, role: 'CEO', department: 'Executive', key: true },
-  { regex: /\bAmministratore Delegato\b/i, role: 'CEO', department: 'Executive', key: true },
+  {
+    regex: /\bChief Executive Officer\b/i,
+    role: 'CEO',
+    department: 'Executive',
+    key: true,
+  },
+  {
+    regex: /\bAmministratore Delegato\b/i,
+    role: 'CEO',
+    department: 'Executive',
+    key: true,
+  },
 
   { regex: /\bCFO\b/i, role: 'CFO', department: 'Finance', key: true },
-  { regex: /\bChief Financial Officer\b/i, role: 'CFO', department: 'Finance', key: true },
-  { regex: /\bDirettore Finanziario\b/i, role: 'CFO', department: 'Finance', key: true },
+  {
+    regex: /\bChief Financial Officer\b/i,
+    role: 'CFO',
+    department: 'Finance',
+    key: true,
+  },
+  {
+    regex: /\bDirettore Finanziario\b/i,
+    role: 'CFO',
+    department: 'Finance',
+    key: true,
+  },
 
   { regex: /\bCOO\b/i, role: 'COO', department: 'Operations', key: true },
   { regex: /\bCTO\b/i, role: 'CTO', department: 'Technology', key: true },
   { regex: /\bFounder\b/i, role: 'Founder', department: 'Executive', key: true },
   { regex: /\bFondatore\b/i, role: 'Founder', department: 'Executive', key: true },
-  { regex: /\bManaging Director\b/i, role: 'Managing Director', department: 'Executive', key: true },
+  {
+    regex: /\bManaging Director\b/i,
+    role: 'Managing Director',
+    department: 'Executive',
+    key: true,
+  },
   { regex: /\bPresident\b/i, role: 'President', department: 'Executive', key: true },
   { regex: /\bPresidente\b/i, role: 'President', department: 'Executive', key: true },
   { regex: /\bBoard\b/i, role: 'Board Member', department: 'Executive', key: true },
@@ -49,14 +74,44 @@ const ROLE_PATTERNS = [
   { regex: /\bHead of HR\b/i, role: 'Head of HR', department: 'HR', key: true },
   { regex: /\bRisorse Umane\b/i, role: 'HR Contact', department: 'HR', key: false },
   { regex: /\bRecruiter\b/i, role: 'Recruiter', department: 'HR', key: false },
-  { regex: /\bTalent Acquisition\b/i, role: 'Talent Acquisition', department: 'HR', key: false },
+  {
+    regex: /\bTalent Acquisition\b/i,
+    role: 'Talent Acquisition',
+    department: 'HR',
+    key: false,
+  },
 
-  { regex: /\bFinance Manager\b/i, role: 'Finance Manager', department: 'Finance', key: true },
-  { regex: /\bAmministrazione\b/i, role: 'Administration Contact', department: 'Finance', key: false },
-  { regex: /\bContabilità\b/i, role: 'Accounting Contact', department: 'Finance', key: false },
-  { regex: /\bAccounting\b/i, role: 'Accounting Contact', department: 'Finance', key: false },
-  { regex: /\bProcurement\b/i, role: 'Procurement Contact', department: 'Finance', key: false },
-]
+  {
+    regex: /\bFinance Manager\b/i,
+    role: 'Finance Manager',
+    department: 'Finance',
+    key: true,
+  },
+  {
+    regex: /\bAmministrazione\b/i,
+    role: 'Administration Contact',
+    department: 'Finance',
+    key: false,
+  },
+  {
+    regex: /\bContabilità\b/i,
+    role: 'Accounting Contact',
+    department: 'Finance',
+    key: false,
+  },
+  {
+    regex: /\bAccounting\b/i,
+    role: 'Accounting Contact',
+    department: 'Finance',
+    key: false,
+  },
+  {
+    regex: /\bProcurement\b/i,
+    role: 'Procurement Contact',
+    department: 'Finance',
+    key: false,
+  },
+] as const
 
 function cleanText(text: string) {
   return text.replace(/\s+/g, ' ').trim()
@@ -92,21 +147,99 @@ function dedupePeople(people: ScannerPerson[]) {
   return Array.from(map.values())
 }
 
+function severityRank(severity: string) {
+  if (severity === 'high') return 3
+  if (severity === 'medium') return 2
+  return 1
+}
+
+function findingSpecificityRank(finding: ScannerFinding) {
+  let score = 0
+  const title = finding.title.toLowerCase()
+
+  if (finding.linkedPersonEmail || finding.linkedPersonSignature) score += 3
+  if (finding.sourceUrl) score += 1
+
+  if (
+    title.includes('executive visibility') ||
+    title.includes('finance role visibility') ||
+    title.includes('hr role visibility') ||
+    title.includes('external role visibility')
+  ) {
+    score += 2
+  }
+
+  if (
+    title.includes('public email addresses') ||
+    title.includes('leadership visibility detected') ||
+    title.includes('finance-related external public context') ||
+    title.includes('hr / careers exposure detected')
+  ) {
+    score += 1
+  }
+
+  return score
+}
+
+function findingDedupKey(finding: ScannerFinding) {
+  const personKey = finding.linkedPersonSignature || finding.linkedPersonEmail || ''
+  const sourceKey = normalizeText(finding.sourceUrl)
+  const title = finding.title.toLowerCase()
+
+  let cluster: string = finding.category
+
+  if (title.includes('email')) {
+    cluster = `${finding.category}:email`
+  } else if (
+    title.includes('leadership') ||
+    title.includes('executive') ||
+    title.includes('role visibility')
+  ) {
+    cluster = `${finding.category}:role`
+  } else if (title.includes('finance')) {
+    cluster = `${finding.category}:finance`
+  } else if (
+    title.includes('hr') ||
+    title.includes('careers') ||
+    title.includes('recruit')
+  ) {
+    cluster = `${finding.category}:hr`
+  }
+
+  if (personKey) {
+    return `person|${cluster}|${normalizeText(personKey)}`
+  }
+
+  return `source|${cluster}|${sourceKey}`
+}
+
 function dedupeFindings(findings: ScannerFinding[]) {
   const map = new Map<string, ScannerFinding>()
 
   for (const finding of findings) {
-    const key = [
-      finding.title,
-      finding.category,
-      finding.severity,
-      finding.linkedPersonEmail ?? '',
-      finding.linkedPersonSignature ?? '',
-      finding.sourceUrl ?? '',
-    ].join('|')
+    const key = findingDedupKey(finding)
+    const existing = map.get(key)
 
-    if (!map.has(key)) {
+    if (!existing) {
       map.set(key, finding)
+      continue
+    }
+
+    const currentSeverity = severityRank(finding.severity)
+    const existingSeverity = severityRank(existing.severity)
+
+    if (currentSeverity > existingSeverity) {
+      map.set(key, finding)
+      continue
+    }
+
+    if (currentSeverity === existingSeverity) {
+      const currentSpecificity = findingSpecificityRank(finding)
+      const existingSpecificity = findingSpecificityRank(existing)
+
+      if (currentSpecificity > existingSpecificity) {
+        map.set(key, finding)
+      }
     }
   }
 
@@ -172,7 +305,11 @@ function extractLikelyPeople(text: string, emails: string[]) {
   for (const email of emails) {
     const lower = email.toLowerCase()
 
-    if (lower.startsWith('hr@') || lower.startsWith('careers@') || lower.startsWith('jobs@')) {
+    if (
+      lower.startsWith('hr@') ||
+      lower.startsWith('careers@') ||
+      lower.startsWith('jobs@')
+    ) {
       matches.push({
         fullName: null,
         roleTitle: 'HR Contact',

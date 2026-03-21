@@ -270,11 +270,11 @@ export async function runExternalPublicScanForAssessment(
   const personScores = calculatePersonScores(insertedFindings)
 
   const { data: existingWebsiteScoresData, error: existingWebsiteScoresError } =
-  await supabaseAdmin
-    .from('scores')
-    .select('*')
-    .eq('assessment_id', assessmentId)
-    .is('person_id', null)
+    await supabaseAdmin
+      .from('scores')
+      .select('*')
+      .eq('assessment_id', assessmentId)
+      .eq('person_id', null)
 
   if (existingWebsiteScoresError) {
     throw new Error(`website scores read failed: ${existingWebsiteScoresError.message}`)
