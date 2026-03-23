@@ -631,19 +631,6 @@ export default function HumanSurfaceLandingPage() {
       <header className="sticky top-0 z-50 border-b border-cyan-300/10 bg-[#040816]/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
           <div className="flex items-center gap-3">
-            <a
-                href="/login"
-                className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
-              >
-                Login
-              </a>
-
-              <a
-                href="/buy"
-                className="rounded-2xl border border-cyan-300/30 bg-cyan-300/90 px-5 py-3 text-sm font-semibold text-slate-950 shadow-[0_0_40px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
-              >
-                Get assessment
-              </a>
             <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 shadow-[0_0_30px_rgba(34,211,238,0.16)]">
               <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle,rgba(34,211,238,0.15),transparent_68%)]" />
               <span className="relative text-lg font-semibold text-cyan-300">H</span>
@@ -671,12 +658,21 @@ export default function HumanSurfaceLandingPage() {
             </a>
           </nav>
 
-          <Link
-            href="/buy"
-            className="rounded-2xl border border-cyan-300/30 bg-cyan-300/90 px-5 py-3 text-sm font-semibold text-slate-950 shadow-[0_0_40px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
-          >
-            Acquista assessment
-          </Link>
+          <div className="flex items-center gap-3">
+            <a
+              href="/login"
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
+            >
+              Login
+            </a>
+
+            <a
+              href="/buy"
+              className="rounded-2xl border border-cyan-300/30 bg-cyan-300/90 px-5 py-3 text-sm font-semibold text-slate-950 shadow-[0_0_40px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
+            >
+              Get assessment
+            </a>
+          </div>
         </div>
       </header>
 
