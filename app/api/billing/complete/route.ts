@@ -144,12 +144,13 @@ export async function POST(req: Request) {
         .from('assessments')
         .insert({
           organization_id: organizationId,
-          status: 'queued',
+          status: 'processing',
           overall_score: 0,
           overall_risk_level: 'low',
           scan_diagnostics: {
             source: 'post_payment_billing_completion',
             createdAt: new Date().toISOString(),
+            customerVisibility: 'hidden_until_ready',
           },
         })
         .select('id')
