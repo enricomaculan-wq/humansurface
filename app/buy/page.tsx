@@ -20,22 +20,32 @@ export default function BuyPage() {
           </div>
 
           <h1 className="mt-3 text-4xl font-semibold tracking-tight">
-            Acquista assessment
+            Create your account and continue to payment
           </h1>
 
           <p className="mt-4 text-slate-400">
-            Inserisci i dati della tua azienda prima del pagamento. Dopo la
-            compilazione verrai reindirizzato a Stripe per completare l’acquisto.
+            Register your company account, enter your main domain, and continue to
+            secure payment for your first HumanSurface Assessment.
           </p>
 
           <div className="mt-6 rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] p-5">
             <div className="text-sm uppercase tracking-[0.16em] text-cyan-200">
-              Offerta lancio
+              Launch offer
             </div>
-            <div className="mt-2 text-4xl font-semibold text-white">€190 + IVA</div>
+            <div className="mt-2 text-4xl font-semibold text-white">€190 + VAT</div>
             <div className="mt-2 text-sm text-slate-300">
-              Include website scan, external exposure analysis, people/roles
-              exposure, combined score e report executive.
+              Includes website scan, external exposure analysis, people/roles
+              exposure, combined score, and executive-ready report.
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 p-5">
+            <div className="text-sm uppercase tracking-[0.16em] text-fuchsia-200">
+              Billing details
+            </div>
+            <div className="mt-2 text-sm leading-7 text-slate-200">
+              Billing details will be requested after payment, before invoice
+              issuance.
             </div>
           </div>
 

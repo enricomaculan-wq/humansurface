@@ -41,6 +41,7 @@ export async function POST(req: Request) {
 
     const companyName = (body.companyName ?? '').trim()
     const email = (body.email ?? '').trim().toLowerCase()
+    const password = String(body.password ?? '').trim()
     const notes = (body.notes ?? '').trim()
     const domain = normalizeDomain(body.domain ?? '')
 
@@ -56,12 +57,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Inserisci un dominio valido.' }, { status: 400 })
     }
 
+    if (password.length < 8) {
+        return NextResponse.json(
+            { error: 'Password must be at least 8 characters long.' },
+            { status: 400 },
+        )
+}
+
     const { data: orderData, error: orderError } = await supabaseAdmin
       .from('assessment_orders')
       .insert({
         company_name: companyName,
         domain,
         email,
+        password_hash: password,
+        billing_status: 'pending',
         notes: notes || null,
         status: 'pending_payment',
         stripe_payment_status: 'unpaid',

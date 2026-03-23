@@ -6,6 +6,7 @@ export default function BuyForm() {
   const [companyName, setCompanyName] = useState('')
   const [domain, setDomain] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -25,6 +26,7 @@ export default function BuyForm() {
           companyName,
           domain,
           email,
+          password,
           notes,
         }),
       })
@@ -32,7 +34,7 @@ export default function BuyForm() {
       const result = await response.json()
 
       if (!response.ok) {
-        setError(result?.error || 'Errore durante la creazione dell’ordine.')
+        setError(result?.error || 'Error while creating the order.')
         setLoading(false)
         return
       }
@@ -40,15 +42,14 @@ export default function BuyForm() {
       const checkoutUrl = String(result?.checkoutUrl ?? '').trim()
 
       if (!checkoutUrl) {
-        setError('Link di pagamento non disponibile.')
+        setError('Payment link not available.')
         setLoading(false)
         return
       }
 
-      console.log('checkoutUrl:', checkoutUrl)
       window.location.assign(checkoutUrl)
     } catch {
-      setError('Errore di rete. Riprova.')
+      setError('Network error. Please try again.')
       setLoading(false)
     }
   }
@@ -56,48 +57,61 @@ export default function BuyForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label className="mb-2 block text-sm text-slate-300">Nome azienda</label>
+        <label className="mb-2 block text-sm text-slate-300">Company name</label>
         <input
           type="text"
           value={companyName}
           onChange={(e) => setCompanyName(e.target.value)}
           className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
-          placeholder="Es. HumanSurface Srl"
+          placeholder="Example: HumanSurface Srl"
           required
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-slate-300">Dominio aziendale</label>
+        <label className="mb-2 block text-sm text-slate-300">Company domain</label>
         <input
           type="text"
           value={domain}
           onChange={(e) => setDomain(e.target.value)}
           className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
-          placeholder="Es. azienda.it"
+          placeholder="example.com"
           required
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-slate-300">Email</label>
+        <label className="mb-2 block text-sm text-slate-300">Work email</label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
-          placeholder="Es. nome@azienda.it"
+          placeholder="name@company.com"
           required
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-slate-300">Note opzionali</label>
+        <label className="mb-2 block text-sm text-slate-300">Password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
+          placeholder="Create a password"
+          required
+          minLength={8}
+        />
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm text-slate-300">Optional notes</label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="min-h-[120px] w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
-          placeholder="Es. priorità particolari, contesto, urgenza..."
+          placeholder="Priorities, urgency, context..."
         />
       </div>
 
@@ -112,7 +126,7 @@ export default function BuyForm() {
         disabled={loading}
         className="w-full rounded-2xl border border-cyan-300/30 bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:opacity-60"
       >
-        {loading ? 'Reindirizzamento al pagamento...' : 'Continua al pagamento'}
+        {loading ? 'Redirecting to payment...' : 'Create account and continue to payment'}
       </button>
     </form>
   )
