@@ -37,7 +37,9 @@ export default function BuyForm() {
         return
       }
 
-      window.location.href = result.checkoutUrl
+      console.log('checkoutUrl:', result.checkoutUrl)
+        alert(result.checkoutUrl)
+        window.location.href = result.checkoutUrl
     } catch {
       setError('Errore di rete. Riprova.')
       setLoading(false)

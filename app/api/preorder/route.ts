@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 const STRIPE_PAYMENT_LINK =
-  'https://buy.stripe.com/4gM6oH5K02SDbSC5DE0RG04'
+  'https://buy.stripe.com/4gM6oH5KO2SDbSC5DE0RG04'
 
 function normalizeDomain(value: string) {
   return value
