@@ -37,9 +37,16 @@ export default function BuyForm() {
         return
       }
 
-      console.log('checkoutUrl:', result.checkoutUrl)
-        alert(result.checkoutUrl)
-        window.location.href = result.checkoutUrl
+      const checkoutUrl = String(result?.checkoutUrl ?? '').trim()
+
+      if (!checkoutUrl) {
+        setError('Link di pagamento non disponibile.')
+        setLoading(false)
+        return
+      }
+
+      console.log('checkoutUrl:', checkoutUrl)
+      window.location.assign(checkoutUrl)
     } catch {
       setError('Errore di rete. Riprova.')
       setLoading(false)
@@ -85,9 +92,7 @@ export default function BuyForm() {
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-slate-300">
-          Note opzionali
-        </label>
+        <label className="mb-2 block text-sm text-slate-300">Note opzionali</label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
