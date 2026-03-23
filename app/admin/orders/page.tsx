@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { formatDateTime } from '@/lib/date'
 
 type AssessmentOrder = {
@@ -34,9 +34,7 @@ function StatusBadge({ value }: { value: string | null }) {
 }
 
 export default async function AdminOrdersPage() {
-  const supabase = await createSupabaseServerClient()
-
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('assessment_orders')
     .select('*')
     .order('created_at', { ascending: false })
@@ -81,6 +79,7 @@ export default async function AdminOrdersPage() {
                     <th className="px-4 py-2">Paid</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {orders.map((order) => (
                     <tr
