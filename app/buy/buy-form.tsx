@@ -3,10 +3,10 @@
 import { useState } from 'react'
 
 export default function BuyForm() {
+  const [fullName, setFullName] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [domain, setDomain] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -23,10 +23,10 @@ export default function BuyForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          fullName,
           companyName,
           domain,
           email,
-          password,
           notes,
         }),
       })
@@ -56,6 +56,17 @@ export default function BuyForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      <div>
+        <label className="mb-2 block text-sm text-slate-300">Full name</label>
+        <input
+          type="text"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
+          placeholder="Example: Mario Rossi"
+        />
+      </div>
+
       <div>
         <label className="mb-2 block text-sm text-slate-300">Company name</label>
         <input
@@ -93,26 +104,19 @@ export default function BuyForm() {
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-slate-300">Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
-          placeholder="Create a password"
-          required
-          minLength={8}
-        />
-      </div>
-
-      <div>
-        <label className="mb-2 block text-sm text-slate-300">Optional notes</label>
+        <label className="mb-2 block text-sm text-slate-300">
+          Optional notes
+        </label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="min-h-[120px] w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
           placeholder="Priorities, urgency, context..."
         />
+      </div>
+
+      <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-3 text-sm text-slate-200">
+        Billing details will be requested after payment, before invoice issuance.
       </div>
 
       {error ? (
@@ -126,7 +130,9 @@ export default function BuyForm() {
         disabled={loading}
         className="w-full rounded-2xl border border-cyan-300/30 bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:opacity-60"
       >
-        {loading ? 'Redirecting to payment...' : 'Create account and continue to payment'}
+        {loading
+          ? 'Redirecting to payment...'
+          : 'Create account and continue to payment'}
       </button>
     </form>
   )

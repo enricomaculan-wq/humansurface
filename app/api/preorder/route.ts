@@ -41,9 +41,9 @@ export async function POST(req: Request) {
 
     const companyName = (body.companyName ?? '').trim()
     const email = (body.email ?? '').trim().toLowerCase()
-    const password = String(body.password ?? '').trim()
     const notes = (body.notes ?? '').trim()
     const domain = normalizeDomain(body.domain ?? '')
+    const fullName = (body.fullName ?? '').trim()
 
     if (!companyName) {
       return NextResponse.json({ error: 'Inserisci il nome azienda.' }, { status: 400 })
@@ -57,12 +57,91 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Inserisci un dominio valido.' }, { status: 400 })
     }
 
-    if (password.length < 8) {
+    let companyId: string | null = null
+
+    const { data: existingCompany, error: existingCompanyError } = await supabaseAdmin
+      .from('companies')
+      .select('id')
+      .eq('domain', domain)
+      .maybeSingle()
+
+    if (existingCompanyError) {
+      return NextResponse.json(
+        { error: `Errore lettura company: ${existingCompanyError.message}` },
+        { status: 500 },
+      )
+    }
+
+    if (existingCompany?.id) {
+      companyId = existingCompany.id as string
+    } else {
+      const { data: companyData, error: companyError } = await supabaseAdmin
+        .from('companies')
+        .insert({
+          name: companyName,
+          domain,
+        })
+        .select('id')
+        .single()
+
+      if (companyError || !companyData) {
         return NextResponse.json(
-            { error: 'Password must be at least 8 characters long.' },
-            { status: 400 },
+          { error: `Errore creazione company: ${companyError?.message || 'unknown'}` },
+          { status: 500 },
         )
-}
+      }
+
+      companyId = companyData.id as string
+    }
+
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from('company_users')
+      .insert({
+        company_id: companyId,
+        email,
+        full_name: fullName || null,
+        role: 'owner',
+      })
+      .select('id')
+      .single()
+
+    if (userError || !userData) {
+      return NextResponse.json(
+        { error: `Errore creazione utente company: ${userError?.message || 'unknown'}` },
+        { status: 500 },
+      )
+    }
+
+    const companyUserId = userData.id as string
+
+    const { data: billingData, error: billingCheckError } = await supabaseAdmin
+      .from('billing_profiles')
+      .select('id')
+      .eq('company_id', companyId)
+      .maybeSingle()
+
+    if (billingCheckError) {
+      return NextResponse.json(
+        { error: `Errore controllo billing profile: ${billingCheckError.message}` },
+        { status: 500 },
+      )
+    }
+
+    if (!billingData?.id) {
+      const { error: billingInsertError } = await supabaseAdmin
+        .from('billing_profiles')
+        .insert({
+          company_id: companyId,
+          status: 'pending',
+        })
+
+      if (billingInsertError) {
+        return NextResponse.json(
+          { error: `Errore creazione billing profile: ${billingInsertError.message}` },
+          { status: 500 },
+        )
+      }
+    }
 
     const { data: orderData, error: orderError } = await supabaseAdmin
       .from('assessment_orders')
@@ -70,11 +149,12 @@ export async function POST(req: Request) {
         company_name: companyName,
         domain,
         email,
-        password_hash: password,
-        billing_status: 'pending',
         notes: notes || null,
         status: 'pending_payment',
         stripe_payment_status: 'unpaid',
+        billing_status: 'pending',
+        company_id: companyId,
+        company_user_id: companyUserId,
       })
       .select('id')
       .single()
@@ -109,11 +189,13 @@ export async function POST(req: Request) {
       ],
       metadata: {
         orderId,
+        companyId,
+        companyUserId,
         companyName,
         domain,
         email,
       },
-      success_url: `${baseUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${baseUrl}/billing/complete?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/buy?canceled=1`,
     })
 
@@ -143,6 +225,7 @@ export async function POST(req: Request) {
       ok: true,
       checkoutUrl: session.url,
       orderId,
+      companyId,
     })
   } catch (error) {
     return NextResponse.json(
