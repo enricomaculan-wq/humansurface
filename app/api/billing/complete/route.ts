@@ -16,6 +16,33 @@ type OrganizationRow = {
   domain: string
 }
 
+async function triggerAssessmentScan(baseUrl: string, assessmentId: string) {
+  try {
+    const response = await fetch(`${baseUrl}/api/external-scan`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        assessmentId,
+      }),
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Scan trigger failed: ${response.status} ${text}`)
+    }
+  } catch (error) {
+    console.error('Failed to trigger assessment scan', error)
+  }
+}
+
+function getBaseUrl(req: Request) {
+  const url = new URL(req.url)
+  return `${url.protocol}//${url.host}`
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json()
@@ -169,6 +196,9 @@ export async function POST(req: Request) {
 
       assessmentId = assessmentData.id as string
     }
+
+    const baseUrl = getBaseUrl(req)
+    void triggerAssessmentScan(baseUrl, assessmentId)
 
     const { error: orderUpdateError } = await supabaseAdmin
       .from('assessment_orders')
