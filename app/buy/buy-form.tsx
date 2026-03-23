@@ -1,0 +1,112 @@
+'use client'
+
+import { useState } from 'react'
+
+export default function BuyForm() {
+  const [companyName, setCompanyName] = useState('')
+  const [domain, setDomain] = useState('')
+  const [email, setEmail] = useState('')
+  const [notes, setNotes] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/preorder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyName,
+          domain,
+          email,
+          notes,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(result?.error || 'Errore durante la creazione dell’ordine.')
+        setLoading(false)
+        return
+      }
+
+      window.location.href = result.checkoutUrl
+    } catch {
+      setError('Errore di rete. Riprova.')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div>
+        <label className="mb-2 block text-sm text-slate-300">Nome azienda</label>
+        <input
+          type="text"
+          value={companyName}
+          onChange={(e) => setCompanyName(e.target.value)}
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
+          placeholder="Es. HumanSurface Srl"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm text-slate-300">Dominio aziendale</label>
+        <input
+          type="text"
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
+          placeholder="Es. azienda.it"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm text-slate-300">Email</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
+          placeholder="Es. nome@azienda.it"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm text-slate-300">
+          Note opzionali
+        </label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          className="min-h-[120px] w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
+          placeholder="Es. priorità particolari, contesto, urgenza..."
+        />
+      </div>
+
+      {error ? (
+        <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+          {error}
+        </div>
+      ) : null}
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full rounded-2xl border border-cyan-300/30 bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:opacity-60"
+      >
+        {loading ? 'Reindirizzamento al pagamento...' : 'Continua al pagamento'}
+      </button>
+    </form>
+  )
+}
