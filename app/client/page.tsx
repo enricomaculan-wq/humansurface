@@ -168,7 +168,7 @@ export default async function ClientPage() {
 
                       {order.assessment_id && isReady ? (
                         <a
-                          href={`/admin/assessments/${order.assessment_id}/report`}
+                          href={`/assessments/report/${order.assessment_id}`}
                           className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
                         >
                           Open report

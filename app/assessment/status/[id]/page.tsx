@@ -153,7 +153,7 @@ export default async function AssessmentStatusPage({
 
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
                 <Link
-                  href={`/admin/assessments/${assessment.id}/report`}
+                  href={`/assessments/report/${assessment.id}`}
                   className="inline-flex items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
                 >
                   Open report
