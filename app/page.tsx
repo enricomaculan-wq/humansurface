@@ -151,12 +151,19 @@ function LandingHero() {
           </motion.div>
 
           <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-4 sm:flex-row">
-            <Link
+              <Link 
+              id='login'
+              href="/login"
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
+            >
+              Login <ArrowRight className="h-4 w-4" />
+            </Link>
+              <Link
               id="request-assessment"
               href="/buy"
               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 shadow-[0_0_36px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
-            >
-              Acquista assessment <ArrowRight className="h-4 w-4" />
+              >
+              Get assessment <ArrowRight className="h-4 w-4" />
             </Link>
 
             <a
