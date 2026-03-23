@@ -34,6 +34,10 @@ export default function AuthForm({
         return
       }
 
+      await fetch('/api/auth/sync-user', {
+        method: 'POST',
+        })
+
       router.push('/client')
       router.refresh()
     } catch {

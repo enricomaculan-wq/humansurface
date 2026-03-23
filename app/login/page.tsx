@@ -1,5 +1,12 @@
 import AuthForm from './auth-form'
 
+<div className="mt-6 text-sm text-slate-400">
+  Don’t have an account?{' '}
+  <a href="/signup" className="text-cyan-200 underline underline-offset-4">
+    Create one
+  </a>
+</div>
+
 export default function LoginPage() {
   return (
     <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
