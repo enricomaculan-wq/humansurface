@@ -80,6 +80,10 @@ type Score = {
   score_scope?: string | null
 }
 
+type CompanyUserLookupRow = {
+  id: string
+}
+
 function RiskBadge({ value }: { value: string }) {
   const cls =
     value === 'high'
@@ -127,15 +131,31 @@ export default async function CustomerAssessmentReportPage({
     data: { user },
   } = await auth.auth.getUser()
 
-  if (!user?.email) {
+  if (!user?.id) {
     redirect('/login')
   }
 
+  const { data: companyUserData, error: companyUserError } = await supabaseAdmin
+    .from('company_users')
+    .select('id')
+    .eq('auth_user_id', user.id)
+    .maybeSingle()
+
+  if (companyUserError) {
+    throw new Error(`Company user lookup failed: ${companyUserError.message}`)
+  }
+
+  if (!companyUserData?.id) {
+    notFound()
+  }
+
+  const companyUser = companyUserData as CompanyUserLookupRow
+
   const { data: orderData, error: orderError } = await supabaseAdmin
     .from('assessment_orders')
-    .select('id, email, assessment_id')
+    .select('id, assessment_id, company_user_id')
     .eq('assessment_id', id)
-    .eq('email', user.email.toLowerCase())
+    .eq('company_user_id', companyUser.id)
     .maybeSingle()
 
   if (orderError) {
@@ -147,9 +167,9 @@ export default async function CustomerAssessmentReportPage({
   }
 
   const [
-    { data: assessmentData },
-    { data: findingsData },
-    { data: scoresData },
+    { data: assessmentData, error: assessmentError },
+    { data: findingsData, error: findingsError },
+    { data: scoresData, error: scoresError },
   ] = await Promise.all([
     supabaseAdmin.from('assessments').select('*').eq('id', id).maybeSingle(),
     supabaseAdmin
@@ -164,6 +184,18 @@ export default async function CustomerAssessmentReportPage({
       .order('created_at', { ascending: false }),
   ])
 
+  if (assessmentError) {
+    throw new Error(`Assessment read failed: ${assessmentError.message}`)
+  }
+
+  if (findingsError) {
+    throw new Error(`Findings read failed: ${findingsError.message}`)
+  }
+
+  if (scoresError) {
+    throw new Error(`Scores read failed: ${scoresError.message}`)
+  }
+
   const assessment = assessmentData as Assessment | null
   if (!assessment) notFound()
 
@@ -171,7 +203,10 @@ export default async function CustomerAssessmentReportPage({
     redirect(`/assessment/status/${assessment.id}`)
   }
 
-  const [{ data: organizationData }, { data: peopleData }] = await Promise.all([
+  const [
+    { data: organizationData, error: organizationError },
+    { data: peopleData, error: peopleError },
+  ] = await Promise.all([
     supabaseAdmin
       .from('organizations')
       .select('*')
@@ -182,6 +217,14 @@ export default async function CustomerAssessmentReportPage({
       .select('*')
       .eq('organization_id', assessment.organization_id),
   ])
+
+  if (organizationError) {
+    throw new Error(`Organization read failed: ${organizationError.message}`)
+  }
+
+  if (peopleError) {
+    throw new Error(`People read failed: ${peopleError.message}`)
+  }
 
   const organization = organizationData as Organization | null
   const findings = (findingsData ?? []) as Finding[]

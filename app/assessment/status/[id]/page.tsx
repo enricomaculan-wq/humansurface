@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
+import { createSupabaseAuthServerClient } from '@/lib/supabase-auth-server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { formatDateTime } from '@/lib/date'
 
@@ -19,20 +20,28 @@ type OrganizationRow = {
   industry: string | null
 }
 
+type CompanyUserLookupRow = {
+  id: string
+}
+
 function StatusBadge({ value }: { value: string }) {
   const normalized = value.toLowerCase()
 
   const cls =
     normalized === 'completed'
       ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
-      : normalized === 'processing' || normalized === 'queued' || normalized === 'running'
+      : normalized === 'processing' ||
+          normalized === 'queued' ||
+          normalized === 'running'
         ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100'
-        : normalized === 'failed'
-          ? 'border-red-400/20 bg-red-400/10 text-red-200'
-          : 'border-white/10 bg-white/[0.03] text-slate-300'
+      : normalized === 'failed'
+        ? 'border-red-400/20 bg-red-400/10 text-red-200'
+      : 'border-white/10 bg-white/[0.03] text-slate-300'
 
   return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${cls}`}>
+    <span
+      className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${cls}`}
+    >
       {value}
     </span>
   )
@@ -44,6 +53,46 @@ export default async function AssessmentStatusPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+
+  const auth = await createSupabaseAuthServerClient()
+  const {
+    data: { user },
+  } = await auth.auth.getUser()
+
+  if (!user?.id) {
+    redirect('/login')
+  }
+
+  const { data: companyUserData, error: companyUserError } = await supabaseAdmin
+    .from('company_users')
+    .select('id')
+    .eq('auth_user_id', user.id)
+    .maybeSingle()
+
+  if (companyUserError) {
+    throw new Error(`Company user lookup failed: ${companyUserError.message}`)
+  }
+
+  if (!companyUserData?.id) {
+    notFound()
+  }
+
+  const companyUser = companyUserData as CompanyUserLookupRow
+
+  const { data: orderData, error: orderError } = await supabaseAdmin
+    .from('assessment_orders')
+    .select('id, assessment_id, company_user_id')
+    .eq('assessment_id', id)
+    .eq('company_user_id', companyUser.id)
+    .maybeSingle()
+
+  if (orderError) {
+    throw new Error(`Order lookup failed: ${orderError.message}`)
+  }
+
+  if (!orderData) {
+    notFound()
+  }
 
   const { data: assessmentData, error: assessmentError } = await supabaseAdmin
     .from('assessments')
@@ -131,7 +180,9 @@ export default async function AssessmentStatusPage({
                 <div className="text-sm uppercase tracking-[0.16em] text-slate-400">
                   Assessment reference
                 </div>
-                <div className="mt-2 break-all text-sm text-slate-300">{assessment.id}</div>
+                <div className="mt-2 break-all text-sm text-slate-300">
+                  {assessment.id}
+                </div>
               </div>
             </>
           ) : null}
@@ -153,17 +204,10 @@ export default async function AssessmentStatusPage({
 
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
                 <Link
-                  href={`/assessments/report/${assessment.id}`}
+                  href={`/assessment/report/${assessment.id}`}
                   className="inline-flex items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
                 >
                   Open report
-                </Link>
-
-                <Link
-                  href={`/admin/assessments/${assessment.id}/print`}
-                  className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
-                >
-                  Export / Print
                 </Link>
               </div>
             </>
@@ -188,12 +232,14 @@ export default async function AssessmentStatusPage({
                 <div className="text-sm uppercase tracking-[0.16em] text-slate-400">
                   Assessment reference
                 </div>
-                <div className="mt-2 break-all text-sm text-slate-300">{assessment.id}</div>
+                <div className="mt-2 break-all text-sm text-slate-300">
+                  {assessment.id}
+                </div>
               </div>
 
               <div className="mt-8">
                 <a
-                  href={`mailto:info@humansurface.com?subject=HumanSurface%20Assessment%20Support%20${assessment.id}`}
+                  href={`mailto:support@humansurface.com?subject=HumanSurface%20Assessment%20Support%20${assessment.id}`}
                   className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
                 >
                   Contact support

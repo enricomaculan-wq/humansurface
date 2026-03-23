@@ -4,6 +4,13 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { formatDateTime } from '@/lib/date'
 import LogoutButton from './logout-button'
 
+type CompanyUserRow = {
+  id: string
+  company_id: string
+  auth_user_id: string | null
+  email: string
+}
+
 type ClientOrderRow = {
   id: string
   company_name: string
@@ -27,7 +34,10 @@ function StatusBadge({ value }: { value: string | null }) {
   const cls =
     normalized === 'completed' || normalized === 'paid'
       ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
-      : normalized === 'processing' || normalized === 'queued' || normalized === 'pending' || normalized === 'pending_payment'
+      : normalized === 'processing' ||
+          normalized === 'queued' ||
+          normalized === 'pending' ||
+          normalized === 'pending_payment'
         ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100'
         : normalized === 'failed' || normalized === 'expired'
           ? 'border-red-400/20 bg-red-400/10 text-red-200'
@@ -46,14 +56,51 @@ export default async function ClientPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user?.email) {
+  if (!user?.id || !user.email) {
     redirect('/login')
+  }
+
+  const { data: companyUserData, error: companyUserError } = await supabaseAdmin
+    .from('company_users')
+    .select('id, company_id, auth_user_id, email')
+    .eq('auth_user_id', user.id)
+    .maybeSingle()
+
+  if (companyUserError) {
+    throw new Error(`Company user lookup failed: ${companyUserError.message}`)
+  }
+
+  const companyUser = companyUserData as CompanyUserRow | null
+
+  if (!companyUser) {
+    return (
+      <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-8 flex items-start justify-between gap-4">
+            <div>
+              <div className="text-sm uppercase tracking-[0.2em] text-cyan-300">
+                Client area
+              </div>
+              <h1 className="mt-2 text-4xl font-semibold tracking-tight">
+                Your assessments
+              </h1>
+              <p className="mt-3 text-slate-400">{user.email}</p>
+            </div>
+            <LogoutButton />
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-slate-400">
+            No company profile is linked to this account yet.
+          </div>
+        </div>
+      </main>
+    )
   }
 
   const { data: orders, error } = await supabaseAdmin
     .from('assessment_orders')
     .select('id, company_name, domain, status, billing_status, assessment_id, created_at')
-    .eq('email', user.email.toLowerCase())
+    .eq('company_user_id', companyUser.id)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -168,7 +215,7 @@ export default async function ClientPage() {
 
                       {order.assessment_id && isReady ? (
                         <a
-                          href={`/assessments/report/${order.assessment_id}`}
+                          href={`/assessment/report/${order.assessment_id}`}
                           className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
                         >
                           Open report
