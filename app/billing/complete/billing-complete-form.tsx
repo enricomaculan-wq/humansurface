@@ -54,12 +54,12 @@ export default function BillingCompleteForm({
 
       setSuccess('Billing profile completed successfully.')
 
-        if (result?.assessmentId) {
-        window.location.assign(`/assessments/pending?assessment_id=${result.assessmentId}`)
+      if (result?.assessmentId) {
+        window.location.assign(`/assessment/status/${result.assessmentId}`)
         return
-        }
+      }
 
-        setLoading(false)
+      setLoading(false)
     } catch {
       setError('Network error. Please try again.')
       setLoading(false)
