@@ -1238,7 +1238,7 @@ export default function HumanSurfaceLandingPage() {
               <a href="#" className="block hover:text-cyan-200">
                 Terms
               </a>
-              <a href="mailto:humansurface@soreya.app" className="block hover:text-cyan-200">
+              <a href="mailto:info@humansurface.com" className="block hover:text-cyan-200">
                 Contact
               </a>
             </div>
