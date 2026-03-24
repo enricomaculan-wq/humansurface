@@ -95,6 +95,14 @@ function RiskBadge({ value }: { value: string }) {
         ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100'
         : 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
 
+    const immediateRecommendations = [
+      'Reduce direct public exposure of finance, HR, and executive email addresses where possible.',
+      'Introduce a secondary verification step for urgent payment or bank detail change requests.',
+      'Review leadership and team pages to limit unnecessary role and contact detail visibility.',
+      'Train HR, finance, and executive-facing staff on impersonation and social engineering scenarios.',
+      'Monitor external sources where staff names, roles, and business context may be exposed.',
+    ]    
+
   return (
     <span className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${cls}`}>
       {value}
@@ -652,6 +660,22 @@ export default async function CustomerAssessmentReportPage({
                 </div>
               </div>
             </div>
+          
+              <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl print:rounded-none print:border print:border-slate-200 print:bg-white">
+                <h3 className="mb-5 text-2xl font-semibold">Immediate recommendations</h3>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  {immediateRecommendations.map((item) => (
+                    <div
+                      key={item}
+                      className="rounded-2xl border border-white/10 bg-[#071022] p-4 text-sm leading-7 text-slate-300 print:border-slate-200 print:bg-slate-50 print:text-slate-700"
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
           </div>
         </div>
       </div>
