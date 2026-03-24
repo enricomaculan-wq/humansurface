@@ -274,7 +274,7 @@ export async function runExternalPublicScanForAssessment(
       .from('scores')
       .select('*')
       .eq('assessment_id', assessmentId)
-      .eq('person_id', null)
+      .is('person_id', null)
 
   if (existingWebsiteScoresError) {
     throw new Error(`website scores read failed: ${existingWebsiteScoresError.message}`)
