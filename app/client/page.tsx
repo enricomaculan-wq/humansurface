@@ -28,6 +28,15 @@ type AssessmentRow = {
   overall_risk_level: string
 }
 
+type ScoreRow = {
+  id: string
+  assessment_id: string
+  person_id: string | null
+  score_type: string
+  score_value: number
+  risk_level: string
+}
+
 function StatusBadge({ value }: { value: string | null }) {
   const normalized = (value ?? 'unknown').toLowerCase()
 
@@ -75,11 +84,12 @@ export default async function ClientPage() {
   let orders: ClientOrderRow[] = []
 
   if (companyUser?.id) {
-    const { data: ordersByCompanyUser, error: ordersByCompanyUserError } = await supabaseAdmin
-      .from('assessment_orders')
-      .select('id, company_name, domain, status, billing_status, assessment_id, created_at')
-      .eq('company_user_id', companyUser.id)
-      .order('created_at', { ascending: false })
+    const { data: ordersByCompanyUser, error: ordersByCompanyUserError } =
+      await supabaseAdmin
+        .from('assessment_orders')
+        .select('id, company_name, domain, status, billing_status, assessment_id, created_at')
+        .eq('company_user_id', companyUser.id)
+        .order('created_at', { ascending: false })
 
     if (!ordersByCompanyUserError) {
       orders = (ordersByCompanyUser ?? []) as ClientOrderRow[]
@@ -118,6 +128,36 @@ export default async function ClientPage() {
 
     const assessments = (assessmentsData ?? []) as AssessmentRow[]
     assessmentsById = new Map(assessments.map((item) => [item.id, item]))
+  }
+
+  let overallScoresByAssessmentId = new Map<
+    string,
+    { score_value: number; risk_level: string }
+  >()
+
+  if (assessmentIds.length > 0) {
+    const { data: scoresData, error: scoresError } = await supabaseAdmin
+      .from('scores')
+      .select('id, assessment_id, person_id, score_type, score_value, risk_level')
+      .in('assessment_id', assessmentIds)
+      .is('person_id', null)
+      .eq('score_type', 'overall')
+
+    if (scoresError) {
+      throw new Error(`Scores read failed: ${scoresError.message}`)
+    }
+
+    const scores = (scoresData ?? []) as ScoreRow[]
+
+    overallScoresByAssessmentId = new Map(
+      scores.map((score) => [
+        score.assessment_id,
+        {
+          score_value: score.score_value,
+          risk_level: score.risk_level,
+        },
+      ]),
+    )
   }
 
   return (
@@ -171,6 +211,10 @@ export default async function ClientPage() {
                 ? assessmentsById.get(order.assessment_id) ?? null
                 : null
 
+              const overallScore = order.assessment_id
+                ? overallScoresByAssessmentId.get(order.assessment_id) ?? null
+                : null
+
               const assessmentStatus = assessment?.status ?? null
               const isReady = assessmentStatus === 'completed'
 
@@ -203,13 +247,13 @@ export default async function ClientPage() {
                             <div>
                               <div className="text-xs text-slate-500">Score</div>
                               <div className="text-lg font-semibold text-white">
-                                {assessment.overall_score}
+                                {overallScore?.score_value ?? assessment.overall_score}
                               </div>
                             </div>
                             <div>
                               <div className="text-xs text-slate-500">Risk</div>
                               <div className="text-lg font-semibold text-white">
-                                {assessment.overall_risk_level}
+                                {overallScore?.risk_level ?? assessment.overall_risk_level}
                               </div>
                             </div>
                           </div>
