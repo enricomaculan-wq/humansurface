@@ -35,6 +35,7 @@ type ScoreRow = {
   score_type: string
   score_value: number
   risk_level: string
+  score_scope?: string | null
 }
 
 function StatusBadge({ value }: { value: string | null }) {
@@ -138,7 +139,7 @@ export default async function ClientPage() {
   if (assessmentIds.length > 0) {
     const { data: scoresData, error: scoresError } = await supabaseAdmin
       .from('scores')
-      .select('id, assessment_id, person_id, score_type, score_value, risk_level')
+      .select('id, assessment_id, person_id, score_type, score_value, risk_level, score_scope')
       .in('assessment_id', assessmentIds)
       .is('person_id', null)
       .eq('score_type', 'overall')
@@ -149,15 +150,22 @@ export default async function ClientPage() {
 
     const scores = (scoresData ?? []) as ScoreRow[]
 
-    overallScoresByAssessmentId = new Map(
-      scores.map((score) => [
-        score.assessment_id,
-        {
-          score_value: score.score_value,
-          risk_level: score.risk_level,
-        },
-      ]),
-    )
+    for (const assessmentId of assessmentIds) {
+      const candidates = scores.filter((score) => score.assessment_id === assessmentId)
+
+      const preferred =
+        candidates.find((score) => score.score_scope === 'combined') ??
+        candidates.find((score) => score.score_scope === 'website') ??
+        candidates.find((score) => score.score_scope === 'external') ??
+        candidates[0]
+
+      if (preferred) {
+        overallScoresByAssessmentId.set(assessmentId, {
+          score_value: preferred.score_value,
+          risk_level: preferred.risk_level,
+        })
+      }
+    }
   }
 
   return (
