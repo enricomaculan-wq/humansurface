@@ -22,6 +22,10 @@ function normalizeDomain(value: string) {
     .replace(/\/.*$/, '')
 }
 
+function normalizeEmail(value: string) {
+  return value.trim().toLowerCase()
+}
+
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
@@ -35,12 +39,21 @@ function getBaseUrl(req: Request) {
   return `${url.protocol}//${url.host}`
 }
 
+type ExistingCompanyRow = {
+  id: string
+}
+
+type ExistingCompanyUserRow = {
+  id: string
+  email: string
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json()
 
     const companyName = (body.companyName ?? '').trim()
-    const email = (body.email ?? '').trim().toLowerCase()
+    const email = normalizeEmail(body.email ?? '')
     const notes = (body.notes ?? '').trim()
     const domain = normalizeDomain(body.domain ?? '')
     const fullName = (body.fullName ?? '').trim()
@@ -50,16 +63,19 @@ export async function POST(req: Request) {
     }
 
     if (!isValidEmail(email)) {
-      return NextResponse.json({ error: 'Inserisci un indirizzo email valido.' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Inserisci un indirizzo email valido.' },
+        { status: 400 },
+      )
     }
 
     if (!isValidDomain(domain)) {
       return NextResponse.json({ error: 'Inserisci un dominio valido.' }, { status: 400 })
     }
 
-    let companyId: string | null = null
+    let companyId: string
 
-    const { data: existingCompany, error: existingCompanyError } = await supabaseAdmin
+    const { data: existingCompanyData, error: existingCompanyError } = await supabaseAdmin
       .from('companies')
       .select('id')
       .eq('domain', domain)
@@ -72,8 +88,10 @@ export async function POST(req: Request) {
       )
     }
 
+    const existingCompany = existingCompanyData as ExistingCompanyRow | null
+
     if (existingCompany?.id) {
-      companyId = existingCompany.id as string
+      companyId = existingCompany.id
     } else {
       const { data: companyData, error: companyError } = await supabaseAdmin
         .from('companies')
@@ -94,25 +112,55 @@ export async function POST(req: Request) {
       companyId = companyData.id as string
     }
 
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from('company_users')
-      .insert({
-        company_id: companyId,
-        email,
-        full_name: fullName || null,
-        role: 'owner',
-      })
-      .select('id')
-      .single()
+    let companyUserId: string
 
-    if (userError || !userData) {
+    const { data: existingCompanyUserData, error: existingCompanyUserError } =
+      await supabaseAdmin
+        .from('company_users')
+        .select('id, email')
+        .eq('email', email)
+        .maybeSingle()
+
+    if (existingCompanyUserError) {
       return NextResponse.json(
-        { error: `Errore creazione utente company: ${userError?.message || 'unknown'}` },
+        {
+          error: `Errore lettura utente company: ${existingCompanyUserError.message}`,
+        },
         { status: 500 },
       )
     }
 
-    const companyUserId = userData.id as string
+    const existingCompanyUser =
+      existingCompanyUserData as ExistingCompanyUserRow | null
+
+    if (existingCompanyUser?.id) {
+      companyUserId = existingCompanyUser.id
+    } else {
+      const { data: insertedCompanyUserData, error: insertedCompanyUserError } =
+        await supabaseAdmin
+          .from('company_users')
+          .insert({
+            company_id: companyId,
+            email,
+            full_name: fullName || null,
+            role: 'owner',
+          })
+          .select('id')
+          .single()
+
+      if (insertedCompanyUserError || !insertedCompanyUserData) {
+        return NextResponse.json(
+          {
+            error: `Errore creazione utente company: ${
+              insertedCompanyUserError?.message || 'unknown'
+            }`,
+          },
+          { status: 500 },
+        )
+      }
+
+      companyUserId = insertedCompanyUserData.id as string
+    }
 
     const { data: billingData, error: billingCheckError } = await supabaseAdmin
       .from('billing_profiles')
@@ -137,7 +185,9 @@ export async function POST(req: Request) {
 
       if (billingInsertError) {
         return NextResponse.json(
-          { error: `Errore creazione billing profile: ${billingInsertError.message}` },
+          {
+            error: `Errore creazione billing profile: ${billingInsertError.message}`,
+          },
           { status: 500 },
         )
       }
@@ -161,7 +211,9 @@ export async function POST(req: Request) {
 
     if (orderError || !orderData) {
       return NextResponse.json(
-        { error: `Errore salvataggio ordine: ${orderError?.message || 'unknown'}` },
+        {
+          error: `Errore salvataggio ordine: ${orderError?.message || 'unknown'}`,
+        },
         { status: 500 },
       )
     }
@@ -226,6 +278,7 @@ export async function POST(req: Request) {
       checkoutUrl: session.url,
       orderId,
       companyId,
+      companyUserId,
     })
   } catch (error) {
     return NextResponse.json(
