@@ -28,16 +28,6 @@ type AssessmentRow = {
   overall_risk_level: string
 }
 
-type ScoreRow = {
-  id: string
-  assessment_id: string
-  person_id: string | null
-  score_type: string
-  score_value: number
-  risk_level: string
-  score_scope?: string | null
-}
-
 function StatusBadge({ value }: { value: string | null }) {
   const normalized = (value ?? 'unknown').toLowerCase()
 
@@ -131,43 +121,6 @@ export default async function ClientPage() {
     assessmentsById = new Map(assessments.map((item) => [item.id, item]))
   }
 
-  let overallScoresByAssessmentId = new Map<
-    string,
-    { score_value: number; risk_level: string }
-  >()
-
-  if (assessmentIds.length > 0) {
-    const { data: scoresData, error: scoresError } = await supabaseAdmin
-      .from('scores')
-      .select('id, assessment_id, person_id, score_type, score_value, risk_level, score_scope')
-      .in('assessment_id', assessmentIds)
-      .is('person_id', null)
-      .eq('score_type', 'overall')
-
-    if (scoresError) {
-      throw new Error(`Scores read failed: ${scoresError.message}`)
-    }
-
-    const scores = (scoresData ?? []) as ScoreRow[]
-
-    for (const assessmentId of assessmentIds) {
-      const candidates = scores.filter((score) => score.assessment_id === assessmentId)
-
-      const preferred =
-        candidates.find((score) => score.score_scope === 'combined') ??
-        candidates.find((score) => score.score_scope === 'website') ??
-        candidates.find((score) => score.score_scope === 'external') ??
-        candidates[0]
-
-      if (preferred) {
-        overallScoresByAssessmentId.set(assessmentId, {
-          score_value: preferred.score_value,
-          risk_level: preferred.risk_level,
-        })
-      }
-    }
-  }
-
   return (
     <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
       <div className="mx-auto max-w-5xl">
@@ -219,10 +172,6 @@ export default async function ClientPage() {
                 ? assessmentsById.get(order.assessment_id) ?? null
                 : null
 
-              const overallScore = order.assessment_id
-                ? overallScoresByAssessmentId.get(order.assessment_id) ?? null
-                : null
-
               const assessmentStatus = assessment?.status ?? null
               const isReady = assessmentStatus === 'completed'
 
@@ -255,13 +204,13 @@ export default async function ClientPage() {
                             <div>
                               <div className="text-xs text-slate-500">Score</div>
                               <div className="text-lg font-semibold text-white">
-                                {overallScore?.score_value ?? assessment.overall_score}
+                                {assessment.overall_score}
                               </div>
                             </div>
                             <div>
                               <div className="text-xs text-slate-500">Risk</div>
                               <div className="text-lg font-semibold text-white">
-                                {overallScore?.risk_level ?? assessment.overall_risk_level}
+                                {assessment.overall_risk_level}
                               </div>
                             </div>
                           </div>
