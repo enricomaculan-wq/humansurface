@@ -60,8 +60,15 @@ export default async function AssessmentPendingPage({
               Back to homepage
             </Link>
 
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
+            >
+              Client login
+            </Link>
+
             <a
-              href="mailto:info@humansurface.com?subject=HumanSurface%20Assessment%20Status"
+              href="mailto:support@humansurface.com?subject=HumanSurface%20Assessment%20Status"
               className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
             >
               Contact support

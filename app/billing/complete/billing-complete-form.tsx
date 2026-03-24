@@ -55,7 +55,7 @@ export default function BillingCompleteForm({
       setSuccess('Billing profile completed successfully.')
 
       if (result?.assessmentId) {
-        window.location.assign(`/assessment/status/${result.assessmentId}`)
+        window.location.assign(`/assessment/pending?assessment_id=${result.assessmentId}`)
         return
       }
 
