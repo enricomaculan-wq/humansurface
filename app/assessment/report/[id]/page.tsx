@@ -95,14 +95,6 @@ function RiskBadge({ value }: { value: string }) {
         ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100'
         : 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
 
-    const immediateRecommendations = [
-      'Reduce direct public exposure of finance, HR, and executive email addresses where possible.',
-      'Introduce a secondary verification step for urgent payment or bank detail change requests.',
-      'Review leadership and team pages to limit unnecessary role and contact detail visibility.',
-      'Train HR, finance, and executive-facing staff on impersonation and social engineering scenarios.',
-      'Monitor external sources where staff names, roles, and business context may be exposed.',
-    ]    
-
   return (
     <span className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${cls}`}>
       {value}
@@ -120,10 +112,10 @@ function ScoreCard({
   risk: string
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 print:border-slate-200 print:bg-white">
       <div className="text-xs uppercase tracking-[0.16em] text-slate-500">{label}</div>
       <div className="mt-3 flex items-end justify-between gap-4">
-        <div className="text-4xl font-semibold text-white">{value}</div>
+        <div className="text-4xl font-semibold text-white print:text-black">{value}</div>
         <RiskBadge value={risk} />
       </div>
     </div>
@@ -147,9 +139,9 @@ function MetricCard({
         : 'border-white/10 bg-white/[0.03]'
 
   return (
-    <div className={`rounded-2xl border p-4 ${cls}`}>
+    <div className={`rounded-2xl border p-4 print:border-slate-200 print:bg-white ${cls}`}>
       <div className="text-xs uppercase tracking-[0.16em] text-slate-500">{label}</div>
-      <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
+      <div className="mt-2 text-2xl font-semibold text-white print:text-black">{value}</div>
     </div>
   )
 }
@@ -290,18 +282,12 @@ export default async function CustomerAssessmentReportPage({
   const assessmentScores = scores.filter((score) => score.person_id === null)
   const personScores = scores.filter((score) => score.person_id !== null)
 
-  const overallScore =
-    pickAssessmentScore(assessmentScores, 'overall') ?? null
-  const impersonationScore =
-    pickAssessmentScore(assessmentScores, 'impersonation_risk') ?? null
-  const financeScore =
-    pickAssessmentScore(assessmentScores, 'finance_fraud_risk') ?? null
-  const hrScore =
-    pickAssessmentScore(assessmentScores, 'hr_social_engineering_risk') ?? null
+  const overallScore = pickAssessmentScore(assessmentScores, 'overall') ?? null
+  const impersonationScore = pickAssessmentScore(assessmentScores, 'impersonation_risk') ?? null
+  const financeScore = pickAssessmentScore(assessmentScores, 'finance_fraud_risk') ?? null
+  const hrScore = pickAssessmentScore(assessmentScores, 'hr_social_engineering_risk') ?? null
 
-  const topPeople = [...personScores]
-    .sort((a, b) => b.score_value - a.score_value)
-    .slice(0, 5)
+  const topPeople = [...personScores].sort((a, b) => b.score_value - a.score_value).slice(0, 5)
 
   const externalFindings = findings.filter(
     (finding) =>
@@ -310,7 +296,9 @@ export default async function CustomerAssessmentReportPage({
       (finding.source_domain && organization?.domain && finding.source_domain !== organization.domain),
   )
 
-  const websiteFindings = findings.filter((finding) => !externalFindings.some((item) => item.id === finding.id))
+  const websiteFindings = findings.filter(
+    (finding) => !externalFindings.some((item) => item.id === finding.id),
+  )
 
   const uniqueExternalDomains = Array.from(
     new Set(
@@ -336,7 +324,17 @@ export default async function CustomerAssessmentReportPage({
     diagnostics?.findingsInserted
       ? `${diagnostics.findingsInserted} findings recorded in this assessment`
       : null,
-  ].filter((value): value is string => !!value).slice(0, 4)
+  ]
+    .filter((value): value is string => !!value)
+    .slice(0, 4)
+
+  const immediateRecommendations = [
+    'Reduce direct public exposure of finance, HR, and executive email addresses where possible.',
+    'Introduce a secondary verification step for urgent payment or bank detail change requests.',
+    'Review leadership and team pages to limit unnecessary role and contact detail visibility.',
+    'Train HR, finance, and executive-facing staff on impersonation and social engineering scenarios.',
+    'Monitor external sources where staff names, roles, and business context may be exposed.',
+  ]
 
   return (
     <main className="min-h-screen bg-[#040816] px-6 py-10 text-white print:bg-white print:px-0 print:py-0 print:text-black">
@@ -370,12 +368,9 @@ export default async function CustomerAssessmentReportPage({
                 <div className="text-sm uppercase tracking-[0.18em] text-cyan-300 print:text-slate-600">
                   HumanSurface report
                 </div>
-                <h2 className="mt-2 text-3xl font-semibold print:text-2xl">
-                  Executive summary
-                </h2>
+                <h2 className="mt-2 text-3xl font-semibold print:text-2xl">Executive summary</h2>
                 <p className="mt-3 text-slate-400 print:text-slate-700">
-                  Summary of public exposure that may support phishing,
-                  impersonation, and fraud scenarios.
+                  Summary of public exposure that may support phishing, impersonation, and fraud scenarios.
                 </p>
               </div>
 
@@ -388,9 +383,7 @@ export default async function CustomerAssessmentReportPage({
                     {overallScore?.score_value ?? assessment.overall_score}
                   </div>
                 </div>
-                <RiskBadge
-                  value={overallScore?.risk_level ?? assessment.overall_risk_level}
-                />
+                <RiskBadge value={overallScore?.risk_level ?? assessment.overall_risk_level} />
               </div>
             </div>
 
@@ -491,16 +484,12 @@ export default async function CustomerAssessmentReportPage({
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="font-medium text-white print:text-black">
-                              {linkedPerson?.full_name ||
-                                linkedPerson?.role_title ||
-                                'Unknown person'}
+                              {linkedPerson?.full_name || linkedPerson?.role_title || 'Unknown person'}
                             </div>
                             {linkedPerson ? (
                               <div className="mt-1 text-sm text-slate-300 print:text-slate-700">
                                 {linkedPerson.role_title}
-                                {linkedPerson.department
-                                  ? ` · ${linkedPerson.department}`
-                                  : ''}
+                                {linkedPerson.department ? ` · ${linkedPerson.department}` : ''}
                               </div>
                             ) : null}
                             {score.reason_summary ? (
@@ -610,16 +599,8 @@ export default async function CustomerAssessmentReportPage({
               <h3 className="mb-5 text-2xl font-semibold">What changed</h3>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <MetricCard
-                  label="Pages scanned"
-                  value={diagnostics?.scannedPages ?? 0}
-                  accent="cyan"
-                />
-                <MetricCard
-                  label="People detected"
-                  value={diagnostics?.peopleDetected ?? 0}
-                  accent="cyan"
-                />
+                <MetricCard label="Pages scanned" value={diagnostics?.scannedPages ?? 0} accent="cyan" />
+                <MetricCard label="People detected" value={diagnostics?.peopleDetected ?? 0} accent="cyan" />
                 <MetricCard
                   label="Findings recorded"
                   value={diagnostics?.findingsInserted ?? findings.length}
@@ -654,28 +635,27 @@ export default async function CustomerAssessmentReportPage({
                   Why this matters
                 </div>
                 <div className="mt-2 text-sm leading-7 text-slate-300 print:text-slate-700">
-                  Public leadership visibility, externally discoverable roles, and repeated
-                  exposure signals increase the credibility of impersonation, invoice fraud,
-                  and social engineering attempts against your organization.
+                  Public leadership visibility, externally discoverable roles, and repeated exposure signals
+                  increase the credibility of impersonation, invoice fraud, and social engineering attempts
+                  against your organization.
                 </div>
               </div>
             </div>
-          
-              <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl print:rounded-none print:border print:border-slate-200 print:bg-white">
-                <h3 className="mb-5 text-2xl font-semibold">Immediate recommendations</h3>
+          </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
-                  {immediateRecommendations.map((item) => (
-                    <div
-                      key={item}
-                      className="rounded-2xl border border-white/10 bg-[#071022] p-4 text-sm leading-7 text-slate-300 print:border-slate-200 print:bg-slate-50 print:text-slate-700"
-                    >
-                      {item}
-                    </div>
-                  ))}
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl print:rounded-none print:border print:border-slate-200 print:bg-white">
+            <h3 className="mb-5 text-2xl font-semibold">Immediate recommendations</h3>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              {immediateRecommendations.map((item) => (
+                <div
+                  key={item}
+                  className="rounded-2xl border border-white/10 bg-[#071022] p-4 text-sm leading-7 text-slate-300 print:border-slate-200 print:bg-slate-50 print:text-slate-700"
+                >
+                  {item}
                 </div>
-              </div>
-
+              ))}
+            </div>
           </div>
         </div>
       </div>
