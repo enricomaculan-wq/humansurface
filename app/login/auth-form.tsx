@@ -6,13 +6,15 @@ import { createSupabaseAuthBrowserClient } from '@/lib/supabase-auth-browser'
 
 export default function AuthForm({
   mode,
+  initialEmail = '',
 }: {
   mode: 'login' | 'signup'
+  initialEmail?: string
 }) {
   const router = useRouter()
   const supabase = createSupabaseAuthBrowserClient()
 
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +38,7 @@ export default function AuthForm({
 
       await fetch('/api/auth/sync-user', {
         method: 'POST',
-        })
+      })
 
       router.push('/client')
       router.refresh()
@@ -83,7 +85,11 @@ export default function AuthForm({
         disabled={loading}
         className="w-full rounded-2xl border border-cyan-300/30 bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950"
       >
-        {loading ? 'Please wait...' : 'Login'}
+        {loading
+          ? 'Please wait...'
+          : mode === 'login'
+            ? 'Login'
+            : 'Create account'}
       </button>
     </form>
   )

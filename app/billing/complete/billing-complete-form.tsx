@@ -55,9 +55,15 @@ export default function BillingCompleteForm({
       setSuccess('Billing profile completed successfully.')
 
       if (result?.assessmentId) {
-        window.location.assign(`/assessment/pending?assessment_id=${result.assessmentId}`)
+        const emailParam = result?.email
+          ? `&email=${encodeURIComponent(result.email)}`
+          : ''
+
+        window.location.assign(
+          `/assessment/pending?assessment_id=${result.assessmentId}${emailParam}`,
+        )
         return
-      }
+}
 
       setLoading(false)
     } catch {

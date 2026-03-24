@@ -6,6 +6,7 @@ type OrderRow = {
   company_id: string | null
   company_name: string
   domain: string
+  email: string
   organization_id: string | null
   assessment_id: string | null
 }
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
 
     const { data: orderData, error: orderError } = await supabaseAdmin
       .from('assessment_orders')
-      .select('id, company_id, company_name, domain, organization_id, assessment_id')
+      .select('id, company_id, company_name, domain, organization_id, assessment_id, email')
       .eq('stripe_session_id', sessionId)
       .maybeSingle()
 
@@ -221,6 +222,7 @@ export async function POST(req: Request) {
       ok: true,
       organizationId,
       assessmentId,
+      email: order.email,
     })
   } catch (error) {
     return NextResponse.json(
