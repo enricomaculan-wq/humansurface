@@ -38,19 +38,58 @@ type ScoreRow = {
   created_at: string
 }
 
-function StatusBadge({ value }: { value: string | null }) {
+function getBadgeClasses(value: string | null) {
+  const normalized = (value ?? 'unknown').toLowerCase()
+
+  if (normalized === 'completed' || normalized === 'paid') {
+    return 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
+  }
+
+  if (
+    normalized === 'processing' ||
+    normalized === 'queued' ||
+    normalized === 'pending' ||
+    normalized === 'pending_payment'
+  ) {
+    return 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100'
+  }
+
+  if (normalized === 'failed' || normalized === 'expired') {
+    return 'border-red-400/20 bg-red-400/10 text-red-200'
+  }
+
+  return 'border-white/10 bg-white/[0.03] text-slate-300'
+}
+
+function LabeledStatusBadge({
+  label,
+  value,
+}: {
+  label: string
+  value: string | null
+}) {
+  return (
+    <div
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${getBadgeClasses(
+        value,
+      )}`}
+    >
+      <span className="uppercase tracking-[0.14em] opacity-70">{label}</span>
+      <span className="font-medium uppercase">{value ?? 'unknown'}</span>
+    </div>
+  )
+}
+
+function RiskBadge({ value }: { value: string | null }) {
   const normalized = (value ?? 'unknown').toLowerCase()
 
   const cls =
-    normalized === 'completed' || normalized === 'paid'
-      ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
-      : normalized === 'processing' ||
-          normalized === 'queued' ||
-          normalized === 'pending' ||
-          normalized === 'pending_payment'
+    normalized === 'high'
+      ? 'border-fuchsia-400/20 bg-fuchsia-400/10 text-fuchsia-200'
+      : normalized === 'medium'
         ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100'
-        : normalized === 'failed' || normalized === 'expired'
-          ? 'border-red-400/20 bg-red-400/10 text-red-200'
+        : normalized === 'low'
+          ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
           : 'border-white/10 bg-white/[0.03] text-slate-300'
 
   return (
@@ -231,36 +270,46 @@ export default async function ClientPage() {
                   className="rounded-2xl border border-white/10 bg-white/[0.04] p-6"
                 >
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-xl font-semibold text-white">
                         {order.company_name}
                       </div>
                       <div className="mt-1 text-slate-400">{order.domain}</div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <StatusBadge value={order.status} />
-                        <StatusBadge value={order.billing_status} />
-                        {assessmentStatus ? <StatusBadge value={assessmentStatus} /> : null}
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <LabeledStatusBadge label="Payment" value={order.status} />
+                        <LabeledStatusBadge label="Billing" value={order.billing_status} />
+                        {assessmentStatus ? (
+                          <LabeledStatusBadge label="Assessment" value={assessmentStatus} />
+                        ) : null}
                       </div>
+
                       <div className="mt-3 text-sm text-slate-500">
                         Created: {formatDateTime(order.created_at)}
                       </div>
 
                       {assessment ? (
-                        <div className="mt-4 rounded-2xl border border-white/10 bg-[#071022] px-4 py-3">
+                        <div className="mt-4 rounded-2xl border border-white/10 bg-[#071022] px-4 py-4">
                           <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
                             Assessment summary
                           </div>
-                          <div className="mt-2 flex flex-wrap items-center gap-4">
+
+                          <div className="mt-3 flex flex-wrap items-center gap-6">
                             <div>
-                              <div className="text-xs text-slate-500">Score</div>
-                              <div className="text-lg font-semibold text-white">
+                              <div className="text-xs text-slate-500">Overall score</div>
+                              <div className="text-2xl font-semibold text-white">
                                 {overallScore?.score_value ?? assessment.overall_score}
                               </div>
                             </div>
+
                             <div>
-                              <div className="text-xs text-slate-500">Risk</div>
-                              <div className="text-lg font-semibold text-white">
-                                {overallScore?.risk_level ?? assessment.overall_risk_level}
+                              <div className="text-xs text-slate-500">Risk level</div>
+                              <div className="mt-1">
+                                <RiskBadge
+                                  value={
+                                    overallScore?.risk_level ?? assessment.overall_risk_level
+                                  }
+                                />
                               </div>
                             </div>
                           </div>
