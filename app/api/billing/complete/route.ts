@@ -172,7 +172,7 @@ export async function POST(req: Request) {
         .from('assessments')
         .insert({
           organization_id: organizationId,
-          status: 'processing',
+          status: 'draft',
           overall_score: 0,
           overall_risk_level: 'low',
           scan_diagnostics: {

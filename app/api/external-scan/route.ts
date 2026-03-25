@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin
       .from('assessments')
       .update({
-        status: 'processing',
+        status: 'draft',
       })
       .eq('id', assessmentId)
 
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin
       .from('assessments')
       .update({
-        status: 'completed',
+        status: 'in_review',
         scan_diagnostics: {
           ...existingDiagnostics,
           externalScanTriggeredAt:
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin
         .from('assessments')
         .update({
-          status: 'failed',
+          status: 'draft',
           scan_diagnostics: {
             ...existingDiagnostics,
             error: message,
