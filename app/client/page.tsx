@@ -28,6 +28,7 @@ type AssessmentRow = {
   status: string
   overall_score: number
   overall_risk_level: string
+  created_at?: string | null
   published_at?: string | null
 }
 
@@ -39,6 +40,7 @@ type ScoreRow = {
   score_value: number
   risk_level: string
   created_at: string
+  score_scope?: string | null
 }
 
 function normalizeAssessmentStatus(value: string | null | undefined): AssessmentStatus | null {
@@ -147,6 +149,25 @@ function getAssessmentAvailabilityMessage(status: AssessmentStatus | null) {
   }
 }
 
+function pickAssessmentScore(
+  scores: ScoreRow[],
+  scoreType: string,
+  preferredScopes: Array<string | null> = ['combined', 'website', 'external', null],
+) {
+  const candidates = scores.filter((score) => score.score_type === scoreType)
+
+  for (const scope of preferredScopes) {
+    const found =
+      scope === null
+        ? candidates.find((score) => !score.score_scope)
+        : candidates.find((score) => score.score_scope === scope)
+
+    if (found) return found
+  }
+
+  return candidates[0] ?? null
+}
+
 export default async function ClientPage() {
   const supabase = await createSupabaseAuthServerClient()
   const {
@@ -207,7 +228,7 @@ export default async function ClientPage() {
   if (assessmentIds.length > 0) {
     const { data: assessmentsData, error: assessmentsError } = await supabaseAdmin
       .from('assessments')
-      .select('id, status, overall_score, overall_risk_level, published_at')
+      .select('id, status, overall_score, overall_risk_level, created_at, published_at')
       .in('id', assessmentIds)
 
     if (assessmentsError) {
@@ -226,7 +247,9 @@ export default async function ClientPage() {
   if (assessmentIds.length > 0) {
     const { data: scoresData, error: scoresError } = await supabaseAdmin
       .from('scores')
-      .select('id, assessment_id, person_id, score_type, score_value, risk_level, created_at')
+      .select(
+        'id, assessment_id, person_id, score_type, score_value, risk_level, created_at, score_scope',
+      )
       .in('assessment_id', assessmentIds)
       .is('person_id', null)
       .order('created_at', { ascending: false })
@@ -242,8 +265,7 @@ export default async function ClientPage() {
         (score) => score.assessment_id === assessmentId && score.person_id === null,
       )
 
-      const overallScore =
-        assessmentScores.find((score) => score.score_type === 'overall') ?? null
+      const overallScore = pickAssessmentScore(assessmentScores, 'overall')
 
       if (overallScore) {
         overallScoresByAssessmentId.set(assessmentId, {
@@ -375,7 +397,7 @@ export default async function ClientPage() {
                                 <div className="text-xs text-slate-500">Published</div>
                                 <div className="mt-1 text-sm text-slate-300">
                                   {formatDateTime(
-                                    assessment.published_at ?? order.created_at,
+                                    assessment.published_at ?? assessment.created_at ?? order.created_at,
                                   )}
                                 </div>
                               </div>
