@@ -279,7 +279,7 @@ export default async function ClientPage() {
   return (
     <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-8 flex items-start justify-between gap-4">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="text-sm uppercase tracking-[0.2em] text-cyan-300">
               Client area
@@ -289,7 +289,24 @@ export default async function ClientPage() {
             </h1>
             <p className="mt-3 text-slate-400">{user.email}</p>
           </div>
-          <LogoutButton />
+
+          <div className="flex flex-wrap gap-3">
+            <a
+              href="/buy"
+              className="inline-flex items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+            >
+              Request assessment
+            </a>
+
+            <a
+              href="mailto:support@humansurface.com?subject=HumanSurface%20Support"
+              className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
+            >
+              Contact support
+            </a>
+
+            <LogoutButton />
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -397,7 +414,9 @@ export default async function ClientPage() {
                                 <div className="text-xs text-slate-500">Published</div>
                                 <div className="mt-1 text-sm text-slate-300">
                                   {formatDateTime(
-                                    assessment.published_at ?? assessment.created_at ?? order.created_at,
+                                    assessment.published_at ??
+                                      assessment.created_at ??
+                                      order.created_at,
                                   )}
                                 </div>
                               </div>
@@ -439,6 +458,39 @@ export default async function ClientPage() {
               )
             })
           )}
+
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <div className="text-sm uppercase tracking-[0.18em] text-cyan-300">
+                  Need another assessment?
+                </div>
+                <h2 className="mt-2 text-2xl font-semibold text-white">
+                  Request a new HumanSurface assessment
+                </h2>
+                <p className="mt-3 leading-7 text-slate-400">
+                  You can request another assessment for a different company, domain,
+                  or a new review cycle for the same organization.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <a
+                  href="/buy"
+                  className="inline-flex items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+                >
+                  Request assessment
+                </a>
+
+                <a
+                  href="mailto:support@humansurface.com?subject=HumanSurface%20New%20Assessment%20Request"
+                  className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
+                >
+                  Contact support
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
