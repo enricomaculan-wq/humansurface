@@ -137,13 +137,13 @@ function RiskBadge({ value }: { value: string | null }) {
 function getAssessmentAvailabilityMessage(status: AssessmentStatus | null) {
   switch (status) {
     case 'draft':
-      return 'Your assessment is being prepared. Your report is not available yet.'
+      return 'Your assessment is being prepared. Delivery is typically within 2 business days, often sooner.'
     case 'in_review':
-      return 'Your assessment is being finalized. Your report will be available once publication is complete.'
+      return 'Your assessment is in final review. Your report will become available once publication is complete.'
     case 'published':
       return 'Your assessment report is now available.'
     case 'archived':
-      return 'This assessment has been archived.'
+      return 'This assessment has been archived. Contact support if you need a new assessment cycle.'
     default:
       return 'Assessment status is currently unavailable.'
   }
@@ -287,7 +287,11 @@ export default async function ClientPage() {
             <h1 className="mt-2 text-4xl font-semibold tracking-tight">
               Your assessments
             </h1>
-            <p className="mt-3 text-slate-400">{user.email}</p>
+            <p className="mt-3 text-slate-400">
+              Track the publication status of your HumanSurface assessments and
+              access reports once they are released.
+            </p>
+            <p className="mt-2 text-sm text-slate-500">{user.email}</p>
           </div>
 
           <div className="flex flex-wrap gap-3">
@@ -317,9 +321,9 @@ export default async function ClientPage() {
               </h2>
 
               <p className="mt-4 max-w-2xl leading-7 text-slate-400">
-                This account is not linked to any company profile yet. You can request a new
-                HumanSurface assessment or contact support if you already purchased one with a
-                different email address.
+                This account is not linked to any company profile yet. You can
+                request a new HumanSurface assessment or contact support if you
+                already purchased one with a different email address.
               </p>
 
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
@@ -429,7 +433,8 @@ export default async function ClientPage() {
                         </div>
                       ) : (
                         <div className="mt-4 rounded-2xl border border-white/10 bg-[#071022] px-4 py-4 text-sm text-slate-300">
-                          Your order has been recorded. The assessment will appear here as soon as it is created.
+                          Your order has been recorded. The assessment will
+                          appear here as soon as it is created.
                         </div>
                       )}
                     </div>
@@ -469,8 +474,8 @@ export default async function ClientPage() {
                   Request a new HumanSurface assessment
                 </h2>
                 <p className="mt-3 leading-7 text-slate-400">
-                  You can request another assessment for a different company, domain,
-                  or a new review cycle for the same organization.
+                  You can request another assessment for a different company,
+                  domain, or a new review cycle for the same organization.
                 </p>
               </div>
 
