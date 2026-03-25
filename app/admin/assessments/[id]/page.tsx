@@ -13,6 +13,7 @@ type Assessment = {
   overall_score: number
   overall_risk_level: string
   created_at: string
+  executive_summary?: string | null
 }
 
 type Organization = {
@@ -285,6 +286,7 @@ export default async function AssessmentDetailPage({
                 initialStatus={assessment.status}
                 initialScore={assessment.overall_score}
                 initialRiskLevel={assessment.overall_risk_level}
+                initialExecutiveSummary={assessment.executive_summary ?? ''}
               />
             </div>
 

@@ -4,6 +4,8 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { formatDateTime } from '@/lib/date'
 import LogoutButton from './logout-button'
 
+type AssessmentStatus = 'draft' | 'in_review' | 'published' | 'archived'
+
 type CompanyUserRow = {
   id: string
   company_id: string
@@ -26,6 +28,7 @@ type AssessmentRow = {
   status: string
   overall_score: number
   overall_risk_level: string
+  published_at?: string | null
 }
 
 type ScoreRow = {
@@ -38,10 +41,36 @@ type ScoreRow = {
   created_at: string
 }
 
+function normalizeAssessmentStatus(value: string | null | undefined): AssessmentStatus | null {
+  switch (value) {
+    case 'draft':
+      return 'draft'
+    case 'in_review':
+      return 'in_review'
+    case 'published':
+      return 'published'
+    case 'archived':
+      return 'archived'
+    case 'completed':
+      return 'published'
+    case 'running':
+      return 'draft'
+    case 'failed':
+      return 'draft'
+    default:
+      return null
+  }
+}
+
+function formatStatusLabel(value: string | null | undefined) {
+  if (!value) return 'Unknown'
+  return value.replace(/_/g, ' ')
+}
+
 function getBadgeClasses(value: string | null) {
   const normalized = (value ?? 'unknown').toLowerCase()
 
-  if (normalized === 'completed' || normalized === 'paid') {
+  if (normalized === 'published' || normalized === 'paid' || normalized === 'completed') {
     return 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
   }
 
@@ -49,12 +78,14 @@ function getBadgeClasses(value: string | null) {
     normalized === 'processing' ||
     normalized === 'queued' ||
     normalized === 'pending' ||
-    normalized === 'pending_payment'
+    normalized === 'pending_payment' ||
+    normalized === 'draft' ||
+    normalized === 'in_review'
   ) {
     return 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100'
   }
 
-  if (normalized === 'failed' || normalized === 'expired') {
+  if (normalized === 'failed' || normalized === 'expired' || normalized === 'archived') {
     return 'border-red-400/20 bg-red-400/10 text-red-200'
   }
 
@@ -75,7 +106,7 @@ function LabeledStatusBadge({
       )}`}
     >
       <span className="uppercase tracking-[0.14em] opacity-70">{label}</span>
-      <span className="font-medium uppercase">{value ?? 'unknown'}</span>
+      <span className="font-medium uppercase">{formatStatusLabel(value)}</span>
     </div>
   )
 }
@@ -84,19 +115,36 @@ function RiskBadge({ value }: { value: string | null }) {
   const normalized = (value ?? 'unknown').toLowerCase()
 
   const cls =
-    normalized === 'high'
-      ? 'border-fuchsia-400/20 bg-fuchsia-400/10 text-fuchsia-200'
-      : normalized === 'medium'
-        ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100'
-        : normalized === 'low'
-          ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
-          : 'border-white/10 bg-white/[0.03] text-slate-300'
+    normalized === 'critical'
+      ? 'border-red-400/20 bg-red-400/10 text-red-200'
+      : normalized === 'high'
+        ? 'border-fuchsia-400/20 bg-fuchsia-400/10 text-fuchsia-200'
+        : normalized === 'medium'
+          ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100'
+          : normalized === 'low'
+            ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
+            : 'border-white/10 bg-white/[0.03] text-slate-300'
 
   return (
     <span className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${cls}`}>
       {value ?? 'unknown'}
     </span>
   )
+}
+
+function getAssessmentAvailabilityMessage(status: AssessmentStatus | null) {
+  switch (status) {
+    case 'draft':
+      return 'Your assessment is being prepared. Your report is not available yet.'
+    case 'in_review':
+      return 'Your assessment is being finalized. Your report will be available once publication is complete.'
+    case 'published':
+      return 'Your assessment report is now available.'
+    case 'archived':
+      return 'This assessment has been archived.'
+    default:
+      return 'Assessment status is currently unavailable.'
+  }
 }
 
 export default async function ClientPage() {
@@ -159,7 +207,7 @@ export default async function ClientPage() {
   if (assessmentIds.length > 0) {
     const { data: assessmentsData, error: assessmentsError } = await supabaseAdmin
       .from('assessments')
-      .select('id, status, overall_score, overall_risk_level')
+      .select('id, status, overall_score, overall_risk_level, published_at')
       .in('id', assessmentIds)
 
     if (assessmentsError) {
@@ -231,7 +279,7 @@ export default async function ClientPage() {
 
               <p className="mt-4 max-w-2xl leading-7 text-slate-400">
                 This account is not linked to any company profile yet. You can request a new
-                HumanSurface Assessment or contact support if you already purchased one with a
+                HumanSurface assessment or contact support if you already purchased one with a
                 different email address.
               </p>
 
@@ -261,8 +309,14 @@ export default async function ClientPage() {
                 ? overallScoresByAssessmentId.get(order.assessment_id) ?? null
                 : null
 
-              const assessmentStatus = assessment?.status ?? null
-              const isReady = assessmentStatus === 'completed'
+              const normalizedAssessmentStatus = normalizeAssessmentStatus(
+                assessment?.status ?? null,
+              )
+
+              const canOpenReport = normalizedAssessmentStatus === 'published'
+              const availabilityMessage = getAssessmentAvailabilityMessage(
+                normalizedAssessmentStatus,
+              )
 
               return (
                 <div
@@ -279,8 +333,11 @@ export default async function ClientPage() {
                       <div className="mt-4 flex flex-wrap gap-2">
                         <LabeledStatusBadge label="Payment" value={order.status} />
                         <LabeledStatusBadge label="Billing" value={order.billing_status} />
-                        {assessmentStatus ? (
-                          <LabeledStatusBadge label="Assessment" value={assessmentStatus} />
+                        {assessment?.status ? (
+                          <LabeledStatusBadge
+                            label="Assessment"
+                            value={normalizedAssessmentStatus ?? assessment.status}
+                          />
                         ) : null}
                       </div>
 
@@ -312,9 +369,28 @@ export default async function ClientPage() {
                                 />
                               </div>
                             </div>
+
+                            {canOpenReport ? (
+                              <div>
+                                <div className="text-xs text-slate-500">Published</div>
+                                <div className="mt-1 text-sm text-slate-300">
+                                  {formatDateTime(
+                                    assessment.published_at ?? order.created_at,
+                                  )}
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
+                            {availabilityMessage}
                           </div>
                         </div>
-                      ) : null}
+                      ) : (
+                        <div className="mt-4 rounded-2xl border border-white/10 bg-[#071022] px-4 py-4 text-sm text-slate-300">
+                          Your order has been recorded. The assessment will appear here as soon as it is created.
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
@@ -327,7 +403,7 @@ export default async function ClientPage() {
                         </a>
                       ) : null}
 
-                      {order.assessment_id && isReady ? (
+                      {order.assessment_id && canOpenReport ? (
                         <a
                           href={`/assessment/report/${order.assessment_id}`}
                           className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"

@@ -3,6 +3,9 @@ import { createSupabaseAuthServerClient } from '@/lib/supabase-auth-server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { formatDateTime } from '@/lib/date'
 import PrintReportButton from './print-report-button'
+import { getImmediateRecommendationsFromTasks } from '@/lib/assessments/assessment-remediation'
+
+type AssessmentStatus = 'draft' | 'in_review' | 'published' | 'archived'
 
 type Assessment = {
   id: string
@@ -11,6 +14,7 @@ type Assessment = {
   overall_score: number
   overall_risk_level: string
   created_at: string
+  published_at?: string | null
   scan_diagnostics: {
     scannedUrls?: string[]
     failedUrls?: Array<{ url: string; error: string }>
@@ -81,23 +85,74 @@ type Score = {
   score_scope?: string | null
 }
 
+type RemediationTask = {
+  id: string
+  assessment_id: string
+  title: string
+  priority: string
+  effort: string
+  impact: string
+  status: string
+  created_at: string
+}
+
 type CompanyUserLookupRow = {
   id: string
+}
+
+function normalizeLabel(value: string | null | undefined, fallback = '—') {
+  if (!value) return fallback
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function normalizeStatus(value: string): AssessmentStatus | null {
+  switch (value) {
+    case 'draft':
+      return 'draft'
+    case 'in_review':
+      return 'in_review'
+    case 'published':
+      return 'published'
+    case 'archived':
+      return 'archived'
+    case 'completed':
+      return 'published'
+    default:
+      return null
+  }
+}
+
+function severityRank(value: string) {
+  switch ((value || '').toLowerCase()) {
+    case 'critical':
+      return 4
+    case 'high':
+      return 3
+    case 'medium':
+    case 'moderate':
+      return 2
+    default:
+      return 1
+  }
 }
 
 function RiskBadge({ value }: { value: string }) {
   const normalized = value.toLowerCase()
 
   const cls =
-    normalized === 'high'
-      ? 'border-fuchsia-400/20 bg-fuchsia-400/10 text-fuchsia-200'
-      : normalized === 'medium'
-        ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100'
-        : 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
+    normalized === 'critical'
+      ? 'border-red-400/20 bg-red-400/10 text-red-200 print:border-red-300/30 print:bg-red-50 print:text-red-700'
+      : normalized === 'high'
+        ? 'border-fuchsia-400/20 bg-fuchsia-400/10 text-fuchsia-200 print:border-fuchsia-300/30 print:bg-fuchsia-50 print:text-fuchsia-700'
+        : normalized === 'medium' || normalized === 'moderate'
+          ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100 print:border-cyan-300/30 print:bg-cyan-50 print:text-cyan-700'
+          : 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100 print:border-emerald-300/30 print:bg-emerald-50 print:text-emerald-700'
 
   return (
     <span className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${cls}`}>
-      {value}
+      {normalizeLabel(value)}
     </span>
   )
 }
@@ -143,6 +198,30 @@ function MetricCard({
       <div className="text-xs uppercase tracking-[0.16em] text-slate-500">{label}</div>
       <div className="mt-2 text-2xl font-semibold text-white print:text-black">{value}</div>
     </div>
+  )
+}
+
+function SectionCard({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string
+  subtitle?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl print:rounded-none print:border print:border-slate-200 print:bg-white">
+      <div className="mb-5">
+        <h3 className="text-2xl font-semibold">{title}</h3>
+        {subtitle ? (
+          <p className="mt-2 text-sm leading-6 text-slate-400 print:text-slate-600">
+            {subtitle}
+          </p>
+        ) : null}
+      </div>
+      {children}
+    </section>
   )
 }
 
@@ -216,6 +295,7 @@ export default async function CustomerAssessmentReportPage({
     { data: assessmentData, error: assessmentError },
     { data: findingsData, error: findingsError },
     { data: scoresData, error: scoresError },
+    { data: remediationData, error: remediationError },
   ] = await Promise.all([
     supabaseAdmin.from('assessments').select('*').eq('id', id).maybeSingle(),
     supabaseAdmin
@@ -225,6 +305,11 @@ export default async function CustomerAssessmentReportPage({
       .order('created_at', { ascending: false }),
     supabaseAdmin
       .from('scores')
+      .select('*')
+      .eq('assessment_id', id)
+      .order('created_at', { ascending: false }),
+    supabaseAdmin
+      .from('remediation_tasks')
       .select('*')
       .eq('assessment_id', id)
       .order('created_at', { ascending: false }),
@@ -242,10 +327,16 @@ export default async function CustomerAssessmentReportPage({
     throw new Error(`Scores read failed: ${scoresError.message}`)
   }
 
+  if (remediationError) {
+    throw new Error(`Remediation read failed: ${remediationError.message}`)
+  }
+
   const assessment = assessmentData as Assessment | null
   if (!assessment) notFound()
 
-  if (assessment.status !== 'completed') {
+  const normalizedStatus = normalizeStatus(assessment.status)
+
+  if (normalizedStatus !== 'published') {
     redirect(`/assessment/status/${assessment.id}`)
   }
 
@@ -276,6 +367,7 @@ export default async function CustomerAssessmentReportPage({
   const findings = (findingsData ?? []) as Finding[]
   const scores = (scoresData ?? []) as Score[]
   const people = (peopleData ?? []) as Person[]
+  const remediationTasks = (remediationData ?? []) as RemediationTask[]
 
   const diagnostics = assessment.scan_diagnostics ?? null
 
@@ -287,18 +379,22 @@ export default async function CustomerAssessmentReportPage({
   const financeScore = pickAssessmentScore(assessmentScores, 'finance_fraud_risk') ?? null
   const hrScore = pickAssessmentScore(assessmentScores, 'hr_social_engineering_risk') ?? null
 
-  const topPeople = [...personScores].sort((a, b) => b.score_value - a.score_value).slice(0, 5)
+  const topPeople = [...personScores]
+    .sort((a, b) => b.score_value - a.score_value)
+    .slice(0, 5)
 
   const externalFindings = findings.filter(
     (finding) =>
       finding.evidence_origin === 'external' ||
       finding.source_type === 'external' ||
-      (finding.source_domain && organization?.domain && finding.source_domain !== organization.domain),
+      (finding.source_domain &&
+        organization?.domain &&
+        finding.source_domain !== organization.domain),
   )
 
-  const websiteFindings = findings.filter(
-    (finding) => !externalFindings.some((item) => item.id === finding.id),
-  )
+  const topFindings = [...findings]
+    .sort((a, b) => severityRank(b.severity) - severityRank(a.severity))
+    .slice(0, 6)
 
   const uniqueExternalDomains = Array.from(
     new Set(
@@ -328,13 +424,38 @@ export default async function CustomerAssessmentReportPage({
     .filter((value): value is string => !!value)
     .slice(0, 4)
 
-  const immediateRecommendations = [
+  const immediateRecommendations = getImmediateRecommendationsFromTasks(remediationTasks)
+
+  const fallbackImmediateRecommendations = [
     'Reduce direct public exposure of finance, HR, and executive email addresses where possible.',
     'Introduce a secondary verification step for urgent payment or bank detail change requests.',
     'Review leadership and team pages to limit unnecessary role and contact detail visibility.',
     'Train HR, finance, and executive-facing staff on impersonation and social engineering scenarios.',
     'Monitor external sources where staff names, roles, and business context may be exposed.',
   ]
+
+  const recommendationsToRender =
+    immediateRecommendations.length > 0
+      ? immediateRecommendations
+      : fallbackImmediateRecommendations
+
+  const strategicRecommendations = [
+    'Establish a recurring HumanSurface review cycle for public exposure changes.',
+    'Define ownership for public staff details, role visibility, and remediation follow-up.',
+    'Introduce approval controls for externally visible organizational and contact information.',
+    'Track repeated findings over time to measure exposure reduction.',
+  ]
+
+  const executiveSummary = [
+    `This report summarizes the public human-surface exposure currently visible for ${organization?.name || 'your organization'}.`,
+    `The current overall exposure score is ${overallScore?.score_value ?? assessment.overall_score}, with a ${normalizeLabel(overallScore?.risk_level ?? assessment.overall_risk_level)} risk profile.`,
+    findings.length > 0
+      ? `${findings.length} findings were identified across public website signals and external sources that may support phishing, impersonation, and fraud scenarios.`
+      : 'No material findings were rendered in this report.',
+    topPeople.length > 0
+      ? `${topPeople.length} highly exposed people or roles are highlighted for operational follow-up.`
+      : 'No person-level exposure highlights are currently available.',
+  ].join(' ')
 
   return (
     <main className="min-h-screen bg-[#040816] px-6 py-10 text-white print:bg-white print:px-0 print:py-0 print:text-black">
@@ -355,22 +476,29 @@ export default async function CustomerAssessmentReportPage({
 
           <div className="flex items-center gap-3 print:hidden">
             <div className="text-sm text-slate-400">
-              Created: {formatDateTime(assessment.created_at)}
+              Published:{' '}
+              {formatDateTime(assessment.published_at ?? assessment.created_at)}
             </div>
             <PrintReportButton />
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-8 backdrop-blur-xl print:rounded-none print:border print:border-slate-200 print:bg-white print:p-6">
+          <section className="rounded-[32px] border border-white/10 bg-white/[0.04] p-8 backdrop-blur-xl print:rounded-none print:border print:border-slate-200 print:bg-white print:p-6">
             <div className="flex flex-col gap-6 border-b border-white/10 pb-6 print:border-slate-200 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-3xl">
                 <div className="text-sm uppercase tracking-[0.18em] text-cyan-300 print:text-slate-600">
                   HumanSurface report
                 </div>
-                <h2 className="mt-2 text-3xl font-semibold print:text-2xl">Executive summary</h2>
+                <h2 className="mt-2 text-3xl font-semibold print:text-2xl">
+                  Executive summary
+                </h2>
                 <p className="mt-3 text-slate-400 print:text-slate-700">
-                  Summary of public exposure that may support phishing, impersonation, and fraud scenarios.
+                  Summary of public exposure that may support phishing,
+                  impersonation, and fraud scenarios.
+                </p>
+                <p className="mt-4 text-sm leading-7 text-slate-300 print:text-slate-700">
+                  {executiveSummary}
                 </p>
               </div>
 
@@ -383,7 +511,9 @@ export default async function CustomerAssessmentReportPage({
                     {overallScore?.score_value ?? assessment.overall_score}
                   </div>
                 </div>
-                <RiskBadge value={overallScore?.risk_level ?? assessment.overall_risk_level} />
+                <RiskBadge
+                  value={overallScore?.risk_level ?? assessment.overall_risk_level}
+                />
               </div>
             </div>
 
@@ -409,64 +539,68 @@ export default async function CustomerAssessmentReportPage({
                 risk={hrScore?.risk_level ?? 'low'}
               />
             </div>
-          </div>
+          </section>
 
-          <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl print:rounded-none print:border print:border-slate-200 print:bg-white">
-              <h3 className="mb-5 text-2xl font-semibold">Top findings</h3>
+          <SectionCard
+            title="Top findings"
+            subtitle="Highest-priority findings currently included in your report."
+          >
+            <div className="space-y-4">
+              {topFindings.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-slate-400 print:border-slate-200 print:text-slate-600">
+                  No findings available.
+                </div>
+              ) : (
+                topFindings.map((finding) => {
+                  const linkedPerson = finding.person_id
+                    ? people.find((p) => p.id === finding.person_id)
+                    : null
 
-              <div className="space-y-4">
-                {websiteFindings.length === 0 ? (
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-slate-400 print:border-slate-200 print:text-slate-600">
-                    No findings available.
-                  </div>
-                ) : (
-                  websiteFindings.slice(0, 8).map((finding) => {
-                    const linkedPerson = finding.person_id
-                      ? people.find((p) => p.id === finding.person_id)
-                      : null
-
-                    return (
-                      <div
-                        key={finding.id}
-                        className="rounded-2xl border border-white/10 bg-[#030815] p-4 print:border-slate-200 print:bg-white"
-                      >
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                          <div>
-                            <div className="font-medium text-white print:text-black">
-                              {finding.title}
-                            </div>
-
-                            {finding.description ? (
-                              <div className="mt-2 text-sm leading-7 text-slate-400 print:text-slate-700">
-                                {finding.description}
-                              </div>
-                            ) : null}
-
-                            <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-slate-500">
-                              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 print:border-slate-200 print:bg-slate-50">
-                                {finding.category}
-                              </span>
-                              {linkedPerson ? (
-                                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 print:border-slate-200 print:bg-slate-50">
-                                  {linkedPerson.full_name || linkedPerson.role_title}
-                                </span>
-                              ) : null}
-                            </div>
+                  return (
+                    <div
+                      key={finding.id}
+                      className="rounded-2xl border border-white/10 bg-[#030815] p-4 print:border-slate-200 print:bg-white"
+                    >
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <div className="font-medium text-white print:text-black">
+                            {finding.title}
                           </div>
 
-                          <RiskBadge value={finding.severity} />
+                          {finding.description ? (
+                            <div className="mt-2 text-sm leading-7 text-slate-400 print:text-slate-700">
+                              {finding.description}
+                            </div>
+                          ) : null}
+
+                          <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-slate-500">
+                            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 print:border-slate-200 print:bg-slate-50">
+                              {normalizeLabel(finding.category)}
+                            </span>
+                            {linkedPerson ? (
+                              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 print:border-slate-200 print:bg-slate-50">
+                                {linkedPerson.full_name || linkedPerson.role_title}
+                              </span>
+                            ) : null}
+                            {finding.evidence_origin ? (
+                              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 print:border-slate-200 print:bg-slate-50">
+                                {normalizeLabel(finding.evidence_origin)}
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
+
+                        <RiskBadge value={finding.severity} />
                       </div>
-                    )
-                  })
-                )}
-              </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
+          </SectionCard>
 
-            <div className="rounded-[28px] border border-cyan-300/20 bg-cyan-300/[0.08] p-6 backdrop-blur-xl print:rounded-none print:border print:border-slate-200 print:bg-white">
-              <h3 className="mb-5 text-2xl font-semibold">Most exposed people / roles</h3>
-
+          <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+            <SectionCard title="Most exposed people / roles">
               <div className="space-y-3">
                 {topPeople.length === 0 ? (
                   <div className="rounded-2xl border border-cyan-200/10 bg-[#030815]/40 p-4 text-cyan-50/80 print:border-slate-200 print:bg-slate-50 print:text-slate-600">
@@ -484,12 +618,16 @@ export default async function CustomerAssessmentReportPage({
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="font-medium text-white print:text-black">
-                              {linkedPerson?.full_name || linkedPerson?.role_title || 'Unknown person'}
+                              {linkedPerson?.full_name ||
+                                linkedPerson?.role_title ||
+                                'Unknown person'}
                             </div>
                             {linkedPerson ? (
                               <div className="mt-1 text-sm text-slate-300 print:text-slate-700">
                                 {linkedPerson.role_title}
-                                {linkedPerson.department ? ` · ${linkedPerson.department}` : ''}
+                                {linkedPerson.department
+                                  ? ` · ${linkedPerson.department}`
+                                  : ''}
                               </div>
                             ) : null}
                             {score.reason_summary ? (
@@ -511,13 +649,9 @@ export default async function CustomerAssessmentReportPage({
                   })
                 )}
               </div>
-            </div>
-          </div>
+            </SectionCard>
 
-          <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-            <div className="rounded-[28px] border border-fuchsia-400/20 bg-fuchsia-400/10 p-6 backdrop-blur-xl print:rounded-none print:border print:border-slate-200 print:bg-white">
-              <h3 className="mb-5 text-2xl font-semibold">External exposure</h3>
-
+            <SectionCard title="External exposure">
               <div className="grid gap-4 sm:grid-cols-2">
                 <MetricCard
                   label="External sources scanned"
@@ -536,7 +670,11 @@ export default async function CustomerAssessmentReportPage({
                 />
                 <MetricCard
                   label="External findings"
-                  value={externalFindings.length || diagnostics?.externalFindingsInserted || 0}
+                  value={
+                    externalFindings.length ||
+                    diagnostics?.externalFindingsInserted ||
+                    0
+                  }
                   accent="fuchsia"
                 />
               </div>
@@ -593,14 +731,22 @@ export default async function CustomerAssessmentReportPage({
                   </div>
                 </div>
               ) : null}
-            </div>
+            </SectionCard>
+          </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl print:rounded-none print:border print:border-slate-200 print:bg-white">
-              <h3 className="mb-5 text-2xl font-semibold">What changed</h3>
-
+          <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+            <SectionCard title="What changed">
               <div className="grid gap-4 sm:grid-cols-2">
-                <MetricCard label="Pages scanned" value={diagnostics?.scannedPages ?? 0} accent="cyan" />
-                <MetricCard label="People detected" value={diagnostics?.peopleDetected ?? 0} accent="cyan" />
+                <MetricCard
+                  label="Pages scanned"
+                  value={diagnostics?.scannedPages ?? 0}
+                  accent="cyan"
+                />
+                <MetricCard
+                  label="People detected"
+                  value={diagnostics?.peopleDetected ?? 0}
+                  accent="cyan"
+                />
                 <MetricCard
                   label="Findings recorded"
                   value={diagnostics?.findingsInserted ?? findings.length}
@@ -616,7 +762,7 @@ export default async function CustomerAssessmentReportPage({
               <div className="mt-6 space-y-3">
                 {whatChangedItems.length === 0 ? (
                   <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-slate-400 print:border-slate-200 print:text-slate-700">
-                    No change summary was generated for this assessment.
+                    Initial published version.
                   </div>
                 ) : (
                   whatChangedItems.map((item) => (
@@ -629,25 +775,23 @@ export default async function CustomerAssessmentReportPage({
                   ))
                 )}
               </div>
+            </SectionCard>
 
-              <div className="mt-6 rounded-2xl border border-white/10 bg-[#071022] p-4 print:border-slate-200 print:bg-slate-50">
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                  Why this matters
-                </div>
-                <div className="mt-2 text-sm leading-7 text-slate-300 print:text-slate-700">
-                  Public leadership visibility, externally discoverable roles, and repeated exposure signals
-                  increase the credibility of impersonation, invoice fraud, and social engineering attempts
+            <SectionCard title="Why this matters">
+              <div className="rounded-2xl border border-white/10 bg-[#071022] p-4 print:border-slate-200 print:bg-slate-50">
+                <div className="text-sm leading-7 text-slate-300 print:text-slate-700">
+                  Public leadership visibility, externally discoverable roles,
+                  and repeated exposure signals increase the credibility of
+                  impersonation, invoice fraud, and social engineering attempts
                   against your organization.
                 </div>
               </div>
-            </div>
+            </SectionCard>
           </div>
 
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl print:rounded-none print:border print:border-slate-200 print:bg-white">
-            <h3 className="mb-5 text-2xl font-semibold">Immediate recommendations</h3>
-
+          <SectionCard title="Immediate recommendations">
             <div className="grid gap-3 md:grid-cols-2">
-              {immediateRecommendations.map((item) => (
+              {recommendationsToRender.map((item) => (
                 <div
                   key={item}
                   className="rounded-2xl border border-white/10 bg-[#071022] p-4 text-sm leading-7 text-slate-300 print:border-slate-200 print:bg-slate-50 print:text-slate-700"
@@ -656,7 +800,20 @@ export default async function CustomerAssessmentReportPage({
                 </div>
               ))}
             </div>
-          </div>
+          </SectionCard>
+
+          <SectionCard title="Strategic recommendations">
+            <div className="grid gap-3 md:grid-cols-2">
+              {strategicRecommendations.map((item) => (
+                <div
+                  key={item}
+                  className="rounded-2xl border border-white/10 bg-[#071022] p-4 text-sm leading-7 text-slate-300 print:border-slate-200 print:bg-slate-50 print:text-slate-700"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </SectionCard>
         </div>
       </div>
     </main>

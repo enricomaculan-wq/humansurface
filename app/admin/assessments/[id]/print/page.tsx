@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import PrintButton from '@/app/components/admin/print-button'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { getImmediateRecommendationsFromTasks } from '@/lib/assessments/assessment-remediation'
 
 type Assessment = {
   id: string
@@ -31,6 +32,9 @@ type Finding = {
   source_url: string | null
   source_title: string | null
   source_type: string | null
+  evidence_origin?: string | null
+  source_domain?: string | null
+  confidence?: number | null
 }
 
 type Person = {
@@ -41,6 +45,9 @@ type Person = {
   department: string | null
   email: string | null
   is_key_person: boolean
+  evidence_origin?: string | null
+  source_url?: string | null
+  confidence?: number | null
 }
 
 type Score = {
@@ -51,6 +58,7 @@ type Score = {
   score_value: number
   risk_level: string
   reason_summary: string | null
+  score_scope?: string | null
 }
 
 type RemediationTask = {
@@ -61,19 +69,45 @@ type RemediationTask = {
   effort: string
   impact: string
   status: string
+  created_at: string
+}
+
+function normalizeLabel(value: string | null | undefined, fallback = '—') {
+  if (!value) return fallback
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function severityRank(value: string) {
+  switch ((value || '').toLowerCase()) {
+    case 'critical':
+      return 4
+    case 'high':
+      return 3
+    case 'medium':
+    case 'moderate':
+      return 2
+    default:
+      return 1
+  }
 }
 
 function RiskBadge({ value }: { value: string }) {
+  const normalized = (value || 'low').toLowerCase()
+
   const cls =
-    value === 'high'
-      ? 'border-fuchsia-300/30 bg-fuchsia-50 text-fuchsia-700'
-      : value === 'medium'
-        ? 'border-cyan-300/30 bg-cyan-50 text-cyan-700'
-        : 'border-emerald-300/30 bg-emerald-50 text-emerald-700'
+    normalized === 'critical'
+      ? 'border-red-300/40 bg-red-50 text-red-700'
+      : normalized === 'high'
+        ? 'border-fuchsia-300/40 bg-fuchsia-50 text-fuchsia-700'
+        : normalized === 'medium' || normalized === 'moderate'
+          ? 'border-cyan-300/40 bg-cyan-50 text-cyan-700'
+          : 'border-emerald-300/40 bg-emerald-50 text-emerald-700'
 
   return (
     <span className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase ${cls}`}>
-      {value}
+      {normalizeLabel(normalized)}
     </span>
   )
 }
@@ -95,6 +129,26 @@ function ScoreBox({
         <RiskBadge value={risk} />
       </div>
     </div>
+  )
+}
+
+function Section({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string
+  subtitle?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="mt-10 break-inside-avoid">
+      <div className="mb-4">
+        <h2 className="text-2xl font-semibold text-slate-950">{title}</h2>
+        {subtitle ? <p className="mt-2 text-sm leading-6 text-slate-500">{subtitle}</p> : null}
+      </div>
+      {children}
+    </section>
   )
 }
 
@@ -149,21 +203,91 @@ export default async function AssessmentPrintPage({
   const assessmentScores = scores.filter((score) => score.person_id === null)
   const personScores = scores.filter((score) => score.person_id !== null)
 
-  const overallScore =
-    assessmentScores.find((s) => s.score_type === 'overall') ?? null
-  const impersonationScore =
-    assessmentScores.find((s) => s.score_type === 'impersonation_risk') ?? null
-  const financeScore =
-    assessmentScores.find((s) => s.score_type === 'finance_fraud_risk') ?? null
-  const hrScore =
-    assessmentScores.find((s) => s.score_type === 'hr_social_engineering_risk') ?? null
+  const websiteAssessmentScores = assessmentScores.filter(
+    (score) => (score.score_scope ?? 'website') === 'website',
+  )
+  const externalAssessmentScores = assessmentScores.filter(
+    (score) => score.score_scope === 'external',
+  )
+  const combinedAssessmentScores = assessmentScores.filter(
+    (score) => score.score_scope === 'combined',
+  )
 
-  const topPeople = [...personScores].sort((a, b) => b.score_value - a.score_value).slice(0, 5)
+  const overallScore =
+    websiteAssessmentScores.find((s) => s.score_type === 'overall') ??
+    assessmentScores.find((s) => s.score_type === 'overall') ??
+    null
+  const impersonationScore =
+    websiteAssessmentScores.find((s) => s.score_type === 'impersonation_risk') ?? null
+  const financeScore =
+    websiteAssessmentScores.find((s) => s.score_type === 'finance_fraud_risk') ?? null
+  const hrScore =
+    websiteAssessmentScores.find((s) => s.score_type === 'hr_social_engineering_risk') ?? null
+
+  const externalOverallScore =
+    externalAssessmentScores.find((s) => s.score_type === 'overall') ?? null
+  const combinedOverallScore =
+    combinedAssessmentScores.find((s) => s.score_type === 'overall') ?? null
+
+  const topFindings = [...findings]
+    .sort((a, b) => severityRank(b.severity) - severityRank(a.severity))
+    .slice(0, 8)
+
+  const topPeople = [...personScores]
+    .sort((a, b) => b.score_value - a.score_value)
+    .slice(0, 5)
+
+  const openRemediationTasks = remediationTasks.filter(
+    (task) => (task.status || '').toLowerCase() !== 'done',
+  )
+
+  const immediateRecommendations = getImmediateRecommendationsFromTasks(remediationTasks)
+
+  const fallbackImmediateRecommendations = [
+    'Review the highest-severity findings and validate their current exposure.',
+    'Reduce public signals that support impersonation or targeted phishing scenarios.',
+    'Confirm ownership and follow-up timeline for each identified remediation action.',
+  ]
+
+  const recommendationsToRender =
+    immediateRecommendations.length > 0
+      ? immediateRecommendations
+      : fallbackImmediateRecommendations
+
+  const strategicRecommendations = [
+    'Establish a recurring review process for public human-surface exposure.',
+    'Assign ownership for exposed people, roles, and public-facing contact channels.',
+    'Introduce approval controls for publishing externally visible staff and role details.',
+    'Track recurring findings over time to measure exposure reduction.',
+  ]
+
+  const whatChanged = [
+    findings.length > 0
+      ? `${findings.length} findings are currently included in this report.`
+      : 'No findings are currently included in this report.',
+    topPeople.length > 0
+      ? `${topPeople.length} highly exposed people or roles are highlighted in the current view.`
+      : 'No person-level exposure highlights are currently available.',
+    remediationTasks.length > 0
+      ? `${remediationTasks.length} remediation tasks have been added for follow-up.`
+      : 'No remediation tasks have been added yet.',
+  ]
 
   const executiveSummary =
     findings.length === 0
-      ? 'No findings have been recorded for this assessment yet.'
-      : 'This assessment identified public exposure patterns that may increase phishing, impersonation, and fraud risk through visible people, roles, and business context.'
+      ? 'No findings have been recorded for this assessment yet. The report should be reviewed before publication or distribution.'
+      : `This assessment identified public exposure patterns that may increase phishing, impersonation, and fraud risk for ${organization?.name || 'the organization'}. The current combined overall exposure score is ${combinedOverallScore?.score_value ?? overallScore?.score_value ?? assessment.overall_score}, with the strongest signals concentrated around visible people, roles, public context, and high-value business functions.`
+
+  const overallConclusion =
+    (combinedOverallScore?.risk_level ??
+      overallScore?.risk_level ??
+      assessment.overall_risk_level) === 'high'
+      ? 'The organization currently presents a high level of human-surface exposure, with priority attention needed on impersonation-enabling signals, visible business context, and exposed people or roles.'
+      : (combinedOverallScore?.risk_level ??
+            overallScore?.risk_level ??
+            assessment.overall_risk_level) === 'medium'
+        ? 'The organization presents a moderate level of public exposure. Several visible signals should be reduced to lower phishing and impersonation risk.'
+        : 'The organization currently shows a relatively limited level of recorded public exposure, but continued monitoring and periodic review are recommended.'
 
   return (
     <main className="min-h-screen bg-[#eef2f7] print:bg-white">
@@ -179,7 +303,7 @@ export default async function AssessmentPrintPage({
           <PrintButton />
         </div>
 
-        <article className="rounded-[32px] bg-white p-8 shadow-sm ring-1 ring-slate-200 print:rounded-none print:shadow-none print:ring-0">
+        <article className="rounded-[32px] bg-white p-8 shadow-sm ring-1 ring-slate-200 print:rounded-none print:p-0 print:shadow-none print:ring-0">
           <header className="border-b border-slate-200 pb-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div>
@@ -190,103 +314,136 @@ export default async function AssessmentPrintPage({
                   Exposure Assessment Report
                 </h1>
                 <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
-                  Public exposure analysis focused on phishing, impersonation, and human-targeted fraud.
+                  Public exposure analysis focused on phishing, impersonation, and
+                  human-targeted fraud.
                 </p>
               </div>
 
               <div className="space-y-3 md:text-right">
                 <div>
-                  <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Organization</div>
+                  <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                    Organization
+                  </div>
                   <div className="mt-1 text-lg font-semibold text-slate-950">
                     {organization?.name || 'Unknown organization'}
                   </div>
                 </div>
+
                 <div className="text-sm text-slate-600">
                   {organization?.domain || '—'}
                   {organization?.industry ? ` · ${organization.industry}` : ''}
                 </div>
+
                 <div className="text-sm text-slate-500">
                   Assessment date: {new Date(assessment.created_at).toLocaleDateString()}
+                </div>
+
+                <div className="text-sm text-slate-500">
+                  Status: {normalizeLabel(assessment.status)}
                 </div>
               </div>
             </div>
           </header>
 
-          <section className="mt-8">
+          <section className="mt-8 break-inside-avoid">
             <div className="grid gap-4 md:grid-cols-4">
               <ScoreBox
-                label="Overall"
+                label="Website overall"
                 value={overallScore?.score_value ?? assessment.overall_score}
                 risk={overallScore?.risk_level ?? assessment.overall_risk_level}
               />
               <ScoreBox
-                label="Impersonation"
-                value={impersonationScore?.score_value ?? 0}
-                risk={impersonationScore?.risk_level ?? 'low'}
+                label="External overall"
+                value={externalOverallScore?.score_value ?? 0}
+                risk={externalOverallScore?.risk_level ?? 'low'}
               />
               <ScoreBox
-                label="Finance Fraud"
-                value={financeScore?.score_value ?? 0}
-                risk={financeScore?.risk_level ?? 'low'}
+                label="Combined overall"
+                value={combinedOverallScore?.score_value ?? 0}
+                risk={combinedOverallScore?.risk_level ?? 'low'}
               />
               <ScoreBox
-                label="HR / Social"
-                value={hrScore?.score_value ?? 0}
-                risk={hrScore?.risk_level ?? 'low'}
+                label="Open remediation"
+                value={openRemediationTasks.length}
+                risk={
+                  openRemediationTasks.some(
+                    (task) => (task.priority || '').toLowerCase() === 'high',
+                  )
+                    ? 'high'
+                    : openRemediationTasks.length > 0
+                      ? 'medium'
+                      : 'low'
+                }
               />
             </div>
           </section>
 
-          <section className="mt-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-            <div>
-              <h2 className="text-2xl font-semibold text-slate-950">Executive summary</h2>
-              <p className="mt-4 leading-8 text-slate-700">{executiveSummary}</p>
+          <Section title="Executive summary">
+            <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+              <div>
+                <p className="leading-8 text-slate-700">{executiveSummary}</p>
 
-              <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <div className="text-sm font-semibold text-slate-900">Overall conclusion</div>
-                <p className="mt-3 leading-7 text-slate-700">
-                  {overallScore?.risk_level === 'high' || assessment.overall_risk_level === 'high'
-                    ? 'The organization currently presents a high level of human-surface exposure, with the strongest signals concentrated around visible roles, public contact paths, and impersonation-enabling business context.'
-                    : overallScore?.risk_level === 'medium' || assessment.overall_risk_level === 'medium'
-                      ? 'The organization presents a moderate level of public exposure. Several signals should be reduced to lower phishing and impersonation risk.'
-                      : 'The organization currently shows a relatively limited level of recorded public exposure, but continued monitoring is recommended.'}
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-2xl font-semibold text-slate-950">Assessment facts</h2>
-              <div className="mt-4 space-y-3">
-                <div className="rounded-2xl border border-slate-200 p-4">
-                  <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Status</div>
-                  <div className="mt-2 text-lg font-medium text-slate-950">{assessment.status}</div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 p-4">
-                  <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Findings</div>
-                  <div className="mt-2 text-lg font-medium text-slate-950">{findings.length}</div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 p-4">
-                  <div className="text-xs uppercase tracking-[0.16em] text-slate-500">People / Roles</div>
-                  <div className="mt-2 text-lg font-medium text-slate-950">{topPeople.length || people.length}</div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 p-4">
-                  <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Remediation tasks</div>
-                  <div className="mt-2 text-lg font-medium text-slate-950">{remediationTasks.length}</div>
+                <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="text-sm font-semibold text-slate-900">
+                    Overall conclusion
+                  </div>
+                  <p className="mt-3 leading-7 text-slate-700">{overallConclusion}</p>
                 </div>
               </div>
+
+              <div>
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-slate-200 p-4">
+                    <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Findings
+                    </div>
+                    <div className="mt-2 text-lg font-medium text-slate-950">
+                      {findings.length}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 p-4">
+                    <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      People / Roles
+                    </div>
+                    <div className="mt-2 text-lg font-medium text-slate-950">
+                      {people.length}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 p-4">
+                    <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Person-level scores
+                    </div>
+                    <div className="mt-2 text-lg font-medium text-slate-950">
+                      {personScores.length}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 p-4">
+                    <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Remediation tasks
+                    </div>
+                    <div className="mt-2 text-lg font-medium text-slate-950">
+                      {remediationTasks.length}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </section>
+          </Section>
 
-          <section className="mt-12">
-            <h2 className="text-2xl font-semibold text-slate-950">Top findings</h2>
-
-            <div className="mt-5 space-y-4">
-              {findings.length === 0 ? (
+          <Section
+            title="Top findings"
+            subtitle="Highest-priority findings currently included in the assessment."
+          >
+            <div className="space-y-4">
+              {topFindings.length === 0 ? (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-500">
                   No findings available.
                 </div>
               ) : (
-                findings.slice(0, 8).map((finding) => {
+                topFindings.map((finding) => {
                   const linkedPerson = finding.person_id
                     ? people.find((p) => p.id === finding.person_id)
                     : null
@@ -294,18 +451,29 @@ export default async function AssessmentPrintPage({
                   return (
                     <div key={finding.id} className="rounded-2xl border border-slate-200 p-5">
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div>
+                        <div className="max-w-4xl">
                           <div className="font-semibold text-slate-950">{finding.title}</div>
+
                           {finding.description ? (
-                            <p className="mt-3 leading-7 text-slate-700">{finding.description}</p>
+                            <p className="mt-3 leading-7 text-slate-700">
+                              {finding.description}
+                            </p>
                           ) : null}
+
                           <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-slate-500">
                             <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                              {finding.category}
+                              {normalizeLabel(finding.category)}
                             </span>
+
                             {linkedPerson ? (
                               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
                                 {linkedPerson.full_name || linkedPerson.role_title}
+                              </span>
+                            ) : null}
+
+                            {finding.evidence_origin ? (
+                              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                                {normalizeLabel(finding.evidence_origin)}
                               </span>
                             ) : null}
                           </div>
@@ -314,6 +482,7 @@ export default async function AssessmentPrintPage({
                             <div className="mt-3 text-xs text-slate-500">
                               Source: {finding.source_title || finding.source_url} ·{' '}
                               {finding.source_type || 'unknown'}
+                              {finding.source_domain ? ` · ${finding.source_domain}` : ''}
                             </div>
                           ) : null}
                         </div>
@@ -325,11 +494,43 @@ export default async function AssessmentPrintPage({
                 })
               )}
             </div>
-          </section>
+          </Section>
+
+          <Section title="Immediate recommendations">
+            <div className="space-y-4">
+              {recommendationsToRender.map((item) => (
+                <div key={item} className="rounded-2xl border border-slate-200 p-5">
+                  <div className="font-medium text-slate-950">{item}</div>
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          <Section title="Strategic recommendations">
+            <div className="space-y-4">
+              {strategicRecommendations.map((item) => (
+                <div key={item} className="rounded-2xl border border-slate-200 p-5">
+                  <div className="font-medium text-slate-950">{item}</div>
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          <Section title="What changed">
+            <div className="space-y-4">
+              {whatChanged.map((item) => (
+                <div key={item} className="rounded-2xl border border-slate-200 p-5">
+                  <div className="text-slate-700">{item}</div>
+                </div>
+              ))}
+            </div>
+          </Section>
 
           <section className="mt-12 grid gap-8 lg:grid-cols-[1fr_1fr]">
-            <div>
-              <h2 className="text-2xl font-semibold text-slate-950">Most exposed people / roles</h2>
+            <div className="break-inside-avoid">
+              <h2 className="text-2xl font-semibold text-slate-950">
+                Most exposed people / roles
+              </h2>
 
               <div className="mt-5 space-y-4">
                 {topPeople.length === 0 ? (
@@ -345,14 +546,20 @@ export default async function AssessmentPrintPage({
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <div className="font-semibold text-slate-950">
-                              {linkedPerson?.full_name || linkedPerson?.role_title || 'Unknown person'}
+                              {linkedPerson?.full_name ||
+                                linkedPerson?.role_title ||
+                                'Unknown person'}
                             </div>
+
                             {linkedPerson ? (
                               <div className="mt-2 text-sm text-slate-600">
                                 {linkedPerson.role_title}
-                                {linkedPerson.department ? ` · ${linkedPerson.department}` : ''}
+                                {linkedPerson.department
+                                  ? ` · ${linkedPerson.department}`
+                                  : ''}
                               </div>
                             ) : null}
+
                             {score.reason_summary ? (
                               <div className="mt-3 text-sm leading-6 text-slate-700">
                                 {score.reason_summary}
@@ -361,7 +568,9 @@ export default async function AssessmentPrintPage({
                           </div>
 
                           <div className="text-right">
-                            <div className="text-3xl font-semibold text-slate-950">{score.score_value}</div>
+                            <div className="text-3xl font-semibold text-slate-950">
+                              {score.score_value}
+                            </div>
                             <div className="mt-2">
                               <RiskBadge value={score.risk_level} />
                             </div>
@@ -374,8 +583,10 @@ export default async function AssessmentPrintPage({
               </div>
             </div>
 
-            <div>
-              <h2 className="text-2xl font-semibold text-slate-950">Immediate remediation</h2>
+            <div className="break-inside-avoid">
+              <h2 className="text-2xl font-semibold text-slate-950">
+                Immediate remediation
+              </h2>
 
               <div className="mt-5 space-y-4">
                 {remediationTasks.length === 0 ? (
@@ -388,16 +599,16 @@ export default async function AssessmentPrintPage({
                       <div className="font-semibold text-slate-950">{task.title}</div>
                       <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-slate-500">
                         <span className="rounded-full border border-fuchsia-300/30 bg-fuchsia-50 px-3 py-1 text-fuchsia-700">
-                          priority · {task.priority}
+                          priority · {normalizeLabel(task.priority)}
                         </span>
                         <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                          effort · {task.effort}
+                          effort · {normalizeLabel(task.effort)}
                         </span>
                         <span className="rounded-full border border-cyan-300/30 bg-cyan-50 px-3 py-1 text-cyan-700">
-                          impact · {task.impact}
+                          impact · {normalizeLabel(task.impact)}
                         </span>
                         <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                          status · {task.status}
+                          status · {normalizeLabel(task.status)}
                         </span>
                       </div>
                     </div>

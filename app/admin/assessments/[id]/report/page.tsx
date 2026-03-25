@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { formatDateTime } from '@/lib/date'
+import { getImmediateRecommendationsFromTasks } from '@/lib/assessments/assessment-remediation'
 
 type Assessment = {
   id: string
@@ -10,6 +11,7 @@ type Assessment = {
   overall_score: number
   overall_risk_level: string
   created_at: string
+  published_at?: string | null
   scan_diagnostics: {
     scannedUrls?: string[]
     failedUrls?: Array<{ url: string; error: string }>
@@ -98,19 +100,45 @@ type RemediationTask = {
   effort: string
   impact: string
   status: string
+  created_at: string
+}
+
+function normalizeLabel(value: string | null | undefined, fallback = '—') {
+  if (!value) return fallback
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function severityRank(value: string) {
+  switch ((value || '').toLowerCase()) {
+    case 'critical':
+      return 4
+    case 'high':
+      return 3
+    case 'medium':
+    case 'moderate':
+      return 2
+    default:
+      return 1
+  }
 }
 
 function RiskBadge({ value }: { value: string }) {
+  const normalized = (value || 'low').toLowerCase()
+
   const cls =
-    value === 'high'
-      ? 'border-fuchsia-400/20 bg-fuchsia-400/10 text-fuchsia-200'
-      : value === 'medium'
-        ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100'
-        : 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
+    normalized === 'critical'
+      ? 'border-red-400/20 bg-red-400/10 text-red-200'
+      : normalized === 'high'
+        ? 'border-fuchsia-400/20 bg-fuchsia-400/10 text-fuchsia-200'
+        : normalized === 'medium' || normalized === 'moderate'
+          ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100'
+          : 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
 
   return (
     <span className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${cls}`}>
-      {value}
+      {normalizeLabel(normalized)}
     </span>
   )
 }
@@ -150,6 +178,26 @@ function DiagnosticCard({
   )
 }
 
+function SectionCard({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string
+  subtitle?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
+      <div className="mb-5">
+        <h2 className="text-2xl font-semibold text-white">{title}</h2>
+        {subtitle ? <p className="mt-2 text-sm text-slate-400">{subtitle}</p> : null}
+      </div>
+      {children}
+    </section>
+  )
+}
+
 function FindingsSection({
   title,
   findings,
@@ -160,9 +208,7 @@ function FindingsSection({
   people: Person[]
 }) {
   return (
-    <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
-      <h3 className="mb-5 text-2xl font-semibold">{title}</h3>
-
+    <SectionCard title={title}>
       <div className="space-y-4">
         {findings.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-slate-400">
@@ -175,12 +221,12 @@ function FindingsSection({
               : null
 
             return (
-              <div
+              <article
                 key={finding.id}
                 className="rounded-2xl border border-white/10 bg-[#030815] p-4"
               >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
+                  <div className="max-w-4xl">
                     <div className="font-medium text-white">{finding.title}</div>
 
                     {finding.description ? (
@@ -191,7 +237,7 @@ function FindingsSection({
 
                     <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-slate-500">
                       <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
-                        {finding.category}
+                        {normalizeLabel(finding.category)}
                       </span>
 
                       {linkedPerson ? (
@@ -202,7 +248,7 @@ function FindingsSection({
 
                       {finding.evidence_origin ? (
                         <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
-                          {finding.evidence_origin}
+                          {normalizeLabel(finding.evidence_origin)}
                         </span>
                       ) : null}
                     </div>
@@ -218,12 +264,12 @@ function FindingsSection({
 
                   <RiskBadge value={finding.severity} />
                 </div>
-              </div>
+              </article>
             )
           })
         )}
       </div>
-    </div>
+    </SectionCard>
   )
 }
 
@@ -248,12 +294,11 @@ function PeopleScoresSection({
       ? 'border-fuchsia-200/10 bg-[#030815]/40'
       : 'border-cyan-200/10 bg-[#030815]/40'
 
-  const textAccent =
-    accent === 'fuchsia' ? 'text-fuchsia-200' : 'text-cyan-200'
+  const textAccent = accent === 'fuchsia' ? 'text-fuchsia-200' : 'text-cyan-200'
 
   return (
     <div className={`rounded-[28px] p-6 backdrop-blur-xl ${accentClasses}`}>
-      <h3 className="mb-5 text-2xl font-semibold">{title}</h3>
+      <h3 className="mb-5 text-2xl font-semibold text-white">{title}</h3>
 
       <div className="space-y-3">
         {scores.length === 0 ? (
@@ -282,7 +327,7 @@ function PeopleScoresSection({
                         {linkedPerson.role_title}
                         {linkedPerson.department ? ` · ${linkedPerson.department}` : ''}
                         {linkedPerson.evidence_origin
-                          ? ` · ${linkedPerson.evidence_origin}`
+                          ? ` · ${normalizeLabel(linkedPerson.evidence_origin)}`
                           : ''}
                       </div>
                     ) : null}
@@ -310,6 +355,25 @@ function PeopleScoresSection({
   )
 }
 
+function pickAssessmentScore(
+  scores: Score[],
+  scoreType: string,
+  preferredScopes: Array<string | null> = ['combined', 'website', 'external', null],
+) {
+  const candidates = scores.filter((score) => score.score_type === scoreType)
+
+  for (const scope of preferredScopes) {
+    const found =
+      scope === null
+        ? candidates.find((score) => !score.score_scope)
+        : candidates.find((score) => score.score_scope === scope)
+
+    if (found) return found
+  }
+
+  return candidates[0] ?? null
+}
+
 export default async function AssessmentReportPage({
   params,
 }: {
@@ -319,12 +383,12 @@ export default async function AssessmentReportPage({
   const supabase = await createSupabaseServerClient()
 
   const [
-    { data: assessmentData },
-    { data: organizationsData },
-    { data: findingsData },
-    { data: peopleData },
-    { data: scoresData },
-    { data: remediationData },
+    { data: assessmentData, error: assessmentError },
+    { data: organizationsData, error: organizationsError },
+    { data: findingsData, error: findingsError },
+    { data: peopleData, error: peopleError },
+    { data: scoresData, error: scoresError },
+    { data: remediationData, error: remediationError },
   ] = await Promise.all([
     supabase.from('assessments').select('*').eq('id', id).maybeSingle(),
     supabase.from('organizations').select('*'),
@@ -345,6 +409,30 @@ export default async function AssessmentReportPage({
       .eq('assessment_id', id)
       .order('created_at', { ascending: false }),
   ])
+
+  if (assessmentError) {
+    throw new Error(`Assessment read failed: ${assessmentError.message}`)
+  }
+
+  if (organizationsError) {
+    throw new Error(`Organizations read failed: ${organizationsError.message}`)
+  }
+
+  if (findingsError) {
+    throw new Error(`Findings read failed: ${findingsError.message}`)
+  }
+
+  if (peopleError) {
+    throw new Error(`People read failed: ${peopleError.message}`)
+  }
+
+  if (scoresError) {
+    throw new Error(`Scores read failed: ${scoresError.message}`)
+  }
+
+  if (remediationError) {
+    throw new Error(`Remediation read failed: ${remediationError.message}`)
+  }
 
   const assessment = assessmentData as Assessment | null
   if (!assessment) notFound()
@@ -417,36 +505,103 @@ export default async function AssessmentReportPage({
   )
 
   const overallScore =
-    websiteAssessmentScores.find((s) => s.score_type === 'overall') ?? null
+    pickAssessmentScore(websiteAssessmentScores, 'overall', ['website', null]) ??
+    assessmentScores.find((s) => s.score_type === 'overall') ??
+    null
   const impersonationScore =
-    websiteAssessmentScores.find((s) => s.score_type === 'impersonation_risk') ?? null
+    pickAssessmentScore(websiteAssessmentScores, 'impersonation_risk', ['website', null]) ??
+    null
   const financeScore =
-    websiteAssessmentScores.find((s) => s.score_type === 'finance_fraud_risk') ?? null
+    pickAssessmentScore(websiteAssessmentScores, 'finance_fraud_risk', ['website', null]) ??
+    null
   const hrScore =
-    websiteAssessmentScores.find((s) => s.score_type === 'hr_social_engineering_risk') ?? null
+    pickAssessmentScore(
+      websiteAssessmentScores,
+      'hr_social_engineering_risk',
+      ['website', null],
+    ) ?? null
 
   const externalOverallScore =
-    externalAssessmentScores.find((s) => s.score_type === 'overall') ?? null
+    pickAssessmentScore(externalAssessmentScores, 'overall', ['external']) ?? null
   const externalImpersonationScore =
-    externalAssessmentScores.find((s) => s.score_type === 'impersonation_risk') ?? null
+    pickAssessmentScore(externalAssessmentScores, 'impersonation_risk', ['external']) ??
+    null
   const externalFinanceScore =
-    externalAssessmentScores.find((s) => s.score_type === 'finance_fraud_risk') ?? null
+    pickAssessmentScore(externalAssessmentScores, 'finance_fraud_risk', ['external']) ??
+    null
   const externalHrScore =
-    externalAssessmentScores.find((s) => s.score_type === 'hr_social_engineering_risk') ?? null
+    pickAssessmentScore(
+      externalAssessmentScores,
+      'hr_social_engineering_risk',
+      ['external'],
+    ) ?? null
 
   const combinedOverallScore =
-    combinedAssessmentScores.find((s) => s.score_type === 'overall') ?? null
+    pickAssessmentScore(combinedAssessmentScores, 'overall', ['combined']) ?? null
   const combinedImpersonationScore =
-    combinedAssessmentScores.find((s) => s.score_type === 'impersonation_risk') ?? null
+    pickAssessmentScore(combinedAssessmentScores, 'impersonation_risk', ['combined']) ??
+    null
   const combinedFinanceScore =
-    combinedAssessmentScores.find((s) => s.score_type === 'finance_fraud_risk') ?? null
+    pickAssessmentScore(combinedAssessmentScores, 'finance_fraud_risk', ['combined']) ??
+    null
   const combinedHrScore =
-    combinedAssessmentScores.find((s) => s.score_type === 'hr_social_engineering_risk') ?? null
+    pickAssessmentScore(
+      combinedAssessmentScores,
+      'hr_social_engineering_risk',
+      ['combined'],
+    ) ?? null
+
+  const topFindings = [...findings]
+    .sort((a, b) => severityRank(b.severity) - severityRank(a.severity))
+    .slice(0, 5)
+
+  const immediateRecommendations = getImmediateRecommendationsFromTasks(remediationTasks)
+
+  const fallbackImmediateRecommendations = [
+    'Review high-risk findings and confirm exposure relevance.',
+    'Validate exposed people, roles, and public contact points.',
+    'Prioritize controls against impersonation, phishing, and finance fraud scenarios.',
+  ]
+
+  const recommendationsToRender =
+    immediateRecommendations.length > 0
+      ? immediateRecommendations
+      : fallbackImmediateRecommendations
+
+  const strategicRecommendations = [
+    'Establish a recurring HumanSurface review cycle for public exposure changes.',
+    'Define ownership for exposed identities, public contact channels, and remediation follow-up.',
+    'Introduce a formal validation workflow before publishing externally visible staff and role details.',
+    'Track repeated findings over time to measure exposure reduction.',
+  ]
+
+  const whatChanged = [
+    websiteFindings.length > 0
+      ? `${websiteFindings.length} website findings are currently included in the report.`
+      : 'No website findings are currently included.',
+    externalFindings.length > 0
+      ? `${externalFindings.length} external findings were identified from public sources beyond the website.`
+      : 'No external findings were identified from additional public sources.',
+    remediationTasks.length > 0
+      ? `${remediationTasks.length} remediation tasks are available for prioritization.`
+      : 'No remediation tasks have been added yet.',
+  ]
 
   const summaryLine =
     scannedUrls.length > 0
-      ? `${scannedPages} pagine analizzate, ${failedUrls.length} URL saltate o non disponibili.`
-      : 'Nessuna pagina pubblica utile è stata ancora analizzata.'
+      ? `${scannedPages} public pages analyzed, with ${failedUrls.length} skipped or unavailable URLs.`
+      : 'No useful public pages have been analyzed yet.'
+
+  const executiveSummary = [
+    `HumanSurface assessed public website exposure and additional external signals for ${organization?.name || 'this organization'}.`,
+    `The current combined overall score is ${combinedOverallScore?.score_value ?? overallScore?.score_value ?? assessment.overall_score}, with a ${normalizeLabel(combinedOverallScore?.risk_level ?? overallScore?.risk_level ?? assessment.overall_risk_level)} overall exposure profile.`,
+    websiteFindings.length > 0 || externalFindings.length > 0
+      ? `The assessment identified ${findings.length} total findings across website and external sources, with the most relevant themes centered on impersonation, finance fraud, and social engineering exposure.`
+      : 'No material findings have been recorded yet, so the assessment should be reviewed before publication.',
+    remediationTasks.length > 0
+      ? `Immediate remediation actions are already available and can be prioritized for operational follow-up.`
+      : 'Remediation actions have not yet been defined and should be added before final publication.',
+  ].join(' ')
 
   return (
     <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
@@ -483,7 +638,7 @@ export default async function AssessmentReportPage({
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-8 backdrop-blur-xl">
+          <section className="rounded-[32px] border border-white/10 bg-white/[0.04] p-8 backdrop-blur-xl">
             <div className="flex flex-col gap-6 border-b border-white/10 pb-6 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-3xl">
                 <div className="text-sm uppercase tracking-[0.18em] text-cyan-300">
@@ -491,31 +646,170 @@ export default async function AssessmentReportPage({
                 </div>
                 <h2 className="mt-2 text-3xl font-semibold">Assessment summary</h2>
                 <p className="mt-3 text-slate-400">
-                  Executive-ready overview of corporate website exposure and external
-                  public exposure that may enable phishing, impersonation, and fraud.
+                  Executive-ready overview of website and external public exposure
+                  that may enable phishing, impersonation, and fraud.
                 </p>
                 <p className="mt-3 text-sm text-slate-500">{summaryLine}</p>
                 <p className="mt-2 text-xs text-slate-500">
                   Created: {formatDateTime(assessment.created_at)}
                 </p>
+                {assessment.published_at ? (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Published: {formatDateTime(assessment.published_at)}
+                  </p>
+                ) : null}
               </div>
 
               <div className="flex items-center gap-4 self-start lg:self-end">
                 <div className="text-right">
                   <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                    Website overall score
+                    Combined overall score
                   </div>
                   <div className="mt-1 text-5xl font-semibold text-white">
-                    {overallScore?.score_value ?? assessment.overall_score}
+                    {combinedOverallScore?.score_value ??
+                      overallScore?.score_value ??
+                      assessment.overall_score}
                   </div>
                 </div>
                 <RiskBadge
-                  value={overallScore?.risk_level ?? assessment.overall_risk_level}
+                  value={
+                    combinedOverallScore?.risk_level ??
+                    overallScore?.risk_level ??
+                    assessment.overall_risk_level
+                  }
                 />
               </div>
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-4">
+              <ScoreCard
+                label="Website overall"
+                value={overallScore?.score_value ?? assessment.overall_score}
+                risk={overallScore?.risk_level ?? assessment.overall_risk_level}
+              />
+              <ScoreCard
+                label="External overall"
+                value={externalOverallScore?.score_value ?? 0}
+                risk={externalOverallScore?.risk_level ?? 'low'}
+              />
+              <ScoreCard
+                label="Combined overall"
+                value={combinedOverallScore?.score_value ?? 0}
+                risk={combinedOverallScore?.risk_level ?? 'low'}
+              />
+              <ScoreCard
+                label="Open remediation"
+                value={remediationTasks.filter((task) => task.status !== 'done').length}
+                risk={
+                  remediationTasks.some(
+                    (task) => (task.priority || '').toLowerCase() === 'high',
+                  )
+                    ? 'high'
+                    : remediationTasks.length > 0
+                      ? 'medium'
+                      : 'low'
+                }
+              />
+            </div>
+          </section>
+
+          <SectionCard title="Executive summary">
+            <p className="max-w-5xl whitespace-pre-wrap text-sm leading-7 text-slate-300">
+              {executiveSummary}
+            </p>
+          </SectionCard>
+
+          <SectionCard
+            title="Top findings"
+            subtitle="Highest-priority findings currently surfaced by the assessment."
+          >
+            <div className="space-y-4">
+              {topFindings.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-slate-400">
+                  No findings yet.
+                </div>
+              ) : (
+                topFindings.map((finding) => {
+                  const linkedPerson = finding.person_id
+                    ? people.find((p) => p.id === finding.person_id)
+                    : null
+
+                  return (
+                    <article
+                      key={finding.id}
+                      className="rounded-2xl border border-white/10 bg-[#030815] p-4"
+                    >
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="max-w-4xl">
+                          <div className="font-medium text-white">{finding.title}</div>
+                          {finding.description ? (
+                            <div className="mt-2 text-sm leading-7 text-slate-400">
+                              {finding.description}
+                            </div>
+                          ) : null}
+
+                          <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-slate-500">
+                            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
+                              {normalizeLabel(finding.category)}
+                            </span>
+                            {linkedPerson ? (
+                              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
+                                {linkedPerson.full_name || linkedPerson.role_title}
+                              </span>
+                            ) : null}
+                            {finding.evidence_origin ? (
+                              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
+                                {normalizeLabel(finding.evidence_origin)}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <RiskBadge value={finding.severity} />
+                      </div>
+                    </article>
+                  )
+                })
+              )}
+            </div>
+          </SectionCard>
+
+          <div className="grid gap-6 xl:grid-cols-2">
+            <SectionCard title="Immediate recommendations">
+              <ul className="space-y-3 text-sm leading-7 text-slate-300">
+                {recommendationsToRender.map((item) => (
+                  <li key={item} className="rounded-2xl border border-white/10 bg-[#030815] p-4">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
+
+            <SectionCard title="Strategic recommendations">
+              <ul className="space-y-3 text-sm leading-7 text-slate-300">
+                {strategicRecommendations.map((item) => (
+                  <li key={item} className="rounded-2xl border border-white/10 bg-[#030815] p-4">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
+          </div>
+
+          <SectionCard title="What changed">
+            <ul className="space-y-3 text-sm leading-7 text-slate-300">
+              {whatChanged.map((item) => (
+                <li key={item} className="rounded-2xl border border-white/10 bg-[#030815] p-4">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </SectionCard>
+
+          <div className="rounded-[28px] border border-cyan-300/20 bg-cyan-300/[0.08] p-6 backdrop-blur-xl">
+            <h2 className="mb-5 text-2xl font-semibold">Website exposure scores</h2>
+
+            <div className="grid gap-4 md:grid-cols-4">
               <ScoreCard
                 label="Website overall"
                 value={overallScore?.score_value ?? assessment.overall_score}
@@ -593,9 +887,7 @@ export default async function AssessmentReportPage({
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
-            <h2 className="mb-5 text-2xl font-semibold">Website scan diagnostics</h2>
-
+          <SectionCard title="Website scan diagnostics">
             {scanDiagnostics?.error ? (
               <div className="mb-5 rounded-2xl border border-red-400/20 bg-red-400/10 p-4">
                 <div className="text-sm font-medium text-red-200">Scan error</div>
@@ -647,7 +939,7 @@ export default async function AssessmentReportPage({
                 </div>
               </div>
             ) : null}
-          </div>
+          </SectionCard>
 
           <div className="rounded-[28px] border border-fuchsia-400/20 bg-fuchsia-400/[0.08] p-6 backdrop-blur-xl">
             <h2 className="mb-5 text-2xl font-semibold">External exposure diagnostics</h2>
@@ -690,9 +982,7 @@ export default async function AssessmentReportPage({
           </div>
 
           {externalSearchDebug.length > 0 ? (
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
-              <h3 className="mb-5 text-2xl font-semibold">External search debug</h3>
-
+            <SectionCard title="External search debug">
               <div className="space-y-3">
                 {externalSearchDebug.map((item, index) => (
                   <div
@@ -727,7 +1017,7 @@ export default async function AssessmentReportPage({
                   </div>
                 ))}
               </div>
-            </div>
+            </SectionCard>
           ) : null}
 
           <div className="grid gap-6 xl:grid-cols-2">
@@ -758,9 +1048,7 @@ export default async function AssessmentReportPage({
             />
           </div>
 
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
-            <h3 className="mb-5 text-2xl font-semibold">Immediate remediation</h3>
-
+          <SectionCard title="Immediate remediation">
             <div className="space-y-3">
               {remediationTasks.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-slate-400">
@@ -775,23 +1063,23 @@ export default async function AssessmentReportPage({
                     <div className="font-medium text-white">{task.title}</div>
                     <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-slate-500">
                       <span className="rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-1 text-fuchsia-200">
-                        priority · {task.priority}
+                        priority · {normalizeLabel(task.priority)}
                       </span>
                       <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
-                        effort · {task.effort}
+                        effort · {normalizeLabel(task.effort)}
                       </span>
                       <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-cyan-100">
-                        impact · {task.impact}
+                        impact · {normalizeLabel(task.impact)}
                       </span>
                       <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
-                        status · {task.status}
+                        status · {normalizeLabel(task.status)}
                       </span>
                     </div>
                   </div>
                 ))
               )}
             </div>
-          </div>
+          </SectionCard>
         </div>
       </div>
     </main>
