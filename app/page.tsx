@@ -320,7 +320,7 @@ const copy: Record<Locale, Translation> = {
     problemTitle:
       'La maggior parte degli attacchi non inizia dall’infrastruttura. Inizia dalle persone.',
     problemText:
-      'Molte aziende proteggono sistemi ed email, ma continuano a esporre informazioni pubbliche che aiutano gli attaccanti a rendere più credibili phishing, impersonificazione e frodi.',
+      'Molte aziende proteggono sistemi ed email, ma continuano a esporre informazioni pubbliche che aiutano a rendere più credibili phishing, impersonificazione e frodi.',
 
     problemCard1Title: 'Esposizione pubblica',
     problemCard1Text:
@@ -335,7 +335,7 @@ const copy: Record<Locale, Translation> = {
     howEyebrow: 'Come funziona',
     howTitle: 'Dal dominio aziendale a un piano d’azione in pochi passaggi.',
     step1Title: 'Inserisci i dati aziendali',
-    step1Text: 'Nome azienda, dominio, email business e contesto opzionale.',
+    step1Text: 'Nome azienda, dominio, email business e opzioni.',
     step2Title: 'Procedi al pagamento sicuro',
     step2Text: 'Acquista online con checkout Stripe sicuro.',
     step3Title: 'Ricevi il tuo assessment',
@@ -355,19 +355,19 @@ const copy: Record<Locale, Translation> = {
 
     whoEyebrow: 'Per chi è',
     whoTitle:
-      'Pensato per organizzazioni in cui le persone fanno parte della superficie d’attacco',
+      'Pensato per le aziende e le organizzazioni in cui le persone possono far parte della superficie d’attacco',
 
     diffEyebrow: 'Perché è diverso',
     diffTitle:
-      'Gli strumenti tradizionali monitorano i sistemi. HumanSurface mostra dove la tua azienda è esposta attraverso le persone',
+      'Gli strumenti tradizionali monitorano i sistemi. HumanSurface mostra come gli attaccanti possano colpire la tua azienda attraverso le persone.',
     traditional: 'Visibilità sicurezza tradizionale',
     humansurface: 'HumanSurface',
 
     dashboardEyebrow: 'Dashboard interna',
     dashboardTitle:
-      'Una dashboard cyber-tech pensata per rendere immediati score, finding e priorità',
+      'Una dashboard cyber-tech chiara e comprensibile.',
     dashboardText:
-      'Questa anteprima mostra l’esperienza del prodotto: score leggibili, finding chiari, persone esposte e remediation immediata',
+      'Questa anteprima estende lo stesso linguaggio visivo al prodotto: card ad alto segnale, layout basati su score, finding chiari e remediation immediata.',
     assessmentOverview: 'Panoramica assessment',
     peopleAtRisk: 'Persone a rischio',
     exposedPeople: 'Ruoli e persone più esposti',
@@ -485,14 +485,12 @@ function LaunchPricingCard({
 
 function LandingHero({
   t,
-  locale,
 }: {
   t: Translation
-  locale: Locale
 }) {
   return (
     <section className="relative">
-      <div className="mx-auto max-w-7xl gap-14 px-6 py-20 lg:px-8 lg:py-28">
+      <div className="mx-auto grid max-w-7xl gap-14 px-6 py-20 lg:grid-cols-2 lg:px-8 lg:py-28">
         <motion.div
           className="flex flex-col justify-center"
           initial="hidden"
@@ -513,10 +511,7 @@ function LandingHero({
             {t.heroTitle}
           </motion.h1>
 
-          <motion.p
-            variants={fadeUp}
-            className="mt-6 max-w-2xl text-lg leading-8 text-slate-300"
-          >
+          <motion.p variants={fadeUp} className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
             {t.heroText}
           </motion.p>
 
@@ -556,7 +551,6 @@ function LandingHero({
         >
           <div className="relative w-full max-w-2xl">
             <div className="absolute -inset-2 rounded-[34px] bg-[radial-gradient(circle,rgba(34,211,238,0.18),transparent_65%)] blur-2xl" />
-
             <GlassCard className="relative p-4 shadow-[0_0_80px_rgba(34,211,238,0.10)] sm:p-6">
               <div className="rounded-[24px] border border-white/10 bg-[#071022]/95 p-5">
                 <div className="flex items-center justify-between gap-4 border-b border-white/8 pb-4">
@@ -564,13 +558,12 @@ function LandingHero({
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.8)]" />
                     <span className="truncate">{t.liveSnapshot}</span>
                   </div>
-
                   <div className="shrink-0 rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-1 text-xs font-medium text-fuchsia-200">
                     {t.highExposure}
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-5 lg:grid-cols-[0.0.72fr_1.28fr]">
+                <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <div className="text-sm text-slate-400">{t.humanSurfaceScore}</div>
                     <div className="mt-2 text-5xl font-semibold tracking-tight text-white">
@@ -578,21 +571,21 @@ function LandingHero({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-3">
                     {[
-                      [locale === 'it' ? 'Impersonazione' : 'Impersonation', '81', 'HIGH'],
+                      ['Impersonation', '81', 'HIGH'],
                       ['Finance fraud', '68', 'MED'],
                       ['HR / Social', '74', 'HIGH'],
                     ].map(([label, score, level]) => (
                       <div
                         key={label}
-                        className="min-h-[132px] rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                        className="min-h-[150px] rounded-2xl border border-white/10 bg-white/[0.04] p-4"
                       >
-                        <div className="text-[8px] uppercase leading-4 tracking-[0.06em] text-slate-400 sm:text-[9px]">
+                        <div className="text-[10px] uppercase leading-5 tracking-[0.16em] text-slate-400">
                           {label}
                         </div>
-                        <div className="mt-4 text-2xl font-semibold text-white">{score}</div>
-                        <div className="mt-2 text-[10px] tracking-[0.14em] text-cyan-200/80">
+                        <div className="mt-2 text-2xl font-semibold">{score}</div>
+                        <div className="mt-1 text-[10px] tracking-[0.2em] text-cyan-200/80">
                           {level}
                         </div>
                       </div>
@@ -608,7 +601,6 @@ function LandingHero({
                       </h3>
                       <span className="text-xs text-slate-500">{t.criticalSignals}</span>
                     </div>
-
                     <div className="space-y-3">
                       {[
                         'Public email addresses found on company pages',
@@ -636,7 +628,6 @@ function LandingHero({
                     <div className="text-sm font-medium uppercase tracking-[0.16em] text-cyan-100">
                       {t.changed7}
                     </div>
-
                     <div className="mt-4 space-y-3 text-sm text-cyan-50">
                       {[
                         '+2 public email addresses detected',
@@ -673,6 +664,7 @@ function LandingHero({
     </section>
   )
 }
+
 function InternalDashboardPreview({
   t,
 }: {
@@ -1169,7 +1161,7 @@ export default function HumanSurfaceLandingPage() {
       </header>
 
       <main className="relative z-10">
-        <LandingHero t={t} locale={locale}/>
+        <LandingHero t={t} />
 
         <section className="border-y border-cyan-300/10 bg-[#061024]/70 backdrop-blur">
           <div className="mx-auto grid max-w-7xl gap-4 px-6 py-6 text-center text-sm text-slate-300 md:grid-cols-4 lg:px-8">
