@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Shield,
@@ -19,6 +20,8 @@ import {
   ChevronRight,
 } from 'lucide-react'
 
+type Locale = 'en' | 'it'
+
 const fadeUp = {
   hidden: { opacity: 0, y: 22 },
   show: { opacity: 1, y: 0 },
@@ -32,6 +35,369 @@ const stagger = {
     },
   },
 }
+
+type Translation = {
+  navHow: string
+  navSample: string
+  navDashboard: string
+  navPricing: string
+  login: string
+  getAssessment: string
+  seeSampleReport: string
+  company: string
+  resources: string
+  privacy: string
+  terms: string
+  contact: string
+  sampleReport: string
+  dashboardPreview: string
+  buyAssessment: string
+
+  heroBadge: string
+  heroTitle: string
+  heroText: string
+  chip1: string
+  chip2: string
+  chip3: string
+
+  launchOffer: string
+  launchText: string
+
+  liveSnapshot: string
+  highExposure: string
+  humanSurfaceScore: string
+  topFindings: string
+  criticalSignals: string
+  changed7: string
+  orgMapped: string
+  roleModeled: string
+  scenariosGenerated: string
+
+  ribbon1: string
+  ribbon2: string
+  ribbon3: string
+  ribbon4: string
+
+  problemEyebrow: string
+  problemTitle: string
+  problemText: string
+  problemCard1Title: string
+  problemCard1Text: string
+  problemCard2Title: string
+  problemCard2Text: string
+  problemCard3Title: string
+  problemCard3Text: string
+
+  howEyebrow: string
+  howTitle: string
+  step1Title: string
+  step1Text: string
+  step2Title: string
+  step2Text: string
+  step3Title: string
+  step3Text: string
+
+  whatEyebrow: string
+  whatTitle: string
+  whatText: string
+  executiveAssessment: string
+  reportTitle: string
+  immediateRemediation: string
+
+  findingsEyebrow: string
+  findingsTitle: string
+
+  whoEyebrow: string
+  whoTitle: string
+
+  diffEyebrow: string
+  diffTitle: string
+  traditional: string
+  humansurface: string
+
+  dashboardEyebrow: string
+  dashboardTitle: string
+  dashboardText: string
+  assessmentOverview: string
+  peopleAtRisk: string
+  exposedPeople: string
+  delta7: string
+
+  pricingEyebrow: string
+  pricingTitle: string
+  pricingText: string
+  assessmentName: string
+  pricingDescription: string
+  buyFlow: string
+  simpleAndFast: string
+  launchCustomers: string
+
+  finalEyebrow: string
+  finalTitle: string
+  finalText: string
+  launchPrice: string
+  securePayment: string
+  assessmentFirst: string
+  directPurchase: string
+  buyOnline: string
+
+  footerText: string
+}
+
+const copy: Record<Locale, Translation> = {
+  en: {
+    navHow: 'How it works',
+    navSample: 'Sample report',
+    navDashboard: 'Dashboard',
+    navPricing: 'Pricing',
+    login: 'Login',
+    getAssessment: 'Get assessment',
+    seeSampleReport: 'See sample report',
+    company: 'Company',
+    resources: 'Resources',
+    privacy: 'Privacy',
+    terms: 'Terms',
+    contact: 'Contact',
+    sampleReport: 'Sample report',
+    dashboardPreview: 'Dashboard preview',
+    buyAssessment: 'Buy assessment',
+
+    heroBadge: 'Cyber exposure intelligence for phishing and fraud',
+    heroTitle:
+      'Discover which people, roles, and public information make your company vulnerable to phishing, impersonation, and fraud.',
+    heroText:
+      'HumanSurface analyzes your company’s public exposure and shows where attackers could target your business through people, key roles, and email visibility.',
+    chip1: 'No complex setup',
+    chip2: 'Secure checkout',
+    chip3: 'Built for SMEs and professional firms',
+
+    launchOffer: 'Launch offer',
+    launchText:
+      'One-time HumanSurface Assessment including website scan, external exposure analysis, people and role visibility, website/external/combined scoring, and executive-ready reporting.',
+
+    liveSnapshot: 'Live assessment snapshot',
+    highExposure: 'High exposure',
+    humanSurfaceScore: 'HumanSurface Score',
+    topFindings: 'Top findings',
+    criticalSignals: '5 critical signals',
+    changed7: 'What changed in 7 days',
+    orgMapped: 'Org visibility mapped',
+    roleModeled: 'Role exposure modeled',
+    scenariosGenerated: 'Fraud scenarios generated',
+
+    ribbon1: 'Human-centered risk visibility',
+    ribbon2: 'Executive-ready reporting',
+    ribbon3: 'Focused on phishing and fraud exposure',
+    ribbon4: 'Built for practical security assessments',
+
+    problemEyebrow: 'The problem',
+    problemTitle:
+      'Most attacks do not start with infrastructure. They start with people.',
+    problemText:
+      'Many companies protect systems and email, but still expose public information that helps attackers run phishing, impersonation, and fraud attempts with higher credibility.',
+
+    problemCard1Title: 'Public exposure',
+    problemCard1Text:
+      'Public emails, names, roles, and pages can increase your attack surface.',
+    problemCard2Title: 'Impersonation risk',
+    problemCard2Text:
+      'Visible business context makes fake internal requests more believable.',
+    problemCard3Title: 'Actionable remediation',
+    problemCard3Text:
+      'Clear findings and immediate next steps, not generic security reporting.',
+
+    howEyebrow: 'How it works',
+    howTitle: 'From company domain to action plan in a few simple steps.',
+    step1Title: 'Enter your company details',
+    step1Text: 'Company name, domain, business email, and any optional context.',
+    step2Title: 'Continue to secure payment',
+    step2Text: 'Purchase the assessment online with secure Stripe checkout.',
+    step3Title: 'Receive your assessment',
+    step3Text:
+      'Get findings, scores, exposed roles, and immediate remediation priorities.',
+
+    whatEyebrow: 'What you get',
+    whatTitle: 'Not just data. Clear priorities.',
+    whatText:
+      'A HumanSurface assessment gives you an executive-ready view of how publicly exposed your organization is and how that exposure can be used against you.',
+    executiveAssessment: 'Executive assessment',
+    reportTitle: 'HumanSurface Report',
+    immediateRemediation: 'Immediate remediation',
+
+    findingsEyebrow: 'Example findings',
+    findingsTitle: 'Examples of what HumanSurface can reveal',
+
+    whoEyebrow: 'Who it’s for',
+    whoTitle:
+      'Built for organizations where people are part of the attack surface',
+
+    diffEyebrow: 'Why it’s different',
+    diffTitle:
+      'Traditional tools monitor systems. HumanSurface shows how attackers can target your company through people.',
+    traditional: 'Traditional security visibility',
+    humansurface: 'HumanSurface',
+
+    dashboardEyebrow: 'Internal dashboard',
+    dashboardTitle:
+      'A cyber-tech dashboard that feels like a real platform, not a generic brochure.',
+    dashboardText:
+      'This preview extends the same visual language into the actual product: high-signal cards, score-driven layouts, clear findings, and immediate remediation.',
+    assessmentOverview: 'Assessment overview',
+    peopleAtRisk: 'People at risk',
+    exposedPeople: 'Most exposed roles and people',
+    delta7: '7-day delta',
+
+    pricingEyebrow: 'Pricing',
+    pricingTitle: 'Start with a one-time assessment.',
+    pricingText:
+      'Simple launch pricing, direct online purchase, and secure checkout.',
+    assessmentName: 'HumanSurface Assessment',
+    pricingDescription:
+      'A one-time assessment designed to reveal the public exposure that can increase phishing, impersonation, and fraud risk for your company.',
+    buyFlow: 'Buy flow',
+    simpleAndFast: 'Simple and fast',
+    launchCustomers: 'Launch offer available for the first customers.',
+
+    finalEyebrow: 'Buy now',
+    finalTitle: 'Start with your first HumanSurface assessment.',
+    finalText:
+      'Purchase your assessment online, enter your company details, and continue to secure payment.',
+    launchPrice: 'Launch offer: €190 + VAT',
+    securePayment: 'Secure payment with Stripe',
+    assessmentFirst: 'Built for assessment-first sales',
+    directPurchase: 'Direct purchase',
+    buyOnline: 'Buy your assessment online',
+
+    footerText:
+      'HumanSurface helps organizations identify public exposure that can enable phishing, impersonation, and human-targeted fraud.',
+  },
+  it: {
+    navHow: 'Come funziona',
+    navSample: 'Report esempio',
+    navDashboard: 'Dashboard',
+    navPricing: 'Prezzi',
+    login: 'Login',
+    getAssessment: 'Acquista assessment',
+    seeSampleReport: 'Vedi report esempio',
+    company: 'Azienda',
+    resources: 'Risorse',
+    privacy: 'Privacy',
+    terms: 'Termini',
+    contact: 'Contatti',
+    sampleReport: 'Report esempio',
+    dashboardPreview: 'Anteprima dashboard',
+    buyAssessment: 'Acquista assessment',
+
+    heroBadge: 'Intelligence sull’esposizione cyber per phishing e frodi',
+    heroTitle:
+      'Scopri quali persone, ruoli e informazioni pubbliche rendono la tua azienda vulnerabile a phishing, impersonificazione e frodi.',
+    heroText:
+      'HumanSurface analizza l’esposizione pubblica della tua azienda e mostra dove un attaccante potrebbe colpirti attraverso persone, ruoli chiave e visibilità delle email.',
+    chip1: 'Nessuna configurazione complessa',
+    chip2: 'Checkout sicuro',
+    chip3: 'Pensato per PMI e studi professionali',
+
+    launchOffer: 'Offerta lancio',
+    launchText:
+      'Assessment HumanSurface una tantum con scansione del sito, analisi dell’esposizione esterna, visibilità di persone e ruoli, scoring website/external/combined e report executive-ready.',
+
+    liveSnapshot: 'Snapshot assessment',
+    highExposure: 'Alta esposizione',
+    humanSurfaceScore: 'HumanSurface Score',
+    topFindings: 'Principali finding',
+    criticalSignals: '5 segnali critici',
+    changed7: 'Cosa è cambiato in 7 giorni',
+    orgMapped: 'Visibilità organizzativa mappata',
+    roleModeled: 'Esposizione ruoli modellata',
+    scenariosGenerated: 'Scenari di frode generati',
+
+    ribbon1: 'Visibilità del rischio umano',
+    ribbon2: 'Report pronti per il management',
+    ribbon3: 'Focalizzato su phishing e frodi',
+    ribbon4: 'Creato per assessment pratici',
+
+    problemEyebrow: 'Il problema',
+    problemTitle:
+      'La maggior parte degli attacchi non inizia dall’infrastruttura. Inizia dalle persone.',
+    problemText:
+      'Molte aziende proteggono sistemi ed email, ma continuano a esporre informazioni pubbliche che aiutano gli attaccanti a rendere più credibili phishing, impersonificazione e frodi.',
+
+    problemCard1Title: 'Esposizione pubblica',
+    problemCard1Text:
+      'Email pubbliche, nomi, ruoli e pagine aumentano la superficie d’attacco.',
+    problemCard2Title: 'Rischio di impersonificazione',
+    problemCard2Text:
+      'Il contesto aziendale visibile rende più credibili le richieste false interne.',
+    problemCard3Title: 'Remediation concreta',
+    problemCard3Text:
+      'Finding chiari e azioni immediate, non report generici di sicurezza.',
+
+    howEyebrow: 'Come funziona',
+    howTitle: 'Dal dominio aziendale a un piano d’azione in pochi passaggi.',
+    step1Title: 'Inserisci i dati aziendali',
+    step1Text: 'Nome azienda, dominio, email business e contesto opzionale.',
+    step2Title: 'Procedi al pagamento sicuro',
+    step2Text: 'Acquista online con checkout Stripe sicuro.',
+    step3Title: 'Ricevi il tuo assessment',
+    step3Text:
+      'Ottieni finding, score, ruoli esposti e priorità di remediation.',
+
+    whatEyebrow: 'Cosa ottieni',
+    whatTitle: 'Non solo dati. Priorità chiare.',
+    whatText:
+      'Un assessment HumanSurface ti offre una vista executive-ready su quanto la tua organizzazione sia esposta pubblicamente e su come questa esposizione possa essere sfruttata.',
+    executiveAssessment: 'Assessment executive',
+    reportTitle: 'Report HumanSurface',
+    immediateRemediation: 'Remediation immediata',
+
+    findingsEyebrow: 'Esempi di finding',
+    findingsTitle: 'Esempi di ciò che HumanSurface può rilevare',
+
+    whoEyebrow: 'Per chi è',
+    whoTitle:
+      'Pensato per organizzazioni in cui le persone fanno parte della superficie d’attacco',
+
+    diffEyebrow: 'Perché è diverso',
+    diffTitle:
+      'Gli strumenti tradizionali monitorano i sistemi. HumanSurface mostra come gli attaccanti possano colpire la tua azienda attraverso le persone.',
+    traditional: 'Visibilità sicurezza tradizionale',
+    humansurface: 'HumanSurface',
+
+    dashboardEyebrow: 'Dashboard interna',
+    dashboardTitle:
+      'Una dashboard cyber-tech che sembra un vero prodotto, non una brochure generica.',
+    dashboardText:
+      'Questa anteprima estende lo stesso linguaggio visivo al prodotto: card ad alto segnale, layout basati su score, finding chiari e remediation immediata.',
+    assessmentOverview: 'Panoramica assessment',
+    peopleAtRisk: 'Persone a rischio',
+    exposedPeople: 'Ruoli e persone più esposti',
+    delta7: 'Delta 7 giorni',
+
+    pricingEyebrow: 'Prezzi',
+    pricingTitle: 'Inizia con un assessment una tantum.',
+    pricingText:
+      'Prezzo lancio semplice, acquisto diretto online e checkout sicuro.',
+    assessmentName: 'Assessment HumanSurface',
+    pricingDescription:
+      'Un assessment una tantum progettato per mostrare l’esposizione pubblica che può aumentare il rischio di phishing, impersonificazione e frodi.',
+    buyFlow: 'Flusso acquisto',
+    simpleAndFast: 'Semplice e veloce',
+    launchCustomers: 'Offerta lancio disponibile per i primi clienti.',
+
+    finalEyebrow: 'Acquista ora',
+    finalTitle: 'Inizia con il tuo primo assessment HumanSurface.',
+    finalText:
+      'Acquista il tuo assessment online, inserisci i dati aziendali e procedi al pagamento sicuro.',
+    launchPrice: 'Offerta lancio: €190 + IVA',
+    securePayment: 'Pagamento sicuro con Stripe',
+    assessmentFirst: 'Pensato per vendita assessment-first',
+    directPurchase: 'Acquisto diretto',
+    buyOnline: 'Acquista il tuo assessment online',
+
+    footerText:
+      'HumanSurface aiuta le organizzazioni a identificare l’esposizione pubblica che può favorire phishing, impersonificazione e frodi mirate alle persone.',
+  },
+} as const
 
 function SectionTitle({
   eyebrow,
@@ -87,17 +453,23 @@ function SeverityBadge({ level }: { level: 'High' | 'Medium' | 'Low' }) {
   }
 
   return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-medium ${styles[level]}`}>
+    <span
+      className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium ${styles[level]}`}
+    >
       {level}
     </span>
   )
 }
 
-function LaunchPricingCard() {
+function LaunchPricingCard({
+  t,
+}: {
+  t: Translation
+}) {
   return (
     <div className="mt-8 max-w-xl rounded-[28px] border border-cyan-300/20 bg-cyan-300/[0.08] p-5 shadow-[0_0_40px_rgba(34,211,238,0.10)]">
       <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-cyan-200">
-        Launch offer
+        {t.launchOffer}
       </div>
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
@@ -106,16 +478,16 @@ function LaunchPricingCard() {
         <div className="pb-1 text-sm text-slate-500 line-through">€290 standard</div>
       </div>
 
-      <p className="mt-4 text-sm leading-7 text-slate-300">
-        One-time HumanSurface Assessment including website scan, external exposure
-        analysis, people and role visibility, website/external/combined scoring,
-        and executive-ready reporting.
-      </p>
+      <p className="mt-4 text-sm leading-7 text-slate-300">{t.launchText}</p>
     </div>
   )
 }
 
-function LandingHero() {
+function LandingHero({
+  t,
+}: {
+  t: Translation
+}) {
   return (
     <section className="relative">
       <div className="mx-auto grid max-w-7xl gap-14 px-6 py-20 lg:grid-cols-2 lg:px-8 lg:py-28">
@@ -127,50 +499,47 @@ function LandingHero() {
         >
           <motion.div
             variants={fadeUp}
-            className="mb-6 inline-flex w-fit items-center rounded-full border border-cyan-300/20 bg-cyan-300/8 px-4 py-2 text-xs uppercase tracking-[0.2em] text-cyan-200/90 shadow-[0_0_24px_rgba(34,211,238,0.12)]"
+            className="mb-6 inline-flex w-fit max-w-full items-center rounded-full border border-cyan-300/20 bg-cyan-300/8 px-4 py-2 text-xs uppercase tracking-[0.2em] text-cyan-200/90 shadow-[0_0_24px_rgba(34,211,238,0.12)]"
           >
-            Cyber exposure intelligence for phishing and fraud
+            {t.heroBadge}
           </motion.div>
 
           <motion.h1
             variants={fadeUp}
             className="max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl lg:leading-[1.03]"
           >
-            Discover which people, roles, and public information make your company
-            vulnerable to phishing, impersonation, and fraud.
+            {t.heroTitle}
           </motion.h1>
 
           <motion.p variants={fadeUp} className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-            HumanSurface analyzes your company’s public exposure and shows where
-            attackers could target your business through people, key roles, and
-            email visibility.
+            {t.heroText}
           </motion.p>
 
           <motion.div variants={fadeUp}>
-            <LaunchPricingCard />
+            <LaunchPricingCard t={t} />
           </motion.div>
 
           <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-4 sm:flex-row">
-              <Link
+            <Link
               id="request-assessment"
               href="/buy"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 shadow-[0_0_36px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
-              >
-              Get assessment <ArrowRight className="h-4 w-4" />
+              className="inline-flex min-w-[210px] items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 shadow-[0_0_36px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
+            >
+              {t.getAssessment} <ArrowRight className="h-4 w-4" />
             </Link>
 
             <a
               href="#sample-report"
-              className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-center text-sm font-semibold text-white backdrop-blur transition hover:border-cyan-300/20 hover:bg-cyan-300/10"
+              className="inline-flex min-w-[210px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-center text-sm font-semibold text-white backdrop-blur transition hover:border-cyan-300/20 hover:bg-cyan-300/10"
             >
-              See sample report
+              {t.seeSampleReport}
             </a>
           </motion.div>
 
           <motion.div variants={fadeUp} className="mt-8 flex flex-wrap gap-3">
-            <DataChip>No complex setup</DataChip>
-            <DataChip>Secure checkout</DataChip>
-            <DataChip>Built for SMEs and professional firms</DataChip>
+            <DataChip>{t.chip1}</DataChip>
+            <DataChip>{t.chip2}</DataChip>
+            <DataChip>{t.chip3}</DataChip>
           </motion.div>
         </motion.div>
 
@@ -184,19 +553,19 @@ function LandingHero() {
             <div className="absolute -inset-2 rounded-[34px] bg-[radial-gradient(circle,rgba(34,211,238,0.18),transparent_65%)] blur-2xl" />
             <GlassCard className="relative p-4 shadow-[0_0_80px_rgba(34,211,238,0.10)] sm:p-6">
               <div className="rounded-[24px] border border-white/10 bg-[#071022]/95 p-5">
-                <div className="flex items-center justify-between border-b border-white/8 pb-4">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-cyan-200/70">
-                    <span className="h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.8)]" />
-                    Live assessment snapshot
+                <div className="flex items-center justify-between gap-4 border-b border-white/8 pb-4">
+                  <div className="flex min-w-0 items-center gap-2 text-xs uppercase tracking-[0.2em] text-cyan-200/70">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.8)]" />
+                    <span className="truncate">{t.liveSnapshot}</span>
                   </div>
-                  <div className="rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-1 text-xs font-medium text-fuchsia-200">
-                    High exposure
+                  <div className="shrink-0 rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-1 text-xs font-medium text-fuchsia-200">
+                    {t.highExposure}
                   </div>
                 </div>
 
                 <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <div className="text-sm text-slate-400">HumanSurface Score</div>
+                    <div className="text-sm text-slate-400">{t.humanSurfaceScore}</div>
                     <div className="mt-2 text-5xl font-semibold tracking-tight text-white">
                       72<span className="text-2xl text-slate-500">/100</span>
                     </div>
@@ -228,9 +597,9 @@ function LandingHero() {
                   <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                     <div className="mb-4 flex items-center justify-between">
                       <h3 className="text-sm font-medium uppercase tracking-[0.16em] text-cyan-200/80">
-                        Top findings
+                        {t.topFindings}
                       </h3>
-                      <span className="text-xs text-slate-500">5 critical signals</span>
+                      <span className="text-xs text-slate-500">{t.criticalSignals}</span>
                     </div>
                     <div className="space-y-3">
                       {[
@@ -243,7 +612,7 @@ function LandingHero() {
                           className="flex gap-3 rounded-xl border border-white/8 bg-[#030815] px-3 py-3"
                         >
                           <div
-                            className={`mt-1 h-2.5 w-2.5 rounded-full ${
+                            className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
                               idx === 1
                                 ? 'bg-fuchsia-300 shadow-[0_0_12px_rgba(232,121,249,0.8)]'
                                 : 'bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.8)]'
@@ -257,7 +626,7 @@ function LandingHero() {
 
                   <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/8 p-4">
                     <div className="text-sm font-medium uppercase tracking-[0.16em] text-cyan-100">
-                      What changed in 7 days
+                      {t.changed7}
                     </div>
                     <div className="mt-4 space-y-3 text-sm text-cyan-50">
                       {[
@@ -276,15 +645,15 @@ function LandingHero() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid grid-cols-3 gap-3 text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                <div className="mt-5 grid grid-cols-1 gap-3 text-[11px] uppercase tracking-[0.18em] text-slate-500 sm:grid-cols-3">
                   <div className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3">
-                    Org visibility mapped
+                    {t.orgMapped}
                   </div>
                   <div className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3">
-                    Role exposure modeled
+                    {t.roleModeled}
                   </div>
                   <div className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3">
-                    Fraud scenarios generated
+                    {t.scenariosGenerated}
                   </div>
                 </div>
               </div>
@@ -296,7 +665,11 @@ function LandingHero() {
   )
 }
 
-function InternalDashboardPreview() {
+function InternalDashboardPreview({
+  t,
+}: {
+  t: Translation
+}) {
   const people = [
     {
       name: 'Laura Bianchi',
@@ -324,9 +697,9 @@ function InternalDashboardPreview() {
   return (
     <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
       <SectionTitle
-        eyebrow="Internal dashboard"
-        title="A cyber-tech dashboard that feels like a real platform, not a generic brochure."
-        description="This preview extends the same visual language into the actual product: high-signal cards, score-driven layouts, clear findings, and immediate remediation."
+        eyebrow={t.dashboardEyebrow}
+        title={t.dashboardTitle}
+        description={t.dashboardText}
       />
 
       <motion.div
@@ -342,7 +715,7 @@ function InternalDashboardPreview() {
               <div className="flex flex-col gap-4 border-b border-white/8 pb-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <div className="text-xs uppercase tracking-[0.2em] text-cyan-300">
-                    Assessment overview
+                    {t.assessmentOverview}
                   </div>
                   <h3 className="mt-2 text-2xl font-semibold">Rossi Industriali S.r.l.</h3>
                   <p className="mt-2 text-sm text-slate-400">
@@ -423,7 +796,7 @@ function InternalDashboardPreview() {
                 <div className="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.06] p-4">
                   <div className="mb-4 flex items-center justify-between">
                     <h4 className="text-sm font-medium uppercase tracking-[0.18em] text-cyan-100">
-                      Immediate remediation
+                      {t.immediateRemediation}
                     </h4>
                     <ScanSearch className="h-4 w-4 text-cyan-200" />
                   </div>
@@ -454,11 +827,9 @@ function InternalDashboardPreview() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs uppercase tracking-[0.18em] text-cyan-300">
-                    People at risk
+                    {t.peopleAtRisk}
                   </div>
-                  <h3 className="mt-2 text-xl font-semibold">
-                    Most exposed roles and people
-                  </h3>
+                  <h3 className="mt-2 text-xl font-semibold">{t.exposedPeople}</h3>
                 </div>
                 <Activity className="h-5 w-5 text-cyan-200" />
               </div>
@@ -502,9 +873,9 @@ function InternalDashboardPreview() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs uppercase tracking-[0.18em] text-cyan-300">
-                    7-day delta
+                    {t.delta7}
                   </div>
-                  <h3 className="mt-2 text-xl font-semibold">What changed</h3>
+                  <h3 className="mt-2 text-xl font-semibold">{t.changed7}</h3>
                 </div>
                 <Radar className="h-5 w-5 text-cyan-200" />
               </div>
@@ -542,84 +913,195 @@ function InternalDashboardPreview() {
   )
 }
 
+function LanguageToggle({
+  locale,
+  onChange,
+}: {
+  locale: Locale
+  onChange: (locale: Locale) => void
+}) {
+  return (
+    <div className="hidden items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1 md:flex">
+      {(['en', 'it'] as Locale[]).map((item) => (
+        <button
+          key={item}
+          type="button"
+          onClick={() => onChange(item)}
+          className={`rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+            locale === item
+              ? 'bg-cyan-300 text-slate-950'
+              : 'text-slate-300 hover:bg-white/[0.05] hover:text-white'
+          }`}
+        >
+          {item}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function HumanSurfaceLandingPage() {
+  const [locale, setLocale] = useState<Locale>('en')
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('humansurface_locale')
+    if (saved === 'en' || saved === 'it') {
+      setLocale(saved)
+      return
+    }
+
+    const browserLang = window.navigator.language.toLowerCase()
+    if (browserLang.startsWith('it')) {
+      setLocale('it')
+    }
+  }, [])
+
+  useEffect(() => {
+    window.localStorage.setItem('humansurface_locale', locale)
+  }, [locale])
+
+  const t = useMemo(() => copy[locale], [locale])
+
   const findings = [
     {
-      title: 'Public email addresses detected',
+      title:
+        locale === 'it'
+          ? 'Email pubbliche rilevate'
+          : 'Public email addresses detected',
       description:
-        'Direct contact exposure can increase phishing opportunities and make impersonation attempts more credible.',
+        locale === 'it'
+          ? 'L’esposizione di contatti diretti può aumentare le opportunità di phishing e rendere più credibili i tentativi di impersonificazione.'
+          : 'Direct contact exposure can increase phishing opportunities and make impersonation attempts more credible.',
       severity: 'High' as const,
       icon: Mail,
     },
     {
-      title: 'Predictable email naming pattern',
+      title:
+        locale === 'it'
+          ? 'Pattern email prevedibile'
+          : 'Predictable email naming pattern',
       description:
-        'Attackers may guess additional valid company addresses from visible naming conventions.',
+        locale === 'it'
+          ? 'Un attaccante può indovinare altri indirizzi validi partendo dalle convenzioni visibili.'
+          : 'Attackers may guess additional valid company addresses from visible naming conventions.',
       severity: 'Medium' as const,
       icon: Fingerprint,
     },
     {
-      title: 'Executive visibility exposed',
+      title:
+        locale === 'it'
+          ? 'Visibilità executive esposta'
+          : 'Executive visibility exposed',
       description:
-        'Leadership visibility can support urgent-request fraud and role-based impersonation.',
+        locale === 'it'
+          ? 'La visibilità del management può supportare frodi urgenti e impersonificazione dei ruoli.'
+          : 'Leadership visibility can support urgent-request fraud and role-based impersonation.',
       severity: 'High' as const,
       icon: Shield,
     },
     {
-      title: 'Public HR contacts exposed',
+      title:
+        locale === 'it'
+          ? 'Contatti HR pubblicamente esposti'
+          : 'Public HR contacts exposed',
       description:
-        'Recruiting-related contacts may attract fake applications, malware delivery, or pretexting.',
+        locale === 'it'
+          ? 'I contatti recruiting possono attirare candidature false, malware o pretesti mirati.'
+          : 'Recruiting-related contacts may attract fake applications, malware delivery, or pretexting.',
       severity: 'Medium' as const,
       icon: Users,
     },
     {
-      title: 'Team pages reveal business context',
+      title:
+        locale === 'it'
+          ? 'Le team page rivelano contesto aziendale'
+          : 'Team pages reveal business context',
       description:
-        'Public org details can support spear phishing with more believable business context.',
+        locale === 'it'
+          ? 'Dettagli organizzativi pubblici possono supportare spear phishing più credibili.'
+          : 'Public org details can support spear phishing with more believable business context.',
       severity: 'Medium' as const,
       icon: Radar,
     },
     {
-      title: 'Finance roles are easy to identify',
+      title:
+        locale === 'it'
+          ? 'I ruoli finance sono facili da identificare'
+          : 'Finance roles are easy to identify',
       description:
-        'Visible finance contacts can raise the likelihood of payment fraud attempts.',
+        locale === 'it'
+          ? 'Contatti finance visibili possono aumentare il rischio di tentativi di payment fraud.'
+          : 'Visible finance contacts can raise the likelihood of payment fraud attempts.',
       severity: 'High' as const,
       icon: TriangleAlert,
     },
   ]
 
-  const audiences = [
-    ['SMEs', 'Fast exposure visibility without heavy implementation.'],
-    [
-      'Professional firms',
-      'Ideal for organizations with highly visible names, roles, and contact details.',
-    ],
-    [
-      'Manufacturing companies',
-      'Useful where leadership, finance, sales, and operations are exposed online.',
-    ],
-    ['Agencies', 'Perfect for public-facing teams, people pages, and visible business context.'],
-    [
-      'Software firms',
-      'Helpful for companies with public employee profiles and technical team pages.',
-    ],
-    [
-      'MSPs and consultants',
-      'A clear, repeatable assessment offering for client engagements.',
-    ],
-  ]
+  const audiences = locale === 'it'
+    ? [
+        ['PMI', 'Visibilità rapida dell’esposizione senza implementazioni pesanti.'],
+        [
+          'Studi professionali',
+          'Ideale per organizzazioni con nomi, ruoli e contatti molto visibili.',
+        ],
+        [
+          'Aziende manifatturiere',
+          'Utile dove leadership, finance, sales e operations sono esposti online.',
+        ],
+        ['Agenzie', 'Perfetto per team pubblici, people page e contesto aziendale visibile.'],
+        [
+          'Software house',
+          'Utile per aziende con profili pubblici dei dipendenti e team page tecniche.',
+        ],
+        [
+          'MSP e consulenti',
+          'Un’offerta di assessment chiara e ripetibile per i clienti.',
+        ],
+      ]
+    : [
+        ['SMEs', 'Fast exposure visibility without heavy implementation.'],
+        [
+          'Professional firms',
+          'Ideal for organizations with highly visible names, roles, and contact details.',
+        ],
+        [
+          'Manufacturing companies',
+          'Useful where leadership, finance, sales, and operations are exposed online.',
+        ],
+        ['Agencies', 'Perfect for public-facing teams, people pages, and visible business context.'],
+        [
+          'Software firms',
+          'Helpful for companies with public employee profiles and technical team pages.',
+        ],
+        [
+          'MSPs and consultants',
+          'A clear, repeatable assessment offering for client engagements.',
+        ],
+      ]
 
-  const included = [
-    'Overall HumanSurface Score',
-    'Impersonation Risk',
-    'Finance Fraud Risk',
-    'HR / Social Engineering Risk',
-    'Top critical findings',
-    'Most exposed people and roles',
-    'Attack scenarios',
-    'Immediate remediation',
-    '7-day change tracking',
-  ]
+  const included = locale === 'it'
+    ? [
+        'Overall HumanSurface Score',
+        'Impersonation Risk',
+        'Finance Fraud Risk',
+        'HR / Social Engineering Risk',
+        'Principali finding critici',
+        'Persone e ruoli più esposti',
+        'Scenari di attacco',
+        'Remediation immediata',
+        'Tracking cambiamenti a 7 giorni',
+      ]
+    : [
+        'Overall HumanSurface Score',
+        'Impersonation Risk',
+        'Finance Fraud Risk',
+        'HR / Social Engineering Risk',
+        'Top critical findings',
+        'Most exposed people and roles',
+        'Attack scenarios',
+        'Immediate remediation',
+        '7-day change tracking',
+      ]
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#040816] text-white">
@@ -629,13 +1111,13 @@ export default function HumanSurfaceLandingPage() {
       </div>
 
       <header className="sticky top-0 z-50 border-b border-cyan-300/10 bg-[#040816]/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-4 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 shadow-[0_0_30px_rgba(34,211,238,0.16)]">
               <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle,rgba(34,211,238,0.15),transparent_68%)]" />
               <span className="relative text-lg font-semibold text-cyan-300">H</span>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/70">
                 Human attack surface visibility
               </div>
@@ -643,48 +1125,50 @@ export default function HumanSurfaceLandingPage() {
             </div>
           </div>
 
-          <nav className="hidden items-center gap-8 text-sm text-slate-300 md:flex">
+          <nav className="hidden items-center gap-6 text-sm text-slate-300 lg:flex">
             <a href="#how-it-works" className="transition hover:text-cyan-200">
-              How it works
+              {t.navHow}
             </a>
             <a href="#sample-report" className="transition hover:text-cyan-200">
-              Sample report
+              {t.navSample}
             </a>
             <a href="#dashboard-preview" className="transition hover:text-cyan-200">
-              Dashboard
+              {t.navDashboard}
             </a>
             <a href="#pricing" className="transition hover:text-cyan-200">
-              Pricing
+              {t.navPricing}
             </a>
           </nav>
 
           <div className="flex items-center gap-3">
+            <LanguageToggle locale={locale} onChange={setLocale} />
+
             <a
               href="/login"
               className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
             >
-              Login
+              {t.login}
             </a>
 
             <a
               href="/buy"
               className="rounded-2xl border border-cyan-300/30 bg-cyan-300/90 px-5 py-3 text-sm font-semibold text-slate-950 shadow-[0_0_40px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
             >
-              Get assessment
+              {t.getAssessment}
             </a>
           </div>
         </div>
       </header>
 
       <main className="relative z-10">
-        <LandingHero />
+        <LandingHero t={t} />
 
         <section className="border-y border-cyan-300/10 bg-[#061024]/70 backdrop-blur">
           <div className="mx-auto grid max-w-7xl gap-4 px-6 py-6 text-center text-sm text-slate-300 md:grid-cols-4 lg:px-8">
-            <div>Human-centered risk visibility</div>
-            <div>Executive-ready reporting</div>
-            <div>Focused on phishing and fraud exposure</div>
-            <div>Built for practical security assessments</div>
+            <div>{t.ribbon1}</div>
+            <div>{t.ribbon2}</div>
+            <div>{t.ribbon3}</div>
+            <div>{t.ribbon4}</div>
           </div>
         </section>
 
@@ -696,33 +1180,21 @@ export default function HumanSurfaceLandingPage() {
             variants={stagger}
           >
             <SectionTitle
-              eyebrow="The problem"
-              title="Most attacks do not start with infrastructure. They start with people."
-              description="Many companies protect systems and email, but still expose public information that helps attackers run phishing, impersonation, and fraud attempts with higher credibility."
+              eyebrow={t.problemEyebrow}
+              title={t.problemTitle}
+              description={t.problemText}
             />
 
             <div className="mt-12 grid gap-6 md:grid-cols-3">
               {[
-                [
-                  'Public exposure',
-                  'Public emails, names, roles, and pages can increase your attack surface.',
-                  Radar,
-                ],
-                [
-                  'Impersonation risk',
-                  'Visible business context makes fake internal requests more believable.',
-                  Shield,
-                ],
-                [
-                  'Actionable remediation',
-                  'Clear findings and immediate next steps, not generic security reporting.',
-                  ScanSearch,
-                ],
+                [t.problemCard1Title, t.problemCard1Text, Radar],
+                [t.problemCard2Title, t.problemCard2Text, Shield],
+                [t.problemCard3Title, t.problemCard3Text, ScanSearch],
               ].map(([title, description, Icon], idx) => {
                 const Comp = Icon as any
                 return (
                   <motion.div key={title as string} variants={fadeUp}>
-                    <GlassCard className="group p-6 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.04]">
+                    <GlassCard className="group h-full p-6 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.04]">
                       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-[#091226] text-cyan-200 shadow-[0_0_20px_rgba(34,211,238,0.10)]">
                         <Comp
                           className={`h-5 w-5 ${idx === 1 ? 'text-fuchsia-300' : 'text-cyan-200'}`}
@@ -746,31 +1218,16 @@ export default function HumanSurfaceLandingPage() {
               viewport={{ once: true, amount: 0.15 }}
               variants={stagger}
             >
-              <SectionTitle
-                eyebrow="How it works"
-                title="From company domain to action plan in a few simple steps."
-              />
+              <SectionTitle eyebrow={t.howEyebrow} title={t.howTitle} />
 
               <div className="mt-12 grid gap-6 lg:grid-cols-3">
                 {[
-                  [
-                    '01',
-                    'Enter your company details',
-                    'Company name, domain, business email, and any optional context.',
-                  ],
-                  [
-                    '02',
-                    'Continue to secure payment',
-                    'Purchase the assessment online with secure Stripe checkout.',
-                  ],
-                  [
-                    '03',
-                    'Receive your assessment',
-                    'Get findings, scores, exposed roles, and immediate remediation priorities.',
-                  ],
+                  ['01', t.step1Title, t.step1Text],
+                  ['02', t.step2Title, t.step2Text],
+                  ['03', t.step3Title, t.step3Text],
                 ].map(([step, title, description]) => (
                   <motion.div key={step} variants={fadeUp}>
-                    <GlassCard className="relative p-6">
+                    <GlassCard className="relative h-full p-6">
                       <div className="absolute right-5 top-5 text-4xl font-semibold tracking-tight text-white/5">
                         {step}
                       </div>
@@ -797,14 +1254,14 @@ export default function HumanSurfaceLandingPage() {
           >
             <motion.div variants={fadeUp}>
               <SectionTitle
-                eyebrow="What you get"
-                title="Not just data. Clear priorities."
-                description="A HumanSurface assessment gives you an executive-ready view of how publicly exposed your organization is and how that exposure can be used against you."
+                eyebrow={t.whatEyebrow}
+                title={t.whatTitle}
+                description={t.whatText}
               />
               <div className="mt-8 space-y-4">
                 {included.map((item) => (
                   <div key={item} className="flex items-start gap-3 text-slate-200">
-                    <div className="mt-1 flex h-6 w-6 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-300/10 text-cyan-300 shadow-[0_0_18px_rgba(34,211,238,0.16)]">
+                    <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-300/10 text-cyan-300 shadow-[0_0_18px_rgba(34,211,238,0.16)]">
                       ✓
                     </div>
                     <span>{item}</span>
@@ -820,9 +1277,9 @@ export default function HumanSurfaceLandingPage() {
                   <div className="flex items-center justify-between border-b border-slate-200 pb-5">
                     <div>
                       <div className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                        Executive assessment
+                        {t.executiveAssessment}
                       </div>
-                      <div className="mt-2 text-2xl font-semibold">HumanSurface Report</div>
+                      <div className="mt-2 text-2xl font-semibold">{t.reportTitle}</div>
                     </div>
                     <div className="rounded-full border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-sm font-medium text-fuchsia-700">
                       High Risk
@@ -848,7 +1305,7 @@ export default function HumanSurfaceLandingPage() {
                   </div>
 
                   <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-                    <div className="text-sm font-semibold">Top findings</div>
+                    <div className="text-sm font-semibold">{t.topFindings}</div>
                     <div className="mt-4 space-y-3 text-sm text-slate-700">
                       <div>• Executive visibility increases impersonation risk</div>
                       <div>• Public email addresses found on company pages</div>
@@ -858,7 +1315,7 @@ export default function HumanSurfaceLandingPage() {
 
                   <div className="mt-6 rounded-2xl bg-cyan-50 p-5 ring-1 ring-cyan-100">
                     <div className="text-sm font-semibold text-slate-900">
-                      Immediate remediation
+                      {t.immediateRemediation}
                     </div>
                     <div className="mt-4 grid gap-3 text-sm text-slate-700">
                       <div>Reduce direct public email exposure</div>
@@ -880,16 +1337,13 @@ export default function HumanSurfaceLandingPage() {
               viewport={{ once: true, amount: 0.15 }}
               variants={stagger}
             >
-              <SectionTitle
-                eyebrow="Example findings"
-                title="Examples of what HumanSurface can reveal"
-              />
+              <SectionTitle eyebrow={t.findingsEyebrow} title={t.findingsTitle} />
               <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {findings.map((finding) => {
                   const Icon = finding.icon
                   return (
                     <motion.div key={finding.title} variants={fadeUp}>
-                      <GlassCard className="p-6 transition hover:border-cyan-300/20 hover:shadow-[0_0_30px_rgba(34,211,238,0.08)]">
+                      <GlassCard className="h-full p-6 transition hover:border-cyan-300/20 hover:shadow-[0_0_30px_rgba(34,211,238,0.08)]">
                         <div className="mb-5 flex items-center justify-between gap-4">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-[#091226] text-cyan-200">
                             <Icon className="h-5 w-5" />
@@ -914,14 +1368,11 @@ export default function HumanSurfaceLandingPage() {
             viewport={{ once: true, amount: 0.15 }}
             variants={stagger}
           >
-            <SectionTitle
-              eyebrow="Who it’s for"
-              title="Built for organizations where people are part of the attack surface"
-            />
+            <SectionTitle eyebrow={t.whoEyebrow} title={t.whoTitle} />
             <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {audiences.map(([title, description], idx) => (
                 <motion.div key={title} variants={fadeUp}>
-                  <GlassCard className="p-6">
+                  <GlassCard className="h-full p-6">
                     <div
                       className={`mb-4 h-2 w-14 rounded-full ${
                         idx % 2 === 0
@@ -946,15 +1397,12 @@ export default function HumanSurfaceLandingPage() {
               viewport={{ once: true, amount: 0.15 }}
               variants={stagger}
             >
-              <SectionTitle
-                eyebrow="Why it’s different"
-                title="Traditional tools monitor systems. HumanSurface shows how attackers can target your company through people."
-              />
+              <SectionTitle eyebrow={t.diffEyebrow} title={t.diffTitle} />
               <div className="mt-12 grid gap-6 lg:grid-cols-2">
                 <motion.div variants={fadeUp}>
                   <GlassCard className="p-8">
                     <h3 className="text-2xl font-semibold text-slate-200">
-                      Traditional security visibility
+                      {t.traditional}
                     </h3>
                     <div className="mt-6 space-y-4 text-slate-300">
                       {[
@@ -976,7 +1424,7 @@ export default function HumanSurfaceLandingPage() {
                 </motion.div>
                 <motion.div variants={fadeUp}>
                   <GlassCard className="border-cyan-300/20 bg-cyan-300/[0.07] p-8 shadow-[0_0_40px_rgba(34,211,238,0.08)]">
-                    <h3 className="text-2xl font-semibold text-white">HumanSurface</h3>
+                    <h3 className="text-2xl font-semibold text-white">{t.humansurface}</h3>
                     <div className="mt-6 space-y-4 text-cyan-50">
                       {[
                         'Public people exposure',
@@ -1001,7 +1449,7 @@ export default function HumanSurfaceLandingPage() {
         </section>
 
         <div id="dashboard-preview">
-          <InternalDashboardPreview />
+          <InternalDashboardPreview t={t} />
         </div>
 
         <section id="pricing" className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
@@ -1012,18 +1460,18 @@ export default function HumanSurfaceLandingPage() {
             variants={stagger}
           >
             <SectionTitle
-              eyebrow="Pricing"
-              title="Start with a one-time assessment."
-              description="Simple launch pricing, direct online purchase, and secure checkout."
+              eyebrow={t.pricingEyebrow}
+              title={t.pricingTitle}
+              description={t.pricingText}
             />
 
             <motion.div variants={fadeUp} className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
               <GlassCard className="border-cyan-300/20 bg-cyan-300/[0.08] p-8 shadow-[0_0_50px_rgba(34,211,238,0.08)]">
                 <div className="mb-4 inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs uppercase tracking-[0.16em] text-cyan-200">
-                  Launch offer
+                  {t.launchOffer}
                 </div>
 
-                <h3 className="text-3xl font-semibold">HumanSurface Assessment</h3>
+                <h3 className="text-3xl font-semibold">{t.assessmentName}</h3>
 
                 <div className="mt-6 flex flex-wrap items-end gap-3">
                   <div className="text-6xl font-semibold tracking-tight text-white">€190</div>
@@ -1032,8 +1480,7 @@ export default function HumanSurfaceLandingPage() {
                 </div>
 
                 <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-                  A one-time assessment designed to reveal the public exposure that can
-                  increase phishing, impersonation, and fraud risk for your company.
+                  {t.pricingDescription}
                 </p>
 
                 <div className="mt-8 grid gap-3 text-slate-200">
@@ -1059,13 +1506,13 @@ export default function HumanSurfaceLandingPage() {
                     href="/buy"
                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
                   >
-                    Acquista assessment <ArrowRight className="h-4 w-4" />
+                    {t.getAssessment} <ArrowRight className="h-4 w-4" />
                   </Link>
                   <a
                     href="#sample-report"
                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
                   >
-                    See sample report
+                    {t.seeSampleReport}
                   </a>
                 </div>
               </GlassCard>
@@ -1073,9 +1520,9 @@ export default function HumanSurfaceLandingPage() {
               <GlassCard className="p-8">
                 <div className="rounded-[24px] border border-white/10 bg-[#071022] p-6">
                   <div className="text-xs uppercase tracking-[0.18em] text-cyan-300">
-                    Buy flow
+                    {t.buyFlow}
                   </div>
-                  <h3 className="mt-2 text-2xl font-semibold">Simple and fast</h3>
+                  <h3 className="mt-2 text-2xl font-semibold">{t.simpleAndFast}</h3>
 
                   <div className="mt-6 space-y-3 text-sm text-slate-300">
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
@@ -1090,7 +1537,7 @@ export default function HumanSurfaceLandingPage() {
                   </div>
 
                   <div className="mt-6 rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 p-4 text-sm text-fuchsia-100">
-                    Launch offer available for the first customers.
+                    {t.launchCustomers}
                   </div>
 
                   <div className="mt-6">
@@ -1098,7 +1545,7 @@ export default function HumanSurfaceLandingPage() {
                       href="/buy"
                       className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 shadow-[0_0_36px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
                     >
-                      Acquista assessment <ChevronRight className="h-4 w-4" />
+                      {t.getAssessment} <ChevronRight className="h-4 w-4" />
                     </Link>
                   </div>
                 </div>
@@ -1118,28 +1565,27 @@ export default function HumanSurfaceLandingPage() {
             <div className="relative grid gap-8 lg:grid-cols-[1fr_0.95fr] lg:items-start">
               <div>
                 <div className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-cyan-300">
-                  Buy now
+                  {t.finalEyebrow}
                 </div>
                 <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">
-                  Start with your first HumanSurface assessment.
+                  {t.finalTitle}
                 </h2>
                 <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-                  Purchase your assessment online, enter your company details, and
-                  continue to secure payment.
+                  {t.finalText}
                 </p>
 
                 <div className="mt-8 space-y-3 text-sm text-slate-300">
                   <div className="flex items-center gap-3">
                     <span className="h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
-                    Launch offer: €190 + VAT
+                    {t.launchPrice}
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="h-2.5 w-2.5 rounded-full bg-fuchsia-300 shadow-[0_0_10px_rgba(232,121,249,0.8)]" />
-                    Secure payment with Stripe
+                    {t.securePayment}
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
-                    Built for assessment-first sales
+                    {t.assessmentFirst}
                   </div>
                 </div>
 
@@ -1148,13 +1594,13 @@ export default function HumanSurfaceLandingPage() {
                     href="/buy"
                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
                   >
-                    Acquista assessment <ChevronRight className="h-4 w-4" />
+                    {t.getAssessment} <ChevronRight className="h-4 w-4" />
                   </Link>
                   <a
                     href="/sample-report.pdf"
                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-5 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/15"
                   >
-                    See sample report
+                    {t.seeSampleReport}
                   </a>
                 </div>
               </div>
@@ -1164,24 +1610,20 @@ export default function HumanSurfaceLandingPage() {
                   <div className="mb-5 flex items-center justify-between">
                     <div>
                       <div className="text-xs uppercase tracking-[0.18em] text-cyan-300">
-                        Direct purchase
+                        {t.directPurchase}
                       </div>
-                      <h3 className="mt-2 text-2xl font-semibold">
-                        Buy your assessment online
-                      </h3>
+                      <h3 className="mt-2 text-2xl font-semibold">{t.buyOnline}</h3>
                     </div>
                     <Mail className="h-5 w-5 text-cyan-200" />
                   </div>
 
                   <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] p-5">
                     <div className="text-sm uppercase tracking-[0.16em] text-cyan-200">
-                      Launch offer
+                      {t.launchOffer}
                     </div>
                     <div className="mt-2 text-4xl font-semibold text-white">€190 + VAT</div>
                     <div className="mt-3 text-sm leading-7 text-slate-300">
-                      Includes website scan, external exposure analysis, people and
-                      role visibility, website/external/combined scoring, and
-                      executive-ready reporting.
+                      {copy[locale].launchText}
                     </div>
                   </div>
 
@@ -1202,7 +1644,7 @@ export default function HumanSurfaceLandingPage() {
                       href="/buy"
                       className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 shadow-[0_0_36px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
                     >
-                      Acquista assessment <ArrowRight className="h-4 w-4" />
+                      {t.getAssessment} <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
                 </div>
@@ -1221,42 +1663,39 @@ export default function HumanSurfaceLandingPage() {
               </div>
               <div className="text-lg font-semibold">HumanSurface</div>
             </div>
-            <p className="mt-4 max-w-md leading-7 text-slate-400">
-              HumanSurface helps organizations identify public exposure that can
-              enable phishing, impersonation, and human-targeted fraud.
-            </p>
+            <p className="mt-4 max-w-md leading-7 text-slate-400">{t.footerText}</p>
           </div>
 
           <div>
             <div className="text-sm font-semibold uppercase tracking-[0.16em] text-white">
-              Company
+              {t.company}
             </div>
             <div className="mt-4 space-y-3 text-slate-400">
-              <a href="#" className="block hover:text-cyan-200">
-                Privacy
-              </a>
-              <a href="#" className="block hover:text-cyan-200">
-                Terms
-              </a>
+              <Link href="/privacy" className="block hover:text-cyan-200">
+                {t.privacy}
+              </Link>
+              <Link href="/terms" className="block hover:text-cyan-200">
+                {t.terms}
+              </Link>
               <a href="mailto:info@humansurface.com" className="block hover:text-cyan-200">
-                Contact
+                {t.contact}
               </a>
             </div>
           </div>
 
           <div>
             <div className="text-sm font-semibold uppercase tracking-[0.16em] text-white">
-              Resources
+              {t.resources}
             </div>
             <div className="mt-4 space-y-3 text-slate-400">
               <a href="/sample-report.pdf" className="block hover:text-cyan-200">
-                Sample report
+                {t.sampleReport}
               </a>
               <a href="#dashboard-preview" className="block hover:text-cyan-200">
-                Dashboard preview
+                {t.dashboardPreview}
               </a>
               <Link href="/buy" className="block hover:text-cyan-200">
-                Buy assessment
+                {t.buyAssessment}
               </Link>
             </div>
           </div>
