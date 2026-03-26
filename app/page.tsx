@@ -570,7 +570,7 @@ function LandingHero({
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+                <div className="mt-5 grid gap-5 lg:grid-cols-[0.0.72fr_1.28fr]">
                   <div>
                     <div className="text-sm text-slate-400">{t.humanSurfaceScore}</div>
                     <div className="mt-2 text-5xl font-semibold tracking-tight text-white">
@@ -588,11 +588,11 @@ function LandingHero({
                         key={label}
                         className="min-h-[132px] rounded-2xl border border-white/10 bg-white/[0.04] p-4"
                       >
-                        <div className="text-[9px] uppercase leading-4 tracking-[0.1em] text-slate-400 sm:text-[10px]">
+                        <div className="text-[8px] uppercase leading-4 tracking-[0.06em] text-slate-400 sm:text-[9px]">
                           {label}
                         </div>
                         <div className="mt-4 text-2xl font-semibold text-white">{score}</div>
-                        <div className="mt-2 text-[10px] tracking-[0.18em] text-cyan-200/80">
+                        <div className="mt-2 text-[10px] tracking-[0.14em] text-cyan-200/80">
                           {level}
                         </div>
                       </div>
