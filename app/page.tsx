@@ -1288,7 +1288,7 @@ export default function HumanSurfaceLandingPage() {
 
                   <div className="mt-6 grid gap-4 sm:grid-cols-3">
                     {[
-                      ['Overall      ', '72/100'],
+                      ['Overall         ', '72/100'],
                       ['Pose As fraud', '81'],
                       ['Finance fraud', '68'],
                     ].map(([label, score]) => (
