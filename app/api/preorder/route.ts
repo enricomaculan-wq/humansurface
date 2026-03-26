@@ -225,6 +225,12 @@ export async function POST(req: Request) {
       mode: 'payment',
       customer_email: email,
       billing_address_collection: 'auto',
+      automatic_tax: {
+        enabled: true,
+      },
+      tax_id_collection: {
+        enabled: true,
+      },
       line_items: [
         {
           quantity: 1,
