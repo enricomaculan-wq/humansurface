@@ -164,9 +164,9 @@ const copy: Record<Locale, Translation> = {
 
     heroBadge: 'Cyber exposure intelligence for phishing and fraud',
     heroTitle:
-      'Discover which people, roles, and public information make your company vulnerable to phishing, impersonation, and fraud.',
+      'Discover which people, roles, and public information make your company vulnerable to phishing, impersonation, and fraud',
     heroText:
-      'HumanSurface analyzes your company’s public exposure and shows where attackers could target your business through people, key roles, and email visibility.',
+      'HumanSurface analyzes your company’s public exposure and shows where attackers could target your business through people, key roles, and email visibility',
     chip1: 'No complex setup',
     chip2: 'Secure checkout',
     chip3: 'Built for SMEs and professional firms',
@@ -290,23 +290,23 @@ const copy: Record<Locale, Translation> = {
 
     heroBadge: 'Intelligence sull’esposizione cyber per phishing e frodi',
     heroTitle:
-      'Scopri quali persone, ruoli e dati pubblici aumentano il rischio di phishing e frodi.',
+      'Scopri quali persone, ruoli e dati pubblici aumentano il rischio di phishing e frodi',
     heroText:
-      'HumanSurface analizza l’esposizione pubblica della tua azienda e mostra dove un attaccante potrebbe colpirti attraverso persone, ruoli chiave e visibilità delle email.',
+      'HumanSurface analizza l’esposizione pubblica della tua azienda e mostra dove un attaccante potrebbe colpirti attraverso persone, ruoli chiave e visibilità delle email',
     chip1: 'Nessuna configurazione complessa',
     chip2: 'Checkout sicuro',
     chip3: 'Pensato per PMI e studi professionali',
 
     launchOffer: 'Offerta lancio',
     launchText:
-      'Assessment HumanSurface con scansione del sito, analisi dell’esposizione esterna, visibilità di persone e ruoli, scoring website/external/combined e report executive-ready.',
+      'Assessment HumanSurface con scansione del sito, analisi dell’esposizione esterna, visibilità di persone e ruoli, scoring website/external/combined e report executive-ready',
 
     liveSnapshot: 'Snapshot assessment',
-    highExposure: 'Alta esposizione',
+    highExposure: 'High Exposure',
     humanSurfaceScore: 'HumanSurface Score',
     topFindings: 'Principali finding',
     criticalSignals: '5 segnali critici',
-    changed7: 'Cosa è cambiato in 7 giorni',
+    changed7: 'Delta 7 giorni',
     orgMapped: 'Visibilità organizzativa mappata',
     roleModeled: 'Esposizione ruoli modellata',
     scenariosGenerated: 'Scenari di frode generati',
