@@ -290,7 +290,7 @@ const copy: Record<Locale, Translation> = {
 
     heroBadge: 'Intelligence sull’esposizione cyber per phishing e frodi',
     heroTitle:
-      'Scopri quali persone, ruoli e dati pubblici aumentano il rischio di phishing, impersonificazione e frodi.',
+      'Scopri quali persone, ruoli e dati pubblici aumentano il rischio di phishing e frodi.',
     heroText:
       'HumanSurface analizza l’esposizione pubblica della tua azienda e mostra dove un attaccante potrebbe colpirti attraverso persone, ruoli chiave e visibilità delle email.',
     chip1: 'Nessuna configurazione complessa',
@@ -492,7 +492,7 @@ function LandingHero({
 }) {
   return (
     <section className="relative">
-      <div className="mx-auto grid max-w-7xl gap-14 px-6 py-20 lg:grid-cols-2 lg:px-8 lg:py-28">
+      <div className="mx-auto max-w-7xl gap-14 px-6 py-20 lg:px-8 lg:py-28">
         <motion.div
           className="flex flex-col justify-center"
           initial="hidden"
