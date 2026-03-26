@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAuthenticatedUser } from '@/lib/auth'
+import { requireAdminUser } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import {
   canTransitionAssessmentStatus,
@@ -97,7 +97,7 @@ function validateAssessmentForPublishRealSchema(input: {
     (score) => score.score_type === 'overall',
   )
 
-  if (normalizedStatus !== 'in_review') {
+  if (normalizedStatus !== 'in_review' && normalizedStatus !== 'published') {
     errors.push('Assessment must be in review before publication.')
   }
 
@@ -138,7 +138,7 @@ function validateAssessmentForPublishRealSchema(input: {
 
 export async function POST(req: Request) {
   try {
-    await requireAuthenticatedUser()
+    await requireAdminUser()
 
     const body = await req.json()
 
@@ -361,6 +361,10 @@ export async function POST(req: Request) {
 
     if (message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     return NextResponse.json({ error: message }, { status: 500 })

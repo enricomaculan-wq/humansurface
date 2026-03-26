@@ -20,3 +20,24 @@ export async function requireAuthenticatedUser() {
 
   return user
 }
+
+function getAdminEmails() {
+  return [
+    process.env.ADMIN_EMAIL,
+    process.env.ADMIN_EMAIL_2,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).trim().toLowerCase())
+}
+
+export async function requireAdminUser() {
+  const user = await requireAuthenticatedUser()
+  const userEmail = user.email?.trim().toLowerCase() ?? ''
+  const adminEmails = getAdminEmails()
+
+  if (!userEmail || adminEmails.length === 0 || !adminEmails.includes(userEmail)) {
+    throw new Error('Forbidden')
+  }
+
+  return user
+}
