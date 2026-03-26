@@ -290,7 +290,7 @@ const copy: Record<Locale, Translation> = {
 
     heroBadge: 'Intelligence sull’esposizione cyber per phishing e frodi',
     heroTitle:
-      'Scopri quali persone, ruoli e informazioni pubbliche rendono la tua azienda vulnerabile a phishing, impersonificazione e frodi.',
+      'Scopri quali persone, ruoli e dati pubblici aumentano il rischio di phishing, impersonificazione e frodi.',
     heroText:
       'HumanSurface analizza l’esposizione pubblica della tua azienda e mostra dove un attaccante potrebbe colpirti attraverso persone, ruoli chiave e visibilità delle email.',
     chip1: 'Nessuna configurazione complessa',
@@ -299,7 +299,7 @@ const copy: Record<Locale, Translation> = {
 
     launchOffer: 'Offerta lancio',
     launchText:
-      'Assessment HumanSurface una tantum con scansione del sito, analisi dell’esposizione esterna, visibilità di persone e ruoli, scoring website/external/combined e report executive-ready.',
+      'Assessment HumanSurface con scansione del sito, analisi dell’esposizione esterna, visibilità di persone e ruoli, scoring website/external/combined e report executive-ready.',
 
     liveSnapshot: 'Snapshot assessment',
     highExposure: 'Alta esposizione',
@@ -485,8 +485,10 @@ function LaunchPricingCard({
 
 function LandingHero({
   t,
+  locale,
 }: {
   t: Translation
+  locale: Locale
 }) {
   return (
     <section className="relative">
@@ -511,7 +513,10 @@ function LandingHero({
             {t.heroTitle}
           </motion.h1>
 
-          <motion.p variants={fadeUp} className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
+          <motion.p
+            variants={fadeUp}
+            className="mt-6 max-w-2xl text-lg leading-8 text-slate-300"
+          >
             {t.heroText}
           </motion.p>
 
@@ -551,6 +556,7 @@ function LandingHero({
         >
           <div className="relative w-full max-w-2xl">
             <div className="absolute -inset-2 rounded-[34px] bg-[radial-gradient(circle,rgba(34,211,238,0.18),transparent_65%)] blur-2xl" />
+
             <GlassCard className="relative p-4 shadow-[0_0_80px_rgba(34,211,238,0.10)] sm:p-6">
               <div className="rounded-[24px] border border-white/10 bg-[#071022]/95 p-5">
                 <div className="flex items-center justify-between gap-4 border-b border-white/8 pb-4">
@@ -558,12 +564,13 @@ function LandingHero({
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.8)]" />
                     <span className="truncate">{t.liveSnapshot}</span>
                   </div>
+
                   <div className="shrink-0 rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-1 text-xs font-medium text-fuchsia-200">
                     {t.highExposure}
                   </div>
                 </div>
 
-                <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
                   <div>
                     <div className="text-sm text-slate-400">{t.humanSurfaceScore}</div>
                     <div className="mt-2 text-5xl font-semibold tracking-tight text-white">
@@ -571,21 +578,21 @@ function LandingHero({
                     </div>
                   </div>
 
-                  <div className="text-[9px] uppercase leading-4 tracking-[0.12em] text-slate-400 sm:text-[10px]">
+                  <div className="grid grid-cols-3 gap-3">
                     {[
-                      ['Impersonation Risk', '81', 'HIGH'],
+                      [locale === 'it' ? 'Impersonazione' : 'Impersonation', '81', 'HIGH'],
                       ['Finance fraud', '68', 'MED'],
                       ['HR / Social', '74', 'HIGH'],
                     ].map(([label, score, level]) => (
                       <div
                         key={label}
-                        className="min-h-[158px] rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                        className="min-h-[132px] rounded-2xl border border-white/10 bg-white/[0.04] p-4"
                       >
-                        <div className="text-[10px] uppercase leading-5 tracking-[0.16em] text-slate-400">
+                        <div className="text-[9px] uppercase leading-4 tracking-[0.1em] text-slate-400 sm:text-[10px]">
                           {label}
                         </div>
-                        <div className="mt-2 text-2xl font-semibold">{score}</div>
-                        <div className="mt-1 text-[10px] tracking-[0.2em] text-cyan-200/80">
+                        <div className="mt-4 text-2xl font-semibold text-white">{score}</div>
+                        <div className="mt-2 text-[10px] tracking-[0.18em] text-cyan-200/80">
                           {level}
                         </div>
                       </div>
@@ -601,6 +608,7 @@ function LandingHero({
                       </h3>
                       <span className="text-xs text-slate-500">{t.criticalSignals}</span>
                     </div>
+
                     <div className="space-y-3">
                       {[
                         'Public email addresses found on company pages',
@@ -628,6 +636,7 @@ function LandingHero({
                     <div className="text-sm font-medium uppercase tracking-[0.16em] text-cyan-100">
                       {t.changed7}
                     </div>
+
                     <div className="mt-4 space-y-3 text-sm text-cyan-50">
                       {[
                         '+2 public email addresses detected',
@@ -664,7 +673,6 @@ function LandingHero({
     </section>
   )
 }
-
 function InternalDashboardPreview({
   t,
 }: {
@@ -1161,7 +1169,7 @@ export default function HumanSurfaceLandingPage() {
       </header>
 
       <main className="relative z-10">
-        <LandingHero t={t} />
+        <LandingHero t={t} locale={locale}/>
 
         <section className="border-y border-cyan-300/10 bg-[#061024]/70 backdrop-blur">
           <div className="mx-auto grid max-w-7xl gap-4 px-6 py-6 text-center text-sm text-slate-300 md:grid-cols-4 lg:px-8">
