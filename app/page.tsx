@@ -740,7 +740,7 @@ function InternalDashboardPreview({
 
               <div className="mt-5 grid gap-4 md:grid-cols-3">
                 {[
-                  { label: 'Pose As', value: 81, icon: Fingerprint },
+                  { label: 'Pose As Fraud', value: 81, icon: Fingerprint },
                   { label: 'Finance Fraud', value: 68, icon: FileWarning },
                   { label: 'HR / Social Engineering', value: 74, icon: Mail },
                 ].map((item) => {
