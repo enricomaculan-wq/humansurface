@@ -273,20 +273,20 @@ const copy: Record<Locale, Translation> = {
   },
   it: {
     navHow: 'Come funziona',
-    navSample: 'Report esempio',
+    navSample: 'Demo Report',
     navDashboard: 'Dashboard',
     navPricing: 'Prezzi',
     login: 'Login',
-    getAssessment: 'Acquista assessment',
-    seeSampleReport: 'Vedi report esempio',
+    getAssessment: 'Buy Assessment',
+    seeSampleReport: 'Demo report',
     company: 'Azienda',
     resources: 'Risorse',
     privacy: 'Privacy',
     terms: 'Termini',
     contact: 'Contatti',
-    sampleReport: 'Report esempio',
+    sampleReport: 'Demo Report',
     dashboardPreview: 'Anteprima dashboard',
-    buyAssessment: 'Acquista assessment',
+    buyAssessment: 'Buy Assessment',
 
     heroBadge: 'Intelligence sull’esposizione cyber per phishing e frodi',
     heroTitle:
@@ -573,7 +573,7 @@ function LandingHero({
 
                   <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-3">
                     {[
-                      ['Impersonation', '81', 'HIGH'],
+                      ['Impers Risk', '81', 'HIGH'],
                       ['Finance fraud', '68', 'MED'],
                       ['HR / Social', '74', 'HIGH'],
                     ].map(([label, score, level]) => (
