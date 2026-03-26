@@ -573,7 +573,7 @@ function LandingHero({
 
                   <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-3">
                     {[
-                      ['Pose As', '81', 'HIGH'],
+                      ['Pose As fraud', '81', 'HIGH'],
                       ['Finance fraud', '68', 'MED'],
                       ['HR / Social', '74', 'HIGH'],
                     ].map(([label, score, level]) => (
@@ -740,8 +740,8 @@ function InternalDashboardPreview({
 
               <div className="mt-5 grid gap-4 md:grid-cols-3">
                 {[
-                  { label: 'Pose As Fraud', value: 81, icon: Fingerprint },
-                  { label: 'Finance Fraud', value: 68, icon: FileWarning },
+                  { label: 'Pose As fraud', value: 81, icon: Fingerprint },
+                  { label: 'Finance fraud', value: 68, icon: FileWarning },
                   { label: 'HR / Social Engineering', value: 74, icon: Mail },
                 ].map((item) => {
                   const Icon = item.icon
@@ -1288,9 +1288,9 @@ export default function HumanSurfaceLandingPage() {
 
                   <div className="mt-6 grid gap-4 sm:grid-cols-3">
                     {[
-                      ['Overall', '72/100'],
-                      ['Pose As', '81'],
-                      ['Finance Fraud', '68'],
+                      ['Overall      ', '72/100'],
+                      ['Pose As fraud', '81'],
+                      ['Finance fraud', '68'],
                     ].map(([label, score]) => (
                       <div
                         key={label}
