@@ -288,7 +288,7 @@ const copy: Record<Locale, Translation> = {
     dashboardPreview: 'Anteprima dashboard',
     buyAssessment: 'Buy Assessment',
 
-    heroBadge: 'Intelligence sull’esposizione cyber per phishing e frodi',
+    heroBadge: 'Analisi sull’esposizione cyber per phishing e frodi',
     heroTitle:
       'Scopri quali persone, ruoli e dati pubblici aumentano il rischio di phishing e frodi',
     heroText:
@@ -306,7 +306,7 @@ const copy: Record<Locale, Translation> = {
     humanSurfaceScore: 'HumanSurface Score',
     topFindings: 'Principali finding',
     criticalSignals: '5 segnali critici',
-    changed7: 'Delta 7 giorni',
+    changed7: 'Delta ultimi 7 giorni',
     orgMapped: 'Visibilità organizzativa mappata',
     roleModeled: 'Esposizione ruoli modellata',
     scenariosGenerated: 'Scenari di frode generati',
