@@ -11,7 +11,7 @@ if (!stripeSecretKey) {
 const stripe = new Stripe(stripeSecretKey)
 
 const PRODUCT_NAME = 'HumanSurface Assessment'
-const UNIT_AMOUNT = 100
+const UNIT_AMOUNT = 19000
 
 function normalizeDomain(value: string) {
   return value
