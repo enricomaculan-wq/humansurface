@@ -359,15 +359,15 @@ const copy: Record<Locale, Translation> = {
 
     diffEyebrow: 'Perché è diverso',
     diffTitle:
-      'Gli strumenti tradizionali monitorano i sistemi. HumanSurface mostra come gli attaccanti possano colpire la tua azienda attraverso le persone.',
+      'Gli strumenti tradizionali monitorano i sistemi. HumanSurface mostra dove la tua azienda è esposta attraverso le persone',
     traditional: 'Visibilità sicurezza tradizionale',
     humansurface: 'HumanSurface',
 
     dashboardEyebrow: 'Dashboard interna',
     dashboardTitle:
-      'Una dashboard cyber-tech che sembra un vero prodotto, non una brochure generica.',
+      'Una dashboard cyber-tech pensata per rendere immediati score, finding e priorità',
     dashboardText:
-      'Questa anteprima estende lo stesso linguaggio visivo al prodotto: card ad alto segnale, layout basati su score, finding chiari e remediation immediata.',
+      'Questa anteprima mostra l’esperienza del prodotto: score leggibili, finding chiari, persone esposte e remediation immediata',
     assessmentOverview: 'Panoramica assessment',
     peopleAtRisk: 'Persone a rischio',
     exposedPeople: 'Ruoli e persone più esposti',
@@ -571,7 +571,7 @@ function LandingHero({
                     </div>
                   </div>
 
-                  <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="text-[9px] uppercase leading-4 tracking-[0.12em] text-slate-400 sm:text-[10px]">
                     {[
                       ['Impersonation Risk', '81', 'HIGH'],
                       ['Finance fraud', '68', 'MED'],
@@ -579,7 +579,7 @@ function LandingHero({
                     ].map(([label, score, level]) => (
                       <div
                         key={label}
-                        className="min-h-[150px] rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                        className="min-h-[158px] rounded-2xl border border-white/10 bg-white/[0.04] p-4"
                       >
                         <div className="text-[10px] uppercase leading-5 tracking-[0.16em] text-slate-400">
                           {label}
