@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import {
   updateMonitoredAssetAction,
   type UpdateAssetFormState,
-} from '../actions'
+} from '../action'
 
 type Asset = {
   id: string
