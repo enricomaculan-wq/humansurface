@@ -6,6 +6,7 @@ import {
 } from '@/lib/scoring'
 import { searchExternalPublicSources } from './external-search'
 import { extractExternalSignals } from './external-extract'
+import { syncDiscoveredAssets } from '@/lib/exposure/sync-discovered-assets'
 
 type OrganizationRow = {
   id: string
@@ -445,6 +446,12 @@ export async function runExternalPublicScanForAssessment(
   if (updateAssessmentError) {
     throw new Error(`assessment external diagnostics update failed: ${updateAssessmentError.message}`)
   }
+
+  await syncDiscoveredAssets({
+    organization,
+    externalPeople: extracted.people,
+    brandNames: [organization.name],
+  })
 
   return {
     assessmentId,

@@ -11,29 +11,29 @@ export default function BuyPage() {
             </div>
 
             <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
-              HumanSurface Assessment
+              Request a HumanSurface intro call
             </h1>
 
             <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-300">
-              A reviewed exposure assessment focused on phishing, impersonation,
-              and human-targeted fraud.
+              Tell us a bit about your company and exposure priorities. We will
+              review your request and get back to you to schedule a short intro call.
             </p>
 
             <div className="mt-8 rounded-[28px] border border-cyan-300/20 bg-cyan-300/[0.08] p-6">
               <div className="text-sm uppercase tracking-[0.16em] text-cyan-200">
-                Delivery model
+                What to expect
               </div>
               <p className="mt-3 leading-7 text-slate-200">
-                Each assessment is reviewed before publication to ensure a
-                clearer and more reliable output. Delivery is typically within
-                2 business days, often sooner.
+                HumanSurface is designed as a reviewed exposure assessment, not
+                an instant low-value scan. We usually reply within 1 business day
+                to understand fit, priorities, and next steps.
               </p>
             </div>
 
             <div className="mt-8 grid gap-4 md:grid-cols-2">
               <div className="rounded-2xl border border-white/10 bg-[#071022] p-5">
                 <div className="text-sm font-semibold text-white">
-                  What the assessment focuses on
+                  What HumanSurface focuses on
                 </div>
                 <ul className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
                   <li>Public exposure supporting impersonation attempts</li>
@@ -45,25 +45,25 @@ export default function BuyPage() {
 
               <div className="rounded-2xl border border-white/10 bg-[#071022] p-5">
                 <div className="text-sm font-semibold text-white">
-                  Why this is different
+                  Why companies book a call first
                 </div>
                 <ul className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
-                  <li>Not positioned as an instant low-value scan</li>
-                  <li>Reviewed before publication</li>
-                  <li>Structured for clearer client-facing output</li>
-                  <li>Built to support action, not just raw detection</li>
+                  <li>To understand whether the service fits their exposure profile</li>
+                  <li>To align on priorities and decision context</li>
+                  <li>To review expected output and delivery approach</li>
+                  <li>To keep the process consultative and high-signal</li>
                 </ul>
               </div>
             </div>
 
             <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
               <div className="text-sm font-semibold text-white">
-                Output expectation
+                Delivery model
               </div>
               <p className="mt-3 text-sm leading-7 text-slate-400">
-                The final report is published after review, not immediately at
-                checkout. This helps preserve clarity, consistency, and decision
-                value.
+                Each assessment is reviewed before publication to preserve
+                clarity, consistency, and decision value. A short intro call helps
+                define scope and confirm the right next step before activation.
               </p>
             </div>
           </section>
@@ -71,15 +71,15 @@ export default function BuyPage() {
           <section className="rounded-[32px] border border-white/10 bg-white/[0.04] p-8 backdrop-blur-xl">
             <div className="mb-6">
               <div className="text-sm uppercase tracking-[0.18em] text-cyan-300">
-                Request assessment
+                Request a call
               </div>
               <h2 className="mt-2 text-2xl font-semibold text-white">
-                Start a new assessment request
+                Book an intro conversation
               </h2>
               <p className="mt-3 text-sm leading-7 text-slate-400">
-                Submit your company and billing details to start the assessment
-                workflow. You will be able to track the status from your client
-                area after checkout.
+                Share your company details and a brief description of what you want
+                to assess. We will review the request and contact you to arrange
+                a short call.
               </p>
             </div>
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAuthenticatedUser } from '@/lib/auth'
-import { runPublicScanForOrganization } from '@/lib/scanner/run-scan'
+import { runExposureAssessmentForOrganization } from '@/lib/exposure/run-exposure-assessment'
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const result = await runPublicScanForOrganization(organizationId)
+    const result = await runExposureAssessmentForOrganization(organizationId)
 
     return NextResponse.json({
       ok: true,

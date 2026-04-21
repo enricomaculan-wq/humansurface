@@ -151,7 +151,7 @@ const copy: Record<Locale, Translation> = {
     navDashboard: 'Dashboard',
     navPricing: 'Pricing',
     login: 'Login',
-    getAssessment: 'Get assessment',
+    getAssessment: 'Request a call',
     seeSampleReport: 'See sample report',
     company: 'Company',
     resources: 'Resources',
@@ -160,7 +160,7 @@ const copy: Record<Locale, Translation> = {
     contact: 'Contact',
     sampleReport: 'Sample report',
     dashboardPreview: 'Dashboard preview',
-    buyAssessment: 'Buy assessment',
+    buyAssessment: 'Request a call',
 
     heroBadge: 'Cyber exposure intelligence for phishing and fraud',
     heroTitle:
@@ -168,12 +168,12 @@ const copy: Record<Locale, Translation> = {
     heroText:
       'HumanSurface analyzes your company’s public exposure and shows where attackers could target your business through people, key roles, and email visibility',
     chip1: 'No complex setup',
-    chip2: 'Secure checkout',
+    chip2: 'Reviewed manually',
     chip3: 'Built for SMEs and professional firms',
 
     launchOffer: 'Launch offer',
     launchText:
-      'One-time HumanSurface Assessment including website scan, external exposure analysis, people and role visibility, website/external/combined scoring, and executive-ready reporting.',
+      'HumanSurface starts with an intro call to align on fit, priorities, and next steps before activation.',
 
     liveSnapshot: 'Live assessment snapshot',
     highExposure: 'High exposure',
@@ -207,14 +207,17 @@ const copy: Record<Locale, Translation> = {
       'Clear findings and immediate next steps, not generic security reporting.',
 
     howEyebrow: 'How it works',
-    howTitle: 'From company domain to action plan in a few simple steps.',
-    step1Title: 'Enter your company details',
-    step1Text: 'Company name, domain, business email, and any optional context.',
-    step2Title: 'Continue to secure payment',
-    step2Text: 'Purchase the assessment online with secure Stripe checkout.',
+    howTitle:
+      'From initial request to reviewed exposure assessment in a few simple steps.',
+    step1Title: 'Share your company details',
+    step1Text:
+      'Tell us your company name, domain, work email, and any useful context.',
+    step2Title: 'Book a short intro call',
+    step2Text:
+      'We review your request and get back to you to align on fit, priorities, and next steps.',
     step3Title: 'Receive your assessment',
     step3Text:
-      'Get findings, scores, exposed roles, and immediate remediation priorities.',
+      'Get reviewed findings, scores, exposed roles, and immediate remediation priorities.',
 
     whatEyebrow: 'What you get',
     whatTitle: 'Not just data. Clear priorities.',
@@ -250,23 +253,23 @@ const copy: Record<Locale, Translation> = {
     pricingEyebrow: 'Pricing',
     pricingTitle: 'Start with a one-time assessment.',
     pricingText:
-      'Simple launch pricing, direct online purchase, and secure checkout.',
+      'Simple launch pricing with an intro-call first approach to align on fit and priorities.',
     assessmentName: 'HumanSurface Assessment',
     pricingDescription:
       'A one-time assessment designed to reveal the public exposure that can increase phishing, impersonation, and fraud risk for your company.',
-    buyFlow: 'Buy flow',
-    simpleAndFast: 'Simple and fast',
+    buyFlow: 'Request flow',
+    simpleAndFast: 'Simple and consultative',
     launchCustomers: 'Launch offer available for the first customers.',
 
-    finalEyebrow: 'Buy now',
-    finalTitle: 'Start with your first HumanSurface assessment.',
+    finalEyebrow: 'Request a call',
+    finalTitle: 'Start with a HumanSurface intro call.',
     finalText:
-      'Purchase your assessment online, enter your company details, and continue to secure payment.',
+      'Tell us about your company, share your priorities, and we will get back to you to arrange a short call.',
     launchPrice: 'Launch offer: €190 + VAT',
-    securePayment: 'Secure payment with Stripe',
-    assessmentFirst: 'Built for assessment-first sales',
-    directPurchase: 'Direct purchase',
-    buyOnline: 'Buy your assessment online',
+    securePayment: 'Reviewed before activation',
+    assessmentFirst: 'Built for consultative assessment delivery',
+    directPurchase: 'Intro call',
+    buyOnline: 'Request your HumanSurface intro call',
 
     footerText:
       'HumanSurface helps organizations identify public exposure that can enable phishing, impersonation, and human-targeted fraud.',
@@ -277,7 +280,7 @@ const copy: Record<Locale, Translation> = {
     navDashboard: 'Dashboard',
     navPricing: 'Prezzi',
     login: 'Login',
-    getAssessment: 'Buy Assessment',
+    getAssessment: 'Richiedi una call',
     seeSampleReport: 'Demo report',
     company: 'Azienda',
     resources: 'Risorse',
@@ -286,7 +289,7 @@ const copy: Record<Locale, Translation> = {
     contact: 'Contatti',
     sampleReport: 'Demo Report',
     dashboardPreview: 'Anteprima dashboard',
-    buyAssessment: 'Buy Assessment',
+    buyAssessment: 'Richiedi una call',
 
     heroBadge: 'Analisi sull’esposizione cyber per phishing e frodi',
     heroTitle:
@@ -294,12 +297,12 @@ const copy: Record<Locale, Translation> = {
     heroText:
       'HumanSurface analizza l’esposizione pubblica della tua azienda e mostra dove un attaccante potrebbe colpirti attraverso persone, ruoli chiave e visibilità delle email',
     chip1: 'Nessuna configurazione complessa',
-    chip2: 'Checkout sicuro',
+    chip2: 'Revisione manuale',
     chip3: 'Pensato per PMI e studi professionali',
 
     launchOffer: 'Offerta lancio',
     launchText:
-      'Assessment HumanSurface con scansione del sito, analisi dell’esposizione esterna, visibilità di persone e ruoli, scoring website/external/combined e report executive-ready',
+      'HumanSurface parte da una call introduttiva per allineare fit, priorità e prossimi passi prima dell’attivazione.',
 
     liveSnapshot: 'Snapshot assessment',
     highExposure: 'High Exposure',
@@ -333,14 +336,17 @@ const copy: Record<Locale, Translation> = {
       'Finding chiari e azioni immediate, non report generici di sicurezza.',
 
     howEyebrow: 'Come funziona',
-    howTitle: 'Dal dominio aziendale a un piano d’azione in pochi passaggi.',
-    step1Title: 'Inserisci i dati aziendali',
-    step1Text: 'Nome azienda, dominio, email business e opzioni.',
-    step2Title: 'Procedi al pagamento sicuro',
-    step2Text: 'Acquista online con checkout Stripe sicuro.',
+    howTitle:
+      'Dalla richiesta iniziale a un assessment revisionato in pochi passaggi.',
+    step1Title: 'Condividi i dati aziendali',
+    step1Text:
+      'Indicaci nome azienda, dominio, email business e contesto utile.',
+    step2Title: 'Prenota una breve call introduttiva',
+    step2Text:
+      'Rivediamo la richiesta e ti ricontattiamo per allinearci su fit, priorità e prossimi passi.',
     step3Title: 'Ricevi il tuo assessment',
     step3Text:
-      'Ottieni finding, score, ruoli esposti e priorità di remediation.',
+      'Ottieni finding revisionati, score, ruoli esposti e priorità di remediation.',
 
     whatEyebrow: 'Cosa ottieni',
     whatTitle: 'Non solo dati. Priorità chiare.',
@@ -364,8 +370,7 @@ const copy: Record<Locale, Translation> = {
     humansurface: 'HumanSurface',
 
     dashboardEyebrow: 'Dashboard interna',
-    dashboardTitle:
-      'Una dashboard cyber-tech chiara e comprensibile.',
+    dashboardTitle: 'Una dashboard cyber-tech chiara e comprensibile.',
     dashboardText:
       'Questa anteprima estende lo stesso linguaggio visivo al prodotto: card ad alto segnale, layout basati su score, finding chiari e remediation immediata.',
     assessmentOverview: 'Panoramica assessment',
@@ -376,23 +381,23 @@ const copy: Record<Locale, Translation> = {
     pricingEyebrow: 'Prezzi',
     pricingTitle: 'Inizia con un assessment una tantum.',
     pricingText:
-      'Prezzo lancio semplice, acquisto diretto online e checkout sicuro.',
+      'Prezzo lancio semplice con approccio iniziale via call per allineare fit e priorità.',
     assessmentName: 'Assessment HumanSurface',
     pricingDescription:
       'Un assessment una tantum progettato per mostrare l’esposizione pubblica che può aumentare il rischio di phishing, impersonificazione e frodi.',
-    buyFlow: 'Flusso acquisto',
-    simpleAndFast: 'Semplice e veloce',
+    buyFlow: 'Flusso richiesta',
+    simpleAndFast: 'Semplice e consulenziale',
     launchCustomers: 'Offerta lancio disponibile per i primi clienti.',
 
-    finalEyebrow: 'Acquista ora',
-    finalTitle: 'Inizia con il tuo primo assessment HumanSurface.',
+    finalEyebrow: 'Richiedi una call',
+    finalTitle: 'Inizia con una call introduttiva HumanSurface.',
     finalText:
-      'Acquista il tuo assessment online, inserisci i dati aziendali e procedi al pagamento sicuro.',
+      'Raccontaci la tua azienda, condividi le tue priorità e ti ricontatteremo per organizzare una breve call.',
     launchPrice: 'Offerta lancio: €190 + IVA',
-    securePayment: 'Pagamento sicuro con Stripe',
-    assessmentFirst: 'Pensato per vendita assessment-first',
-    directPurchase: 'Acquisto diretto',
-    buyOnline: 'Acquista il tuo assessment online',
+    securePayment: 'Revisione prima dell’attivazione',
+    assessmentFirst: 'Pensato per un percorso consulenziale',
+    directPurchase: 'Call introduttiva',
+    buyOnline: 'Richiedi una call con HumanSurface',
 
     footerText:
       'HumanSurface aiuta le organizzazioni a identificare l’esposizione pubblica che può favorire phishing, impersonificazione e frodi mirate alle persone.',
@@ -511,7 +516,10 @@ function LandingHero({
             {t.heroTitle}
           </motion.h1>
 
-          <motion.p variants={fadeUp} className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
+          <motion.p
+            variants={fadeUp}
+            className="mt-6 max-w-2xl text-lg leading-8 text-slate-300"
+          >
             {t.heroText}
           </motion.p>
 
@@ -573,7 +581,7 @@ function LandingHero({
 
                   <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-3">
                     {[
-                      ['Pose As fraud', '81', 'HIGH'],
+                      ['Impersonation', '81', 'HIGH'],
                       ['Finance fraud', '68', 'MED'],
                       ['HR / Social', '74', 'HIGH'],
                     ].map(([label, score, level]) => (
@@ -740,7 +748,7 @@ function InternalDashboardPreview({
 
               <div className="mt-5 grid gap-4 md:grid-cols-3">
                 {[
-                  { label: 'Pose As fraud', value: 81, icon: Fingerprint },
+                  { label: 'Impersonation', value: 81, icon: Fingerprint },
                   { label: 'Finance fraud', value: 68, icon: FileWarning },
                   { label: 'HR / Social Engineering', value: 74, icon: Mail },
                 ].map((item) => {
@@ -1037,71 +1045,67 @@ export default function HumanSurfaceLandingPage() {
     },
   ]
 
-  const audiences = locale === 'it'
-    ? [
-        ['PMI', 'Visibilità rapida dell’esposizione senza implementazioni pesanti.'],
-        [
-          'Studi professionali',
-          'Ideale per organizzazioni con nomi, ruoli e contatti molto visibili.',
-        ],
-        [
-          'Aziende manifatturiere',
-          'Utile dove leadership, finance, sales e operations sono esposti online.',
-        ],
-        ['Agenzie', 'Perfetto per team pubblici, people page e contesto aziendale visibile.'],
-        [
-          'Software house',
-          'Utile per aziende con profili pubblici dei dipendenti e team page tecniche.',
-        ],
-        [
-          'MSP e consulenti',
-          'Un’offerta di assessment chiara e ripetibile per i clienti.',
-        ],
-      ]
-    : [
-        ['SMEs', 'Fast exposure visibility without heavy implementation.'],
-        [
-          'Professional firms',
-          'Ideal for organizations with highly visible names, roles, and contact details.',
-        ],
-        [
-          'Manufacturing companies',
-          'Useful where leadership, finance, sales, and operations are exposed online.',
-        ],
-        ['Agencies', 'Perfect for public-facing teams, people pages, and visible business context.'],
-        [
-          'Software firms',
-          'Helpful for companies with public employee profiles and technical team pages.',
-        ],
-        [
-          'MSPs and consultants',
-          'A clear, repeatable assessment offering for client engagements.',
-        ],
-      ]
+  const audiences =
+    locale === 'it'
+      ? [
+          ['PMI', 'Visibilità rapida dell’esposizione senza implementazioni pesanti.'],
+          [
+            'Studi professionali',
+            'Ideale per organizzazioni con nomi, ruoli e contatti molto visibili.',
+          ],
+          [
+            'Aziende manifatturiere',
+            'Utile dove leadership, finance, sales e operations sono esposti online.',
+          ],
+          ['Agenzie', 'Perfetto per team pubblici, people page e contesto aziendale visibile.'],
+          [
+            'Software house',
+            'Utile per aziende con profili pubblici dei dipendenti e team page tecniche.',
+          ],
+          ['MSP e consulenti', 'Un’offerta di assessment chiara e ripetibile per i clienti.'],
+        ]
+      : [
+          ['SMEs', 'Fast exposure visibility without heavy implementation.'],
+          [
+            'Professional firms',
+            'Ideal for organizations with highly visible names, roles, and contact details.',
+          ],
+          [
+            'Manufacturing companies',
+            'Useful where leadership, finance, sales, and operations are exposed online.',
+          ],
+          ['Agencies', 'Perfect for public-facing teams, people pages, and visible business context.'],
+          [
+            'Software firms',
+            'Helpful for companies with public employee profiles and technical team pages.',
+          ],
+          ['MSPs and consultants', 'A clear, repeatable assessment offering for client engagements.'],
+        ]
 
-  const included = locale === 'it'
-    ? [
-        'Overall HumanSurface Score',
-        'Impersonation Risk',
-        'Finance Fraud Risk',
-        'HR / Social Engineering Risk',
-        'Principali finding critici',
-        'Persone e ruoli più esposti',
-        'Scenari di attacco',
-        'Remediation immediata',
-        'Tracking cambiamenti a 7 giorni',
-      ]
-    : [
-        'Overall HumanSurface Score',
-        'Impersonation Risk',
-        'Finance Fraud Risk',
-        'HR / Social Engineering Risk',
-        'Top critical findings',
-        'Most exposed people and roles',
-        'Attack scenarios',
-        'Immediate remediation',
-        '7-day change tracking',
-      ]
+  const included =
+    locale === 'it'
+      ? [
+          'Overall HumanSurface Score',
+          'Impersonation Risk',
+          'Finance Fraud Risk',
+          'HR / Social Engineering Risk',
+          'Principali finding critici',
+          'Persone e ruoli più esposti',
+          'Scenari di attacco',
+          'Remediation immediata',
+          'Tracking cambiamenti a 7 giorni',
+        ]
+      : [
+          'Overall HumanSurface Score',
+          'Impersonation Risk',
+          'Finance Fraud Risk',
+          'HR / Social Engineering Risk',
+          'Top critical findings',
+          'Most exposed people and roles',
+          'Attack scenarios',
+          'Immediate remediation',
+          '7-day change tracking',
+        ]
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#040816] text-white">
@@ -1288,8 +1292,8 @@ export default function HumanSurfaceLandingPage() {
 
                   <div className="mt-6 grid gap-4 sm:grid-cols-3">
                     {[
-                      ['Overall         ', '72/100'],
-                      ['Pose As fraud', '81'],
+                      ['Overall', '72/100'],
+                      ['Impersonation', '81'],
                       ['Finance fraud', '68'],
                     ].map(([label, score]) => (
                       <div
@@ -1465,7 +1469,10 @@ export default function HumanSurfaceLandingPage() {
               description={t.pricingText}
             />
 
-            <motion.div variants={fadeUp} className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+            <motion.div
+              variants={fadeUp}
+              className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]"
+            >
               <GlassCard className="border-cyan-300/20 bg-cyan-300/[0.08] p-8 shadow-[0_0_50px_rgba(34,211,238,0.08)]">
                 <div className="mb-4 inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs uppercase tracking-[0.16em] text-cyan-200">
                   {t.launchOffer}
@@ -1526,13 +1533,13 @@ export default function HumanSurfaceLandingPage() {
 
                   <div className="mt-6 space-y-3 text-sm text-slate-300">
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      Enter your company details before payment
+                      Share your company details and exposure priorities
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      Continue to secure Stripe checkout
+                      We review your request and arrange a short intro call
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      Start your HumanSurface assessment
+                      Activate the assessment with the right next step
                     </div>
                   </div>
 
@@ -1629,13 +1636,13 @@ export default function HumanSurfaceLandingPage() {
 
                   <div className="mt-6 space-y-3 text-sm text-slate-300">
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      Enter your company details before payment
+                      Share your company details and exposure priorities
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      Continue to secure Stripe checkout
+                      We review your request and arrange a short intro call
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      Start your first HumanSurface assessment
+                      Activate the assessment with the right next step
                     </div>
                   </div>
 

@@ -4,6 +4,7 @@ import { extractSignalsAttempt } from './extract'
 import { extractSignalsFromPdfUrl } from './pdf'
 import { classifySignals } from './classify'
 import { calculateAssessmentScores, calculatePersonScores } from '@/lib/scoring'
+import { syncDiscoveredAssets } from '@/lib/exposure/sync-discovered-assets'
 
 type OrganizationRow = {
   id: string
@@ -709,6 +710,13 @@ export async function runPublicScanForOrganization(organizationId: string) {
       SCAN_FAILSAFE_TIMEOUT_MS,
       `Scan for organization ${organization.id}`,
     )
+
+    await syncDiscoveredAssets({
+      organization,
+      classifiedPeople: finalClassified.people,
+      extractedSignals,
+      brandNames: [organization.name],
+    })
 
     return result
   } catch (error) {
