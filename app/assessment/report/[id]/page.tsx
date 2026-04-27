@@ -2,6 +2,9 @@ import { notFound, redirect } from 'next/navigation'
 import { createSupabaseAuthServerClient } from '@/lib/supabase-auth-server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { formatDateTime } from '@/lib/date'
+import LanguageToggle from '@/app/components/language-toggle'
+import { getDictionary, getRequestLocale } from '@/lib/i18n/server'
+import type { Dictionary } from '@/lib/i18n/dictionaries/en'
 import PrintReportButton from './print-report-button'
 import { getImmediateRecommendationsFromTasks } from '@/lib/assessments/assessment-remediation'
 
@@ -107,6 +110,15 @@ function normalizeLabel(value: string | null | undefined, fallback = '—') {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
+function interpolate(
+  template: string,
+  values: Record<string, string | number>,
+) {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) =>
+    values[key] === undefined ? `{${key}}` : String(values[key]),
+  )
+}
+
 function normalizeStatus(value: string): AssessmentStatus | null {
   switch (value) {
     case 'draft':
@@ -138,7 +150,30 @@ function severityRank(value: string) {
   }
 }
 
-function RiskBadge({ value }: { value: string }) {
+function getRiskLabel(value: string, dictionary: Dictionary) {
+  switch (value.toLowerCase()) {
+    case 'critical':
+      return dictionary.common.risk.critical
+    case 'high':
+      return dictionary.common.risk.high
+    case 'medium':
+      return dictionary.common.risk.medium
+    case 'moderate':
+      return dictionary.common.risk.moderate
+    case 'low':
+      return dictionary.common.risk.low
+    default:
+      return dictionary.common.risk.unknown
+  }
+}
+
+function RiskBadge({
+  value,
+  dictionary,
+}: {
+  value: string
+  dictionary: Dictionary
+}) {
   const normalized = value.toLowerCase()
 
   const cls =
@@ -152,7 +187,7 @@ function RiskBadge({ value }: { value: string }) {
 
   return (
     <span className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${cls}`}>
-      {normalizeLabel(value)}
+      {getRiskLabel(value, dictionary)}
     </span>
   )
 }
@@ -161,17 +196,19 @@ function ScoreCard({
   label,
   value,
   risk,
+  dictionary,
 }: {
   label: string
   value: number
   risk: string
+  dictionary: Dictionary
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 print:border-slate-200 print:bg-white">
       <div className="text-xs uppercase tracking-[0.16em] text-slate-500">{label}</div>
       <div className="mt-3 flex items-end justify-between gap-4">
         <div className="text-4xl font-semibold text-white print:text-black">{value}</div>
-        <RiskBadge value={risk} />
+        <RiskBadge value={risk} dictionary={dictionary} />
       </div>
     </div>
   )
@@ -250,6 +287,9 @@ export default async function CustomerAssessmentReportPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const locale = await getRequestLocale()
+  const dictionary = await getDictionary(locale)
+  const t = dictionary.assessmentReport
 
   const auth = await createSupabaseAuthServerClient()
   const {
@@ -406,19 +446,29 @@ export default async function CustomerAssessmentReportPage({
 
   const whatChangedItems = [
     diagnostics?.externalSignalsAccepted
-      ? `+${diagnostics.externalSignalsAccepted} external signals accepted`
+      ? interpolate(t.whatChanged.externalSignalsAccepted, {
+          count: diagnostics.externalSignalsAccepted,
+        })
       : null,
     diagnostics?.externalPeopleDetected
-      ? `+${diagnostics.externalPeopleDetected} externally visible people or roles detected`
+      ? interpolate(t.whatChanged.externalPeopleDetected, {
+          count: diagnostics.externalPeopleDetected,
+        })
       : null,
     diagnostics?.externalFindingsInserted
-      ? `+${diagnostics.externalFindingsInserted} external findings generated`
+      ? interpolate(t.whatChanged.externalFindingsInserted, {
+          count: diagnostics.externalFindingsInserted,
+        })
       : null,
     diagnostics?.peopleDetected
-      ? `${diagnostics.peopleDetected} people or roles detected overall`
+      ? interpolate(t.whatChanged.peopleDetected, {
+          count: diagnostics.peopleDetected,
+        })
       : null,
     diagnostics?.findingsInserted
-      ? `${diagnostics.findingsInserted} findings recorded in this assessment`
+      ? interpolate(t.whatChanged.findingsInserted, {
+          count: diagnostics.findingsInserted,
+        })
       : null,
   ]
     .filter((value): value is string => !!value)
@@ -426,35 +476,32 @@ export default async function CustomerAssessmentReportPage({
 
   const immediateRecommendations = getImmediateRecommendationsFromTasks(remediationTasks)
 
-  const fallbackImmediateRecommendations = [
-    'Reduce direct public exposure of finance, HR, and executive email addresses where possible.',
-    'Introduce a secondary verification step for urgent payment or bank detail change requests.',
-    'Review leadership and team pages to limit unnecessary role and contact detail visibility.',
-    'Train HR, finance, and executive-facing staff on impersonation and social engineering scenarios.',
-    'Monitor external sources where staff names, roles, and business context may be exposed.',
-  ]
+  const fallbackImmediateRecommendations = t.fallbackImmediateRecommendations
 
   const recommendationsToRender =
     immediateRecommendations.length > 0
       ? immediateRecommendations
       : fallbackImmediateRecommendations
 
-  const strategicRecommendations = [
-    'Establish a recurring HumanSurface review cycle for public exposure changes.',
-    'Define ownership for public staff details, role visibility, and remediation follow-up.',
-    'Introduce approval controls for externally visible organizational and contact information.',
-    'Track repeated findings over time to measure exposure reduction.',
-  ]
+  const strategicRecommendations = t.strategicRecommendations
 
   const executiveSummary = [
-    `This report summarizes the public human-surface exposure currently visible for ${organization?.name || 'your organization'}.`,
-    `The current overall exposure score is ${overallScore?.score_value ?? assessment.overall_score}, with a ${normalizeLabel(overallScore?.risk_level ?? assessment.overall_risk_level)} risk profile.`,
+    interpolate(t.executiveSummary.intro, {
+      organization: organization?.name || t.executiveSummary.organizationFallback,
+    }),
+    interpolate(t.executiveSummary.score, {
+      score: overallScore?.score_value ?? assessment.overall_score,
+      risk: getRiskLabel(
+        overallScore?.risk_level ?? assessment.overall_risk_level,
+        dictionary,
+      ),
+    }),
     findings.length > 0
-      ? `${findings.length} findings were identified across public website signals and external sources that may support phishing, impersonation, and fraud scenarios.`
-      : 'No material findings were rendered in this report.',
+      ? interpolate(t.executiveSummary.findings, { count: findings.length })
+      : t.executiveSummary.noFindings,
     topPeople.length > 0
-      ? `${topPeople.length} highly exposed people or roles are highlighted for operational follow-up.`
-      : 'No person-level exposure highlights are currently available.',
+      ? interpolate(t.executiveSummary.people, { count: topPeople.length })
+      : t.executiveSummary.noPeople,
   ].join(' ')
 
   return (
@@ -463,10 +510,10 @@ export default async function CustomerAssessmentReportPage({
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between print:mb-6">
           <div>
             <div className="text-sm uppercase tracking-[0.2em] text-cyan-300 print:text-slate-600">
-              Client report
+              {t.clientReportEyebrow}
             </div>
             <h1 className="mt-2 text-4xl font-semibold tracking-tight print:text-3xl">
-              {organization?.name || 'Unknown organization'}
+              {organization?.name || t.unknownOrganization}
             </h1>
             <p className="mt-3 text-slate-400 print:text-slate-600">
               {organization?.domain || '—'}
@@ -475,11 +522,15 @@ export default async function CustomerAssessmentReportPage({
           </div>
 
           <div className="flex items-center gap-3 print:hidden">
+            <LanguageToggle />
             <div className="text-sm text-slate-400">
-              Published:{' '}
-              {formatDateTime(assessment.published_at ?? assessment.created_at)}
+              {t.publishedLabel}:{' '}
+              {formatDateTime(
+                assessment.published_at ?? assessment.created_at,
+                locale,
+              )}
             </div>
-            <PrintReportButton />
+            <PrintReportButton label={t.printReport} />
           </div>
         </div>
 
@@ -488,14 +539,13 @@ export default async function CustomerAssessmentReportPage({
             <div className="flex flex-col gap-6 border-b border-white/10 pb-6 print:border-slate-200 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-3xl">
                 <div className="text-sm uppercase tracking-[0.18em] text-cyan-300 print:text-slate-600">
-                  HumanSurface report
+                  {t.reportEyebrow}
                 </div>
                 <h2 className="mt-2 text-3xl font-semibold print:text-2xl">
-                  Executive summary
+                  {t.executiveSummaryTitle}
                 </h2>
                 <p className="mt-3 text-slate-400 print:text-slate-700">
-                  Summary of public exposure that may support phishing,
-                  impersonation, and fraud scenarios.
+                  {t.executiveSummarySubtitle}
                 </p>
                 <p className="mt-4 text-sm leading-7 text-slate-300 print:text-slate-700">
                   {executiveSummary}
@@ -505,7 +555,7 @@ export default async function CustomerAssessmentReportPage({
               <div className="flex items-center gap-4 self-start lg:self-end">
                 <div className="text-right">
                   <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                    Overall score
+                    {t.overallScoreLabel}
                   </div>
                   <div className="mt-1 text-5xl font-semibold text-white print:text-black">
                     {overallScore?.score_value ?? assessment.overall_score}
@@ -513,42 +563,47 @@ export default async function CustomerAssessmentReportPage({
                 </div>
                 <RiskBadge
                   value={overallScore?.risk_level ?? assessment.overall_risk_level}
+                  dictionary={dictionary}
                 />
               </div>
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-4">
               <ScoreCard
-                label="Overall"
+                label={t.scoreLabels.overall}
                 value={overallScore?.score_value ?? assessment.overall_score}
                 risk={overallScore?.risk_level ?? assessment.overall_risk_level}
+                dictionary={dictionary}
               />
               <ScoreCard
-                label="Impersonation"
+                label={t.scoreLabels.impersonation}
                 value={impersonationScore?.score_value ?? 0}
                 risk={impersonationScore?.risk_level ?? 'low'}
+                dictionary={dictionary}
               />
               <ScoreCard
-                label="Finance Fraud"
+                label={t.scoreLabels.financeFraud}
                 value={financeScore?.score_value ?? 0}
                 risk={financeScore?.risk_level ?? 'low'}
+                dictionary={dictionary}
               />
               <ScoreCard
-                label="HR / Social"
+                label={t.scoreLabels.hrSocial}
                 value={hrScore?.score_value ?? 0}
                 risk={hrScore?.risk_level ?? 'low'}
+                dictionary={dictionary}
               />
             </div>
           </section>
 
           <SectionCard
-            title="Top findings"
-            subtitle="Highest-priority findings currently included in your report."
+            title={t.sections.topFindings}
+            subtitle={t.sections.topFindingsSubtitle}
           >
             <div className="space-y-4">
               {topFindings.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-slate-400 print:border-slate-200 print:text-slate-600">
-                  No findings available.
+                  {t.emptyStates.noFindings}
                 </div>
               ) : (
                 topFindings.map((finding) => {
@@ -590,7 +645,7 @@ export default async function CustomerAssessmentReportPage({
                           </div>
                         </div>
 
-                        <RiskBadge value={finding.severity} />
+                        <RiskBadge value={finding.severity} dictionary={dictionary} />
                       </div>
                     </div>
                   )
@@ -600,11 +655,11 @@ export default async function CustomerAssessmentReportPage({
           </SectionCard>
 
           <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-            <SectionCard title="Most exposed people / roles">
+            <SectionCard title={t.sections.exposedPeople}>
               <div className="space-y-3">
                 {topPeople.length === 0 ? (
                   <div className="rounded-2xl border border-cyan-200/10 bg-[#030815]/40 p-4 text-cyan-50/80 print:border-slate-200 print:bg-slate-50 print:text-slate-600">
-                    No person-level scores available.
+                    {t.emptyStates.noPersonScores}
                   </div>
                 ) : (
                   topPeople.map((score) => {
@@ -620,7 +675,7 @@ export default async function CustomerAssessmentReportPage({
                             <div className="font-medium text-white print:text-black">
                               {linkedPerson?.full_name ||
                                 linkedPerson?.role_title ||
-                                'Unknown person'}
+                                t.unknownPerson}
                             </div>
                             {linkedPerson ? (
                               <div className="mt-1 text-sm text-slate-300 print:text-slate-700">
@@ -641,7 +696,10 @@ export default async function CustomerAssessmentReportPage({
                             <div className="text-3xl font-semibold text-white print:text-black">
                               {score.score_value}
                             </div>
-                            <RiskBadge value={score.risk_level} />
+                            <RiskBadge
+                              value={score.risk_level}
+                              dictionary={dictionary}
+                            />
                           </div>
                         </div>
                       </div>
@@ -651,25 +709,25 @@ export default async function CustomerAssessmentReportPage({
               </div>
             </SectionCard>
 
-            <SectionCard title="External exposure">
+            <SectionCard title={t.sections.externalExposure}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <MetricCard
-                  label="External sources scanned"
+                  label={t.metrics.externalSourcesScanned}
                   value={diagnostics?.externalSourcesScanned ?? 0}
                   accent="fuchsia"
                 />
                 <MetricCard
-                  label="External signals accepted"
+                  label={t.metrics.externalSignalsAccepted}
                   value={diagnostics?.externalSignalsAccepted ?? 0}
                   accent="fuchsia"
                 />
                 <MetricCard
-                  label="External people detected"
+                  label={t.metrics.externalPeopleDetected}
                   value={diagnostics?.externalPeopleDetected ?? 0}
                   accent="fuchsia"
                 />
                 <MetricCard
-                  label="External findings"
+                  label={t.metrics.externalFindings}
                   value={
                     externalFindings.length ||
                     diagnostics?.externalFindingsInserted ||
@@ -682,7 +740,7 @@ export default async function CustomerAssessmentReportPage({
               <div className="mt-6 space-y-3">
                 {externalFindings.length === 0 ? (
                   <div className="rounded-2xl border border-fuchsia-300/20 bg-[#030815]/30 p-4 text-slate-300 print:border-slate-200 print:bg-slate-50 print:text-slate-700">
-                    No dedicated external findings were rendered for this assessment.
+                    {t.emptyStates.noExternalFindings}
                   </div>
                 ) : (
                   externalFindings.slice(0, 4).map((finding) => (
@@ -704,10 +762,10 @@ export default async function CustomerAssessmentReportPage({
                             {finding.source_domain ||
                               finding.source_title ||
                               finding.source_url ||
-                              'External source'}
+                              t.externalSource}
                           </div>
                         </div>
-                        <RiskBadge value={finding.severity} />
+                        <RiskBadge value={finding.severity} dictionary={dictionary} />
                       </div>
                     </div>
                   ))
@@ -717,7 +775,7 @@ export default async function CustomerAssessmentReportPage({
               {uniqueExternalDomains.length > 0 ? (
                 <div className="mt-6">
                   <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                    External source domains
+                    {t.externalSourceDomains}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {uniqueExternalDomains.slice(0, 8).map((domain) => (
@@ -735,25 +793,25 @@ export default async function CustomerAssessmentReportPage({
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-            <SectionCard title="What changed">
+            <SectionCard title={t.sections.whatChanged}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <MetricCard
-                  label="Pages scanned"
+                  label={t.metrics.pagesScanned}
                   value={diagnostics?.scannedPages ?? 0}
                   accent="cyan"
                 />
                 <MetricCard
-                  label="People detected"
+                  label={t.metrics.peopleDetected}
                   value={diagnostics?.peopleDetected ?? 0}
                   accent="cyan"
                 />
                 <MetricCard
-                  label="Findings recorded"
+                  label={t.metrics.findingsRecorded}
                   value={diagnostics?.findingsInserted ?? findings.length}
                   accent="cyan"
                 />
                 <MetricCard
-                  label="Signals linked to people"
+                  label={t.metrics.signalsLinkedToPeople}
                   value={diagnostics?.findingsLinkedToPeople ?? 0}
                   accent="cyan"
                 />
@@ -762,7 +820,7 @@ export default async function CustomerAssessmentReportPage({
               <div className="mt-6 space-y-3">
                 {whatChangedItems.length === 0 ? (
                   <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-slate-400 print:border-slate-200 print:text-slate-700">
-                    Initial published version.
+                    {t.emptyStates.initialPublishedVersion}
                   </div>
                 ) : (
                   whatChangedItems.map((item) => (
@@ -777,19 +835,16 @@ export default async function CustomerAssessmentReportPage({
               </div>
             </SectionCard>
 
-            <SectionCard title="Why this matters">
+            <SectionCard title={t.sections.whyThisMatters}>
               <div className="rounded-2xl border border-white/10 bg-[#071022] p-4 print:border-slate-200 print:bg-slate-50">
                 <div className="text-sm leading-7 text-slate-300 print:text-slate-700">
-                  Public leadership visibility, externally discoverable roles,
-                  and repeated exposure signals increase the credibility of
-                  impersonation, invoice fraud, and social engineering attempts
-                  against your organization.
+                  {t.whyThisMattersText}
                 </div>
               </div>
             </SectionCard>
           </div>
 
-          <SectionCard title="Immediate recommendations">
+          <SectionCard title={t.sections.immediateRecommendations}>
             <div className="grid gap-3 md:grid-cols-2">
               {recommendationsToRender.map((item) => (
                 <div
@@ -802,7 +857,7 @@ export default async function CustomerAssessmentReportPage({
             </div>
           </SectionCard>
 
-          <SectionCard title="Strategic recommendations">
+          <SectionCard title={t.sections.strategicRecommendations}>
             <div className="grid gap-3 md:grid-cols-2">
               {strategicRecommendations.map((item) => (
                 <div

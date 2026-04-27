@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import Script from 'next/script'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { I18nProvider } from '@/app/components/i18n-provider'
+import { localeToHtmlLang } from '@/lib/i18n/config'
+import { getRequestLocale } from '@/lib/i18n/server'
 import './globals.css'
 
 const geistSans = Geist({
@@ -20,15 +23,17 @@ export const metadata: Metadata = {
     'HumanSurface identifies public exposure that can increase phishing, impersonation, and fraud risk.',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const locale = await getRequestLocale()
+
   return (
-    <html lang="en">
+    <html lang={localeToHtmlLang(locale)}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
+        <I18nProvider key={locale} initialLocale={locale}>{children}</I18nProvider>
         <Analytics />
 
         <Script

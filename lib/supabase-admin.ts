@@ -1,24 +1,42 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const rawServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+function getSupabaseAdminConfig() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-console.log('SERVICE ROLE PRESENT', !!rawServiceRoleKey)
+  if (!supabaseUrl) {
+    throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL')
+  }
 
-if (!rawSupabaseUrl) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL')
+  if (!serviceRoleKey) {
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY')
+  }
+
+  return { supabaseUrl, serviceRoleKey }
 }
 
-if (!rawServiceRoleKey) {
-  throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY')
+let supabaseAdminClient: SupabaseClient | null = null
+
+export function getSupabaseAdmin() {
+  if (!supabaseAdminClient) {
+    const { supabaseUrl, serviceRoleKey } = getSupabaseAdminConfig()
+
+    supabaseAdminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+  }
+
+  return supabaseAdminClient
 }
 
-const supabaseUrl: string = rawSupabaseUrl
-const serviceRoleKey: string = rawServiceRoleKey
+export const supabaseAdmin = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    const client = getSupabaseAdmin()
+    const value = Reflect.get(client, prop, client)
 
-export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
+    return typeof value === 'function' ? value.bind(client) : value
   },
 })

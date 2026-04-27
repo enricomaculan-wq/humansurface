@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
+  type LucideIcon,
   Shield,
   Radar,
   Users,
@@ -19,8 +20,9 @@ import {
   Briefcase,
   ChevronRight,
 } from 'lucide-react'
-
-type Locale = 'en' | 'it'
+import LanguageToggle from '@/app/components/language-toggle'
+import { useI18n } from '@/app/components/i18n-provider'
+import type { Locale } from '@/lib/i18n/config'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 22 },
@@ -52,6 +54,7 @@ type Translation = {
   sampleReport: string
   dashboardPreview: string
   buyAssessment: string
+  brandTagline: string
 
   heroBadge: string
   heroTitle: string
@@ -62,6 +65,54 @@ type Translation = {
 
   launchOffer: string
   launchText: string
+  priceVat: string
+  standardPrice: string
+  activationNote: string
+  trustSignals: Array<{
+    title: string
+    text: string
+  }>
+  preview: {
+    impersonation: string
+    financeFraud: string
+    hrSocial: string
+    highShort: string
+    mediumShort: string
+    highRisk: string
+    publicEmails: string
+    executiveVisibility: string
+    predictableEmailPattern: string
+    newPublicEmails: string
+    hrContactDiscovered: string
+    scoreMoved: string
+    paymentFraud: string
+    executiveImpersonation: string
+    fakeCandidatePhishing: string
+    lastScan: string
+    domain: string
+    overall: string
+    riskLevel: string
+    score: string
+    criticalFindings: string
+    updatedNow: string
+    predictableNamingFinding: string
+    financeRoleFinding: string
+    publicHrFinding: string
+    reduceEmails: string
+    paymentVerification: string
+    reviewLeadership: string
+    trainHrFinance: string
+    mainScenario: string
+    riskScore: string
+    newExecutiveProfile: string
+    financeFraudUnchanged: string
+    reportFindingExecutive: string
+    reportFindingEmails: string
+    reportFindingHr: string
+    reportRemediationEmails: string
+    reportRemediationPayment: string
+    reportRemediationTraining: string
+  }
 
   liveSnapshot: string
   highExposure: string
@@ -90,6 +141,7 @@ type Translation = {
 
   howEyebrow: string
   howTitle: string
+  stepLabel: string
   step1Title: string
   step1Text: string
   step2Title: string
@@ -131,6 +183,8 @@ type Translation = {
   buyFlow: string
   simpleAndFast: string
   launchCustomers: string
+  pricingIncluded: string[]
+  requestSteps: string[]
 
   finalEyebrow: string
   finalTitle: string
@@ -138,7 +192,7 @@ type Translation = {
   launchPrice: string
   securePayment: string
   assessmentFirst: string
-  directPurchase: string
+  introCallLabel: string
   buyOnline: string
 
   footerText: string
@@ -151,7 +205,7 @@ const copy: Record<Locale, Translation> = {
     navDashboard: 'Dashboard',
     navPricing: 'Pricing',
     login: 'Login',
-    getAssessment: 'Request a call',
+    getAssessment: 'Request assessment call',
     seeSampleReport: 'See sample report',
     company: 'Company',
     resources: 'Resources',
@@ -160,20 +214,86 @@ const copy: Record<Locale, Translation> = {
     contact: 'Contact',
     sampleReport: 'Sample report',
     dashboardPreview: 'Dashboard preview',
-    buyAssessment: 'Request a call',
+    buyAssessment: 'Request assessment call',
+    brandTagline: 'Human attack surface visibility',
 
-    heroBadge: 'Cyber exposure intelligence for phishing and fraud',
+    heroBadge: 'Reviewed public-exposure assessment for phishing and fraud risk',
     heroTitle:
-      'Discover which people, roles, and public information make your company vulnerable to phishing, impersonation, and fraud',
+      'Find the public people, role, and contact exposure attackers can use to make fraud feel believable',
     heroText:
-      'HumanSurface analyzes your company’s public exposure and shows where attackers could target your business through people, key roles, and email visibility',
-    chip1: 'No complex setup',
-    chip2: 'Reviewed manually',
-    chip3: 'Built for SMEs and professional firms',
+      'HumanSurface reviews your company’s public footprint, maps exposed roles and contact paths, and turns them into executive-ready findings and remediation priorities.',
+    chip1: 'No credentials or internal access required',
+    chip2: 'Manual review before delivery',
+    chip3: 'Built for SMEs, professional firms, and visible teams',
 
-    launchOffer: 'Launch offer',
+    launchOffer: 'Reviewed launch assessment',
     launchText:
-      'HumanSurface starts with an intro call to align on fit, priorities, and next steps before activation.',
+      'Request an intro call for the €190 launch assessment. We confirm fit and scope before activation, then deliver a reviewed report with prioritized actions.',
+    priceVat: '+ VAT',
+    standardPrice: '€290 standard',
+    activationNote: 'Activation happens after scope confirmation.',
+    trustSignals: [
+      {
+        title: 'Clear scope before activation',
+        text: 'The intro call confirms company, domain, priorities, and whether the reviewed assessment is the right fit.',
+      },
+      {
+        title: 'Public-source methodology',
+        text: 'We focus on externally visible people, roles, contact paths, business context, and fraud-enabling signals.',
+      },
+      {
+        title: 'No internal access needed',
+        text: 'The launch assessment does not require credentials, agents, inbox access, or invasive setup.',
+      },
+      {
+        title: 'Decision-ready deliverable',
+        text: 'You receive scored findings, exposed roles, likely attack scenarios, and practical remediation priorities.',
+      },
+    ],
+    preview: {
+      impersonation: 'Impersonation',
+      financeFraud: 'Finance fraud',
+      hrSocial: 'HR / Social',
+      highShort: 'HIGH',
+      mediumShort: 'MED',
+      highRisk: 'High Risk',
+      publicEmails: 'Public email addresses found on company pages',
+      executiveVisibility: 'Executive visibility exposed',
+      predictableEmailPattern: 'Predictable email naming pattern detected',
+      newPublicEmails: '+2 public email addresses detected',
+      hrContactDiscovered: '+1 HR contact page discovered',
+      scoreMoved: 'Overall score moved from 64 to 72',
+      paymentFraud: 'Payment fraud',
+      executiveImpersonation: 'Executive impersonation',
+      fakeCandidatePhishing: 'Fake candidate phishing',
+      lastScan: 'last scan',
+      domain: 'domain',
+      overall: 'Overall',
+      riskLevel: 'Risk level',
+      score: 'score',
+      criticalFindings: 'Critical findings',
+      updatedNow: 'updated now',
+      predictableNamingFinding:
+        'Predictable naming pattern supports address enumeration',
+      financeRoleFinding:
+        'Finance role visibility increases urgent-payment fraud risk',
+      publicHrFinding: 'Public HR contact page discovered',
+      reduceEmails: 'Reduce public exposure of direct finance and HR email addresses',
+      paymentVerification:
+        'Introduce payment verification controls for urgent requests',
+      reviewLeadership: 'Review leadership pages and public role descriptions',
+      trainHrFinance: 'Train HR and finance on impersonation scenarios',
+      mainScenario: 'Main scenario',
+      riskScore: 'risk score',
+      newExecutiveProfile: '+1 executive profile indexed',
+      financeFraudUnchanged: 'Finance fraud risk unchanged',
+      reportFindingExecutive: 'Executive visibility increases impersonation risk',
+      reportFindingEmails: 'Public email addresses found on company pages',
+      reportFindingHr: 'HR contacts publicly exposed',
+      reportRemediationEmails: 'Reduce direct public email exposure',
+      reportRemediationPayment: 'Introduce payment verification procedures',
+      reportRemediationTraining: 'Train HR and finance on impersonation scenarios',
+    },
 
     liveSnapshot: 'Live assessment snapshot',
     highExposure: 'High exposure',
@@ -192,9 +312,9 @@ const copy: Record<Locale, Translation> = {
 
     problemEyebrow: 'The problem',
     problemTitle:
-      'Most attacks do not start with infrastructure. They start with people.',
+      'Fraud and impersonation often start with public context, not technical compromise.',
     problemText:
-      'Many companies protect systems and email, but still expose public information that helps attackers run phishing, impersonation, and fraud attempts with higher credibility.',
+      'Names, roles, emails, team pages, and business details can make a fake request sound real. HumanSurface shows which visible signals create the most usable attack context.',
 
     problemCard1Title: 'Public exposure',
     problemCard1Text:
@@ -207,17 +327,17 @@ const copy: Record<Locale, Translation> = {
       'Clear findings and immediate next steps, not generic security reporting.',
 
     howEyebrow: 'How it works',
-    howTitle:
-      'From initial request to reviewed exposure assessment in a few simple steps.',
-    step1Title: 'Share your company details',
+    howTitle: 'A consultation-first path to a reviewed exposure assessment.',
+    stepLabel: 'Step',
+    step1Title: 'Submit a focused intake',
     step1Text:
-      'Tell us your company name, domain, work email, and any useful context.',
-    step2Title: 'Book a short intro call',
+      'Share your company domain, work email, role, and the exposure concerns you want reviewed.',
+    step2Title: 'Confirm scope on a short call',
     step2Text:
-      'We review your request and get back to you to align on fit, priorities, and next steps.',
+      'We review the intake, respond within 1–2 business days, and align on fit, scope, and priorities.',
     step3Title: 'Receive your assessment',
     step3Text:
-      'Get reviewed findings, scores, exposed roles, and immediate remediation priorities.',
+      'After activation, you receive reviewed findings, scores, exposed roles, scenarios, and remediation priorities.',
 
     whatEyebrow: 'What you get',
     whatTitle: 'Not just data. Clear priorities.',
@@ -242,34 +362,47 @@ const copy: Record<Locale, Translation> = {
 
     dashboardEyebrow: 'Internal dashboard',
     dashboardTitle:
-      'A cyber-tech dashboard that feels like a real platform, not a generic brochure.',
+      'A reviewed report and dashboard built for security and business decisions.',
     dashboardText:
-      'This preview extends the same visual language into the actual product: high-signal cards, score-driven layouts, clear findings, and immediate remediation.',
+      'The product experience is designed to make exposure explainable: scored signals, role-level context, likely fraud scenarios, and remediation that a team can actually assign.',
     assessmentOverview: 'Assessment overview',
     peopleAtRisk: 'People at risk',
     exposedPeople: 'Most exposed roles and people',
     delta7: '7-day delta',
 
     pricingEyebrow: 'Pricing',
-    pricingTitle: 'Start with a one-time assessment.',
+    pricingTitle: 'Request an intro call for the reviewed launch assessment.',
     pricingText:
-      'Simple launch pricing with an intro-call first approach to align on fit and priorities.',
+      'The €190 + VAT launch assessment starts with a short consultation to confirm fit and scope before activation.',
     assessmentName: 'HumanSurface Assessment',
     pricingDescription:
       'A one-time assessment designed to reveal the public exposure that can increase phishing, impersonation, and fraud risk for your company.',
     buyFlow: 'Request flow',
-    simpleAndFast: 'Simple and consultative',
-    launchCustomers: 'Launch offer available for the first customers.',
+    simpleAndFast: 'Consultation first, assessment after scope is clear',
+    launchCustomers: 'Launch assessment available for selected early customers.',
+    pricingIncluded: [
+      'Company domain and public web presence review',
+      'External people, role, and contact exposure analysis',
+      'Impersonation, finance-fraud, and HR/social engineering scoring',
+      'Executive-ready report',
+      'Likely attack scenarios',
+      'Prioritized remediation actions',
+    ],
+    requestSteps: [
+      'Share company details and the reason for the assessment',
+      'We review the intake and reply within 1–2 business days',
+      'Intro call confirms fit, scope, and activation path',
+    ],
 
-    finalEyebrow: 'Request a call',
-    finalTitle: 'Start with a HumanSurface intro call.',
+    finalEyebrow: 'Request the launch assessment',
+    finalTitle: 'Start with a HumanSurface assessment call.',
     finalText:
-      'Tell us about your company, share your priorities, and we will get back to you to arrange a short call.',
+      'Tell us what prompted the request. We will review the context and arrange a short intro call before activating the assessment.',
     launchPrice: 'Launch offer: €190 + VAT',
-    securePayment: 'Reviewed before activation',
-    assessmentFirst: 'Built for consultative assessment delivery',
-    directPurchase: 'Intro call',
-    buyOnline: 'Request your HumanSurface intro call',
+    securePayment: 'Scope confirmed before activation',
+    assessmentFirst: 'Reviewed report with remediation priorities',
+    introCallLabel: 'Intro call first',
+    buyOnline: 'Request the launch assessment call',
 
     footerText:
       'HumanSurface helps organizations identify public exposure that can enable phishing, impersonation, and human-targeted fraud.',
@@ -280,7 +413,7 @@ const copy: Record<Locale, Translation> = {
     navDashboard: 'Dashboard',
     navPricing: 'Prezzi',
     login: 'Login',
-    getAssessment: 'Richiedi una call',
+    getAssessment: 'Richiedi call assessment',
     seeSampleReport: 'Demo report',
     company: 'Azienda',
     resources: 'Risorse',
@@ -289,23 +422,89 @@ const copy: Record<Locale, Translation> = {
     contact: 'Contatti',
     sampleReport: 'Demo Report',
     dashboardPreview: 'Anteprima dashboard',
-    buyAssessment: 'Richiedi una call',
+    buyAssessment: 'Richiedi call assessment',
+    brandTagline: 'Visibilità della superficie d’attacco umana',
 
-    heroBadge: 'Analisi sull’esposizione cyber per phishing e frodi',
+    heroBadge: 'Assessment revisionato dell’esposizione pubblica per phishing e frodi',
     heroTitle:
-      'Scopri quali persone, ruoli e dati pubblici aumentano il rischio di phishing e frodi',
+      'Trova esposizioni pubbliche di persone, ruoli e contatti che possono rendere credibile una frode',
     heroText:
-      'HumanSurface analizza l’esposizione pubblica della tua azienda e mostra dove un attaccante potrebbe colpirti attraverso persone, ruoli chiave e visibilità delle email',
-    chip1: 'Nessuna configurazione complessa',
-    chip2: 'Revisione manuale',
-    chip3: 'Pensato per PMI e studi professionali',
+      'HumanSurface rivede la presenza pubblica della tua azienda, mappa ruoli e canali di contatto esposti e li trasforma in finding executive-ready e priorità di remediation.',
+    chip1: 'Nessuna credenziale o accesso interno richiesto',
+    chip2: 'Revisione manuale prima della consegna',
+    chip3: 'Pensato per PMI, studi professionali e team visibili',
 
-    launchOffer: 'Offerta lancio',
+    launchOffer: 'Assessment lancio revisionato',
     launchText:
-      'HumanSurface parte da una call introduttiva per allineare fit, priorità e prossimi passi prima dell’attivazione.',
+      'Richiedi una call introduttiva per l’assessment lancio da €190. Confermiamo aderenza e scope prima dell’attivazione, poi consegniamo un report revisionato con azioni prioritarie.',
+    priceVat: '+ IVA',
+    standardPrice: '€290 standard',
+    activationNote: 'L’attivazione avviene dopo la conferma dello scope.',
+    trustSignals: [
+      {
+        title: 'Scope chiaro prima dell’attivazione',
+        text: 'La call introduttiva conferma azienda, dominio, priorità e se l’assessment revisionato è adatto al caso.',
+      },
+      {
+        title: 'Metodologia su fonti pubbliche',
+        text: 'Ci concentriamo su persone, ruoli, canali di contatto, contesto aziendale e segnali che possono abilitare frodi.',
+      },
+      {
+        title: 'Nessun accesso interno richiesto',
+        text: 'L’assessment lancio non richiede credenziali, agent, accesso alle inbox o configurazioni invasive.',
+      },
+      {
+        title: 'Deliverable pronto per decidere',
+        text: 'Ricevi finding con score, ruoli esposti, scenari di attacco probabili e priorità di remediation pratiche.',
+      },
+    ],
+    preview: {
+      impersonation: 'Impersonificazione',
+      financeFraud: 'Frodi finance',
+      hrSocial: 'HR / Social',
+      highShort: 'ALTO',
+      mediumShort: 'MED',
+      highRisk: 'Rischio alto',
+      publicEmails: 'Email pubbliche trovate sulle pagine aziendali',
+      executiveVisibility: 'Visibilità executive esposta',
+      predictableEmailPattern: 'Pattern email prevedibile rilevato',
+      newPublicEmails: '+2 email pubbliche rilevate',
+      hrContactDiscovered: '+1 pagina contatti HR scoperta',
+      scoreMoved: 'Score complessivo passato da 64 a 72',
+      paymentFraud: 'Frode nei pagamenti',
+      executiveImpersonation: 'Impersonificazione executive',
+      fakeCandidatePhishing: 'Phishing con falso candidato',
+      lastScan: 'ultima scansione',
+      domain: 'dominio',
+      overall: 'Complessivo',
+      riskLevel: 'Livello rischio',
+      score: 'score',
+      criticalFindings: 'Finding critici',
+      updatedNow: 'aggiornato ora',
+      predictableNamingFinding:
+        'Pattern di naming prevedibile supporta enumerazione indirizzi',
+      financeRoleFinding:
+        'Visibilità ruoli finance aumenta il rischio di frodi urgenti',
+      publicHrFinding: 'Pagina contatti HR pubblica scoperta',
+      reduceEmails: 'Ridurre l’esposizione pubblica di email finance e HR dirette',
+      paymentVerification:
+        'Introdurre controlli di verifica per richieste di pagamento urgenti',
+      reviewLeadership: 'Rivedere pagine leadership e descrizioni pubbliche dei ruoli',
+      trainHrFinance: 'Formare HR e finance su scenari di impersonificazione',
+      mainScenario: 'Scenario principale',
+      riskScore: 'score rischio',
+      newExecutiveProfile: '+1 profilo executive indicizzato',
+      financeFraudUnchanged: 'Rischio frodi finance invariato',
+      reportFindingExecutive: 'Visibilità executive aumenta il rischio di impersonificazione',
+      reportFindingEmails: 'Email pubbliche trovate sulle pagine aziendali',
+      reportFindingHr: 'Contatti HR pubblicamente esposti',
+      reportRemediationEmails: 'Ridurre l’esposizione di email pubbliche dirette',
+      reportRemediationPayment: 'Introdurre procedure di verifica dei pagamenti',
+      reportRemediationTraining: 'Formare HR e finance su scenari di impersonificazione',
+    },
 
     liveSnapshot: 'Snapshot assessment',
-    highExposure: 'High Exposure',
+    highExposure: 'Esposizione alta',
     humanSurfaceScore: 'HumanSurface Score',
     topFindings: 'Principali finding',
     criticalSignals: '5 segnali critici',
@@ -321,9 +520,9 @@ const copy: Record<Locale, Translation> = {
 
     problemEyebrow: 'Il problema',
     problemTitle:
-      'La maggior parte degli attacchi non inizia dall’infrastruttura. Inizia dalle persone.',
+      'Frodi e impersonificazione spesso partono dal contesto pubblico, non da una compromissione tecnica.',
     problemText:
-      'Molte aziende proteggono sistemi ed email, ma continuano a esporre informazioni pubbliche che aiutano a rendere più credibili phishing, impersonificazione e frodi.',
+      'Nomi, ruoli, email, pagine team e dettagli aziendali possono far sembrare reale una richiesta falsa. HumanSurface mostra quali segnali visibili creano il contesto più sfruttabile.',
 
     problemCard1Title: 'Esposizione pubblica',
     problemCard1Text:
@@ -336,17 +535,17 @@ const copy: Record<Locale, Translation> = {
       'Finding chiari e azioni immediate, non report generici di sicurezza.',
 
     howEyebrow: 'Come funziona',
-    howTitle:
-      'Dalla richiesta iniziale a un assessment revisionato in pochi passaggi.',
-    step1Title: 'Condividi i dati aziendali',
+    howTitle: 'Un percorso consultation-first verso un assessment revisionato.',
+    stepLabel: 'Fase',
+    step1Title: 'Invia un intake mirato',
     step1Text:
-      'Indicaci nome azienda, dominio, email business e contesto utile.',
-    step2Title: 'Prenota una breve call introduttiva',
+      'Condividi dominio aziendale, email di lavoro, ruolo e le priorità di esposizione da rivedere.',
+    step2Title: 'Conferma lo scope in una breve call',
     step2Text:
-      'Rivediamo la richiesta e ti ricontattiamo per allinearci su fit, priorità e prossimi passi.',
+      'Rivediamo l’intake, rispondiamo entro 1-2 giorni lavorativi e allineiamo aderenza, scope e priorità.',
     step3Title: 'Ricevi il tuo assessment',
     step3Text:
-      'Ottieni finding revisionati, score, ruoli esposti e priorità di remediation.',
+      'Dopo l’attivazione ricevi finding revisionati, score, ruoli esposti, scenari e priorità di remediation.',
 
     whatEyebrow: 'Cosa ottieni',
     whatTitle: 'Non solo dati. Priorità chiare.',
@@ -370,34 +569,47 @@ const copy: Record<Locale, Translation> = {
     humansurface: 'HumanSurface',
 
     dashboardEyebrow: 'Dashboard interna',
-    dashboardTitle: 'Una dashboard cyber-tech chiara e comprensibile.',
+    dashboardTitle: 'Un report e una dashboard revisionati per decisioni security e business.',
     dashboardText:
-      'Questa anteprima estende lo stesso linguaggio visivo al prodotto: card ad alto segnale, layout basati su score, finding chiari e remediation immediata.',
+      'L’esperienza prodotto rende l’esposizione spiegabile: segnali con score, contesto per ruolo, scenari di frode probabili e remediation che il team può assegnare.',
     assessmentOverview: 'Panoramica assessment',
     peopleAtRisk: 'Persone a rischio',
     exposedPeople: 'Ruoli e persone più esposti',
     delta7: 'Delta 7 giorni',
 
     pricingEyebrow: 'Prezzi',
-    pricingTitle: 'Inizia con un assessment una tantum.',
+    pricingTitle: 'Richiedi una call introduttiva per l’assessment lancio revisionato.',
     pricingText:
-      'Prezzo lancio semplice con approccio iniziale via call per allineare fit e priorità.',
+      'L’assessment lancio da €190 + IVA parte con una breve consulenza per confermare aderenza e scope prima dell’attivazione.',
     assessmentName: 'Assessment HumanSurface',
     pricingDescription:
       'Un assessment una tantum progettato per mostrare l’esposizione pubblica che può aumentare il rischio di phishing, impersonificazione e frodi.',
     buyFlow: 'Flusso richiesta',
-    simpleAndFast: 'Semplice e consulenziale',
-    launchCustomers: 'Offerta lancio disponibile per i primi clienti.',
+    simpleAndFast: 'Prima consulenza, assessment dopo scope chiaro',
+    launchCustomers: 'Assessment lancio disponibile per una selezione di primi clienti.',
+    pricingIncluded: [
+      'Revisione del dominio aziendale e della presenza web pubblica',
+      'Analisi esterna di esposizione di persone, ruoli e contatti',
+      'Score per impersonificazione, frodi finance e HR/social engineering',
+      'Report executive-ready',
+      'Scenari di attacco probabili',
+      'Azioni di remediation prioritarie',
+    ],
+    requestSteps: [
+      'Condividi dati aziendali e motivo della richiesta',
+      'Rivediamo l’intake e rispondiamo entro 1-2 giorni lavorativi',
+      'La call conferma aderenza, scope e percorso di attivazione',
+    ],
 
-    finalEyebrow: 'Richiedi una call',
-    finalTitle: 'Inizia con una call introduttiva HumanSurface.',
+    finalEyebrow: 'Richiedi l’assessment lancio',
+    finalTitle: 'Inizia con una call assessment HumanSurface.',
     finalText:
-      'Raccontaci la tua azienda, condividi le tue priorità e ti ricontatteremo per organizzare una breve call.',
+      'Raccontaci cosa ha motivato la richiesta. Rivedremo il contesto e organizzeremo una breve call introduttiva prima di attivare l’assessment.',
     launchPrice: 'Offerta lancio: €190 + IVA',
-    securePayment: 'Revisione prima dell’attivazione',
-    assessmentFirst: 'Pensato per un percorso consulenziale',
-    directPurchase: 'Call introduttiva',
-    buyOnline: 'Richiedi una call con HumanSurface',
+    securePayment: 'Scope confermato prima dell’attivazione',
+    assessmentFirst: 'Report revisionato con priorità di remediation',
+    introCallLabel: 'Prima call introduttiva',
+    buyOnline: 'Richiedi la call per l’assessment lancio',
 
     footerText:
       'HumanSurface aiuta le organizzazioni a identificare l’esposizione pubblica che può favorire phishing, impersonificazione e frodi mirate alle persone.',
@@ -450,7 +662,13 @@ function DataChip({ children }: { children: ReactNode }) {
   )
 }
 
-function SeverityBadge({ level }: { level: 'High' | 'Medium' | 'Low' }) {
+function SeverityBadge({
+  level,
+  label,
+}: {
+  level: 'High' | 'Medium' | 'Low'
+  label?: string
+}) {
   const styles = {
     High: 'border-fuchsia-400/20 bg-fuchsia-400/10 text-fuchsia-200',
     Medium: 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100',
@@ -461,7 +679,7 @@ function SeverityBadge({ level }: { level: 'High' | 'Medium' | 'Low' }) {
     <span
       className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium ${styles[level]}`}
     >
-      {level}
+      {label ?? level}
     </span>
   )
 }
@@ -479,8 +697,11 @@ function LaunchPricingCard({
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <div className="text-5xl font-semibold tracking-tight text-white">€190</div>
-        <div className="pb-1 text-lg text-slate-300">+ VAT</div>
-        <div className="pb-1 text-sm text-slate-500 line-through">€290 standard</div>
+        <div className="pb-1 text-lg text-slate-300">{t.priceVat}</div>
+        <div className="pb-1 text-sm text-slate-500 line-through">{t.standardPrice}</div>
+      </div>
+      <div className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-cyan-200/80">
+        {t.activationNote}
       </div>
 
       <p className="mt-4 text-sm leading-7 text-slate-300">{t.launchText}</p>
@@ -581,9 +802,9 @@ function LandingHero({
 
                   <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-3">
                     {[
-                      ['Impersonation', '81', 'HIGH'],
-                      ['Finance fraud', '68', 'MED'],
-                      ['HR / Social', '74', 'HIGH'],
+                      [t.preview.impersonation, '81', t.preview.highShort],
+                      [t.preview.financeFraud, '68', t.preview.mediumShort],
+                      [t.preview.hrSocial, '74', t.preview.highShort],
                     ].map(([label, score, level]) => (
                       <div
                         key={label}
@@ -611,9 +832,9 @@ function LandingHero({
                     </div>
                     <div className="space-y-3">
                       {[
-                        'Public email addresses found on company pages',
-                        'Executive visibility exposed',
-                        'Predictable email naming pattern detected',
+                        t.preview.publicEmails,
+                        t.preview.executiveVisibility,
+                        t.preview.predictableEmailPattern,
                       ].map((item, idx) => (
                         <div
                           key={item}
@@ -638,9 +859,9 @@ function LandingHero({
                     </div>
                     <div className="mt-4 space-y-3 text-sm text-cyan-50">
                       {[
-                        '+2 public email addresses detected',
-                        '+1 HR contact page discovered',
-                        'Overall score moved from 64 to 72',
+                        t.preview.newPublicEmails,
+                        t.preview.hrContactDiscovered,
+                        t.preview.scoreMoved,
                       ].map((item) => (
                         <div
                           key={item}
@@ -683,21 +904,21 @@ function InternalDashboardPreview({
       name: 'Laura Bianchi',
       role: 'CFO',
       score: 84,
-      scenario: 'Payment fraud',
+      scenario: t.preview.paymentFraud,
       icon: Briefcase,
     },
     {
       name: 'Marco Rossi',
       role: 'CEO',
       score: 81,
-      scenario: 'Executive impersonation',
+      scenario: t.preview.executiveImpersonation,
       icon: Building2,
     },
     {
       name: 'Giulia Verdi',
       role: 'HR Manager',
       score: 76,
-      scenario: 'Fake candidate phishing',
+      scenario: t.preview.fakeCandidatePhishing,
       icon: Users,
     },
   ]
@@ -727,30 +948,30 @@ function InternalDashboardPreview({
                   </div>
                   <h3 className="mt-2 text-2xl font-semibold">Rossi Industriali S.r.l.</h3>
                   <p className="mt-2 text-sm text-slate-400">
-                    last scan · 17 Mar 2026 · domain: rossi-industriali.it
+                    {t.preview.lastScan} · 17 Mar 2026 · {t.preview.domain}: rossi-industriali.it
                   </p>
                 </div>
                 <div className="flex gap-3">
                   <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
                     <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
-                      Overall
+                      {t.preview.overall}
                     </div>
                     <div className="mt-1 text-2xl font-semibold">72</div>
                   </div>
                   <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-3 text-fuchsia-200">
                     <div className="text-[10px] uppercase tracking-[0.18em]">
-                      Risk level
+                      {t.preview.riskLevel}
                     </div>
-                    <div className="mt-1 text-2xl font-semibold">High</div>
+                    <div className="mt-1 text-2xl font-semibold">{t.highExposure}</div>
                   </div>
                 </div>
               </div>
 
               <div className="mt-5 grid gap-4 md:grid-cols-3">
                 {[
-                  { label: 'Impersonation', value: 81, icon: Fingerprint },
-                  { label: 'Finance fraud', value: 68, icon: FileWarning },
-                  { label: 'HR / Social Engineering', value: 74, icon: Mail },
+                  { label: t.preview.impersonation, value: 81, icon: Fingerprint },
+                  { label: t.preview.financeFraud, value: 68, icon: FileWarning },
+                  { label: t.preview.hrSocial, value: 74, icon: Mail },
                 ].map((item) => {
                   const Icon = item.icon
                   return (
@@ -763,7 +984,7 @@ function InternalDashboardPreview({
                           <Icon className="h-4 w-4" />
                         </div>
                         <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
-                          score
+                          {t.preview.score}
                         </span>
                       </div>
                       <div className="mt-4 text-sm text-slate-300">{item.label}</div>
@@ -777,24 +998,31 @@ function InternalDashboardPreview({
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <div className="mb-4 flex items-center justify-between">
                     <h4 className="text-sm font-medium uppercase tracking-[0.18em] text-cyan-200">
-                      Critical findings
+                      {t.preview.criticalFindings}
                     </h4>
-                    <span className="text-xs text-slate-500">updated now</span>
+                    <span className="text-xs text-slate-500">{t.preview.updatedNow}</span>
                   </div>
                   <div className="space-y-3">
                     {[
-                      ['Public email addresses found on company pages', 'High'],
-                      ['Predictable naming pattern supports address enumeration', 'Medium'],
-                      ['Finance role visibility increases urgent-payment fraud risk', 'High'],
-                      ['Public HR contact page discovered', 'Medium'],
-                    ].map(([title, level]) => (
+                      [t.preview.publicEmails, 'High', t.preview.highShort],
+                      [
+                        t.preview.predictableNamingFinding,
+                        'Medium',
+                        t.preview.mediumShort,
+                      ],
+                      [t.preview.financeRoleFinding, 'High', t.preview.highShort],
+                      [t.preview.publicHrFinding, 'Medium', t.preview.mediumShort],
+                    ].map(([title, level, label]) => (
                       <div
                         key={title}
                         className="rounded-2xl border border-white/8 bg-[#030815] p-4"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="text-sm text-slate-200">{title}</div>
-                          <SeverityBadge level={level as 'High' | 'Medium'} />
+                          <SeverityBadge
+                            level={level as 'High' | 'Medium'}
+                            label={label}
+                          />
                         </div>
                       </div>
                     ))}
@@ -810,10 +1038,10 @@ function InternalDashboardPreview({
                   </div>
                   <div className="space-y-3">
                     {[
-                      'Reduce public exposure of direct finance and HR email addresses',
-                      'Introduce payment verification controls for urgent requests',
-                      'Review leadership pages and public role descriptions',
-                      'Train HR and finance on impersonation scenarios',
+                      t.preview.reduceEmails,
+                      t.preview.paymentVerification,
+                      t.preview.reviewLeadership,
+                      t.preview.trainHrFinance,
                     ].map((task) => (
                       <div
                         key={task}
@@ -858,13 +1086,13 @@ function InternalDashboardPreview({
                             <div className="font-medium text-white">{person.name}</div>
                             <div className="text-sm text-slate-400">{person.role}</div>
                             <div className="mt-2 text-sm text-slate-300">
-                              Main scenario: {person.scenario}
+                              {t.preview.mainScenario}: {person.scenario}
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-                            risk score
+                            {t.preview.riskScore}
                           </div>
                           <div className="mt-1 text-2xl font-semibold">{person.score}</div>
                         </div>
@@ -889,10 +1117,10 @@ function InternalDashboardPreview({
               </div>
               <div className="mt-5 space-y-3">
                 {[
-                  '+2 new public emails discovered',
-                  '+1 executive profile indexed',
-                  'Finance fraud risk unchanged',
-                  'Overall score moved from 64 to 72',
+                  t.preview.newPublicEmails,
+                  t.preview.newExecutiveProfile,
+                  t.preview.financeFraudUnchanged,
+                  t.preview.scoreMoved,
                 ].map((item, idx) => (
                   <div
                     key={item}
@@ -921,52 +1149,8 @@ function InternalDashboardPreview({
   )
 }
 
-function LanguageToggle({
-  locale,
-  onChange,
-}: {
-  locale: Locale
-  onChange: (locale: Locale) => void
-}) {
-  return (
-    <div className="hidden items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1 md:flex">
-      {(['en', 'it'] as Locale[]).map((item) => (
-        <button
-          key={item}
-          type="button"
-          onClick={() => onChange(item)}
-          className={`rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-            locale === item
-              ? 'bg-cyan-300 text-slate-950'
-              : 'text-slate-300 hover:bg-white/[0.05] hover:text-white'
-          }`}
-        >
-          {item}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 export default function HumanSurfaceLandingPage() {
-  const [locale, setLocale] = useState<Locale>('en')
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem('humansurface_locale')
-    if (saved === 'en' || saved === 'it') {
-      setLocale(saved)
-      return
-    }
-
-    const browserLang = window.navigator.language.toLowerCase()
-    if (browserLang.startsWith('it')) {
-      setLocale('it')
-    }
-  }, [])
-
-  useEffect(() => {
-    window.localStorage.setItem('humansurface_locale', locale)
-  }, [locale])
+  const { locale } = useI18n()
 
   const t = useMemo(() => copy[locale], [locale])
 
@@ -1085,15 +1269,15 @@ export default function HumanSurfaceLandingPage() {
   const included =
     locale === 'it'
       ? [
-          'Overall HumanSurface Score',
-          'Impersonation Risk',
-          'Finance Fraud Risk',
-          'HR / Social Engineering Risk',
+          'Score complessivo HumanSurface',
+          'Rischio impersonificazione',
+          'Rischio frodi finance',
+          'Rischio HR / social engineering',
           'Principali finding critici',
           'Persone e ruoli più esposti',
           'Scenari di attacco',
           'Remediation immediata',
-          'Tracking cambiamenti a 7 giorni',
+          'Tracciamento cambiamenti a 7 giorni',
         ]
       : [
           'Overall HumanSurface Score',
@@ -1123,7 +1307,7 @@ export default function HumanSurfaceLandingPage() {
             </div>
             <div className="min-w-0">
               <div className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/70">
-                Human attack surface visibility
+                {t.brandTagline}
               </div>
               <div className="text-lg font-semibold tracking-tight">HumanSurface</div>
             </div>
@@ -1145,7 +1329,7 @@ export default function HumanSurfaceLandingPage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <LanguageToggle locale={locale} onChange={setLocale} />
+            <LanguageToggle />
 
             <a
               href="/login"
@@ -1176,6 +1360,17 @@ export default function HumanSurfaceLandingPage() {
           </div>
         </section>
 
+        <section className="mx-auto max-w-7xl px-6 pt-16 lg:px-8">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {t.trustSignals.map((item) => (
+              <GlassCard key={item.title} className="h-full p-5">
+                <div className="text-sm font-semibold text-white">{item.title}</div>
+                <p className="mt-3 text-sm leading-7 text-slate-300">{item.text}</p>
+              </GlassCard>
+            ))}
+          </div>
+        </section>
+
         <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
           <motion.div
             initial="hidden"
@@ -1190,22 +1385,21 @@ export default function HumanSurfaceLandingPage() {
             />
 
             <div className="mt-12 grid gap-6 md:grid-cols-3">
-              {[
+              {([
                 [t.problemCard1Title, t.problemCard1Text, Radar],
                 [t.problemCard2Title, t.problemCard2Text, Shield],
                 [t.problemCard3Title, t.problemCard3Text, ScanSearch],
-              ].map(([title, description, Icon], idx) => {
-                const Comp = Icon as any
+              ] satisfies Array<[string, string, LucideIcon]>).map(([title, description, Icon], idx) => {
                 return (
-                  <motion.div key={title as string} variants={fadeUp}>
+                  <motion.div key={title} variants={fadeUp}>
                     <GlassCard className="group h-full p-6 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.04]">
                       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-[#091226] text-cyan-200 shadow-[0_0_20px_rgba(34,211,238,0.10)]">
-                        <Comp
+                        <Icon
                           className={`h-5 w-5 ${idx === 1 ? 'text-fuchsia-300' : 'text-cyan-200'}`}
                         />
                       </div>
-                      <h3 className="text-xl font-semibold">{title as string}</h3>
-                      <p className="mt-3 leading-7 text-slate-300">{description as string}</p>
+                      <h3 className="text-xl font-semibold">{title}</h3>
+                      <p className="mt-3 leading-7 text-slate-300">{description}</p>
                     </GlassCard>
                   </motion.div>
                 )
@@ -1236,7 +1430,7 @@ export default function HumanSurfaceLandingPage() {
                         {step}
                       </div>
                       <div className="text-sm font-medium uppercase tracking-[0.2em] text-cyan-300">
-                        Step {step}
+                        {t.stepLabel} {step}
                       </div>
                       <h3 className="mt-4 text-2xl font-semibold">{title}</h3>
                       <p className="mt-4 leading-7 text-slate-300">{description}</p>
@@ -1286,15 +1480,15 @@ export default function HumanSurfaceLandingPage() {
                       <div className="mt-2 text-2xl font-semibold">{t.reportTitle}</div>
                     </div>
                     <div className="rounded-full border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-sm font-medium text-fuchsia-700">
-                      High Risk
+                      {t.preview.highRisk}
                     </div>
                   </div>
 
                   <div className="mt-6 grid gap-4 sm:grid-cols-3">
                     {[
-                      ['Overall', '72/100'],
-                      ['Impersonation', '81'],
-                      ['Finance fraud', '68'],
+                      [t.preview.overall, '72/100'],
+                      [t.preview.impersonation, '81'],
+                      [t.preview.financeFraud, '68'],
                     ].map(([label, score]) => (
                       <div
                         key={label}
@@ -1311,9 +1505,9 @@ export default function HumanSurfaceLandingPage() {
                   <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
                     <div className="text-sm font-semibold">{t.topFindings}</div>
                     <div className="mt-4 space-y-3 text-sm text-slate-700">
-                      <div>• Executive visibility increases impersonation risk</div>
-                      <div>• Public email addresses found on company pages</div>
-                      <div>• HR contacts publicly exposed</div>
+                      <div>• {t.preview.reportFindingExecutive}</div>
+                      <div>• {t.preview.reportFindingEmails}</div>
+                      <div>• {t.preview.reportFindingHr}</div>
                     </div>
                   </div>
 
@@ -1322,9 +1516,9 @@ export default function HumanSurfaceLandingPage() {
                       {t.immediateRemediation}
                     </div>
                     <div className="mt-4 grid gap-3 text-sm text-slate-700">
-                      <div>Reduce direct public email exposure</div>
-                      <div>Introduce payment verification procedures</div>
-                      <div>Train HR and finance on impersonation scenarios</div>
+                      <div>{t.preview.reportRemediationEmails}</div>
+                      <div>{t.preview.reportRemediationPayment}</div>
+                      <div>{t.preview.reportRemediationTraining}</div>
                     </div>
                   </div>
                 </div>
@@ -1482,8 +1676,13 @@ export default function HumanSurfaceLandingPage() {
 
                 <div className="mt-6 flex flex-wrap items-end gap-3">
                   <div className="text-6xl font-semibold tracking-tight text-white">€190</div>
-                  <div className="pb-2 text-xl text-slate-300">+ VAT</div>
-                  <div className="pb-2 text-base text-slate-500 line-through">€290 standard</div>
+                  <div className="pb-2 text-xl text-slate-300">{t.priceVat}</div>
+                  <div className="pb-2 text-base text-slate-500 line-through">
+                    {t.standardPrice}
+                  </div>
+                </div>
+                <div className="mt-2 text-sm font-medium text-cyan-100">
+                  {t.activationNote}
                 </div>
 
                 <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
@@ -1491,14 +1690,7 @@ export default function HumanSurfaceLandingPage() {
                 </p>
 
                 <div className="mt-8 grid gap-3 text-slate-200">
-                  {[
-                    'Website scan',
-                    'External public exposure analysis',
-                    'People and role visibility',
-                    'Website / external / combined scoring',
-                    'Executive-ready report',
-                    'Immediate remediation priorities',
-                  ].map((item) => (
+                  {t.pricingIncluded.map((item) => (
                     <div
                       key={item}
                       className="rounded-2xl border border-white/10 bg-[#030815]/40 px-4 py-3"
@@ -1532,15 +1724,14 @@ export default function HumanSurfaceLandingPage() {
                   <h3 className="mt-2 text-2xl font-semibold">{t.simpleAndFast}</h3>
 
                   <div className="mt-6 space-y-3 text-sm text-slate-300">
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      Share your company details and exposure priorities
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      We review your request and arrange a short intro call
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      Activate the assessment with the right next step
-                    </div>
+                    {t.requestSteps.map((item) => (
+                      <div
+                        key={item}
+                        className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3"
+                      >
+                        {item}
+                      </div>
+                    ))}
                   </div>
 
                   <div className="mt-6 rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 p-4 text-sm text-fuchsia-100">
@@ -1617,7 +1808,7 @@ export default function HumanSurfaceLandingPage() {
                   <div className="mb-5 flex items-center justify-between">
                     <div>
                       <div className="text-xs uppercase tracking-[0.18em] text-cyan-300">
-                        {t.directPurchase}
+                        {t.introCallLabel}
                       </div>
                       <h3 className="mt-2 text-2xl font-semibold">{t.buyOnline}</h3>
                     </div>
@@ -1628,22 +1819,26 @@ export default function HumanSurfaceLandingPage() {
                     <div className="text-sm uppercase tracking-[0.16em] text-cyan-200">
                       {t.launchOffer}
                     </div>
-                    <div className="mt-2 text-4xl font-semibold text-white">€190 + VAT</div>
+                    <div className="mt-2 text-4xl font-semibold text-white">
+                      €190 {t.priceVat}
+                    </div>
+                    <div className="mt-2 text-sm font-medium text-cyan-100">
+                      {t.activationNote}
+                    </div>
                     <div className="mt-3 text-sm leading-7 text-slate-300">
                       {copy[locale].launchText}
                     </div>
                   </div>
 
                   <div className="mt-6 space-y-3 text-sm text-slate-300">
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      Share your company details and exposure priorities
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      We review your request and arrange a short intro call
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      Activate the assessment with the right next step
-                    </div>
+                    {t.requestSteps.map((item) => (
+                      <div
+                        key={item}
+                        className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3"
+                      >
+                        {item}
+                      </div>
+                    ))}
                   </div>
 
                   <div className="mt-6">

@@ -1,22 +1,24 @@
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 
-const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const rawSupabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+function getSupabaseServerConfig() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!rawSupabaseUrl) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL')
+  if (!supabaseUrl) {
+    throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL')
+  }
+
+  if (!supabaseAnonKey) {
+    throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  }
+
+  return { supabaseUrl, supabaseAnonKey }
 }
-
-if (!rawSupabaseAnonKey) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY')
-}
-
-const supabaseUrl: string = rawSupabaseUrl
-const supabaseAnonKey: string = rawSupabaseAnonKey
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies()
+  const { supabaseUrl, supabaseAnonKey } = getSupabaseServerConfig()
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {

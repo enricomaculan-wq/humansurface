@@ -56,7 +56,7 @@ export default async function AdminOrdersPage() {
             Assessment orders
           </h1>
           <p className="mt-3 text-slate-400">
-            Overview of submitted purchase requests and payment status.
+            Overview of submitted assessment requests and payment status.
           </p>
         </div>
 

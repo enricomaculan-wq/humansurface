@@ -346,7 +346,7 @@ export async function runPublicScanForOrganization(organizationId: string) {
   const assessmentId = assessmentData.id as string
 
   try {
-    const result = await withTimeout(
+    const scanOutcome = await withTimeout(
       (async () => {
         const discoveredUrls = await withTimeout(
           discoverRelevantUrls(organization.domain),
@@ -689,21 +689,25 @@ export async function runPublicScanForOrganization(organizationId: string) {
         }
 
         return {
-          assessmentId,
-          organizationId: organization.id,
-          scannedUrls: urls,
-          failedUrls,
-          scannedPages: extractedSignals.length,
-          insertedPeople: insertedPeople.length,
-          matchedPeople: matchedExisting.length,
-          totalKnownPeople: allKnownPeople.length,
-          insertedFindings: insertedFindings.length,
-          personScoresGenerated: personScores.length,
-          overallScore: assessmentScores.overallScore,
-          overallRiskLevel: assessmentScores.overallRiskLevel,
-          summary: {
-            ...finalClassified.summary,
-            fallbackUsed: finalClassified.findings.length > classified.findings.length,
+          classifiedPeople: finalClassified.people,
+          extractedSignals,
+          result: {
+            assessmentId,
+            organizationId: organization.id,
+            scannedUrls: urls,
+            failedUrls,
+            scannedPages: extractedSignals.length,
+            insertedPeople: insertedPeople.length,
+            matchedPeople: matchedExisting.length,
+            totalKnownPeople: allKnownPeople.length,
+            insertedFindings: insertedFindings.length,
+            personScoresGenerated: personScores.length,
+            overallScore: assessmentScores.overallScore,
+            overallRiskLevel: assessmentScores.overallRiskLevel,
+            summary: {
+              ...finalClassified.summary,
+              fallbackUsed: finalClassified.findings.length > classified.findings.length,
+            },
           },
         }
       })(),
@@ -713,12 +717,12 @@ export async function runPublicScanForOrganization(organizationId: string) {
 
     await syncDiscoveredAssets({
       organization,
-      classifiedPeople: finalClassified.people,
-      extractedSignals,
+      classifiedPeople: scanOutcome.classifiedPeople,
+      extractedSignals: scanOutcome.extractedSignals,
       brandNames: [organization.name],
     })
 
-    return result
+    return scanOutcome.result
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Unknown scan error'

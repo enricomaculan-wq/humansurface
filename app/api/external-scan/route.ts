@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminUser } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { runExternalPublicScanForAssessment } from '@/lib/scanner/run-external-scan'
 
@@ -12,6 +13,8 @@ export async function POST(request: NextRequest) {
   let assessmentId = ''
 
   try {
+    await requireAdminUser()
+
     const body = await request.json()
 
     assessmentId =
@@ -101,6 +104,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Unknown external scan error'
+
+    if (message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     if (assessmentId) {
       const { data: currentAssessmentData } = await supabaseAdmin

@@ -3,6 +3,9 @@ import { notFound, redirect } from 'next/navigation'
 import { createSupabaseAuthServerClient } from '@/lib/supabase-auth-server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { formatDateTime } from '@/lib/date'
+import LanguageToggle from '@/app/components/language-toggle'
+import { getDictionary, getRequestLocale } from '@/lib/i18n/server'
+import type { Dictionary } from '@/lib/i18n/dictionaries/en'
 
 type AssessmentRow = {
   id: string
@@ -47,7 +50,38 @@ function normalizeAssessmentStatus(value: string): NormalizedAssessmentStatus | 
   }
 }
 
-function StatusBadge({ value }: { value: string }) {
+function formatStatusLabel(value: string, dictionary: Dictionary) {
+  switch (value.toLowerCase()) {
+    case 'archived':
+      return dictionary.common.status.archived
+    case 'completed':
+      return dictionary.common.status.completed
+    case 'draft':
+      return dictionary.common.status.draft
+    case 'failed':
+      return dictionary.common.status.failed
+    case 'in_review':
+      return dictionary.common.status.inReview
+    case 'processing':
+      return dictionary.common.status.processing
+    case 'published':
+      return dictionary.common.status.published
+    case 'queued':
+      return dictionary.common.status.queued
+    case 'running':
+      return dictionary.common.status.running
+    default:
+      return value.replace(/_/g, ' ')
+  }
+}
+
+function StatusBadge({
+  value,
+  dictionary,
+}: {
+  value: string
+  dictionary: Dictionary
+}) {
   const normalized = value.toLowerCase()
 
   const cls =
@@ -67,7 +101,7 @@ function StatusBadge({ value }: { value: string }) {
     <span
       className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${cls}`}
     >
-      {value.replace(/_/g, ' ')}
+      {formatStatusLabel(value, dictionary)}
     </span>
   )
 }
@@ -78,6 +112,9 @@ export default async function AssessmentStatusPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const locale = await getRequestLocale()
+  const dictionary = await getDictionary(locale)
+  const t = dictionary.assessmentStatus
 
   const auth = await createSupabaseAuthServerClient()
   const {
@@ -155,26 +192,33 @@ export default async function AssessmentStatusPage({
   return (
     <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
       <div className="mx-auto max-w-4xl">
+        <div className="mb-4 hidden justify-end md:flex">
+          <LanguageToggle />
+        </div>
+
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-8 backdrop-blur-xl">
           <div className="flex flex-col gap-6 border-b border-white/10 pb-6 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <div className="text-sm uppercase tracking-[0.2em] text-cyan-300">
-                Assessment status
+                {t.eyebrow}
               </div>
               <h1 className="mt-2 text-4xl font-semibold tracking-tight">
-                {organization?.name || 'HumanSurface Assessment'}
+                {organization?.name || t.fallbackTitle}
               </h1>
               <p className="mt-3 text-slate-400">
                 {organization?.domain || '—'}
                 {organization?.industry ? ` · ${organization.industry}` : ''}
               </p>
               <p className="mt-2 text-xs text-slate-500">
-                Created: {formatDateTime(assessment.created_at)}
+                {t.createdLabel}: {formatDateTime(assessment.created_at, locale)}
               </p>
             </div>
 
             <div className="self-start">
-              <StatusBadge value={normalizedStatus ?? assessment.status} />
+              <StatusBadge
+                value={normalizedStatus ?? assessment.status}
+                dictionary={dictionary}
+              />
             </div>
           </div>
 
@@ -182,30 +226,28 @@ export default async function AssessmentStatusPage({
             <>
               <div className="mt-8 rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] p-6">
                 <div className="text-sm uppercase tracking-[0.16em] text-cyan-200">
-                  In preparation
+                  {t.states.draft.eyebrow}
                 </div>
                 <h2 className="mt-2 text-2xl font-semibold text-white">
-                  Your assessment is being prepared
+                  {t.states.draft.title}
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-slate-200">
-                  We are analyzing your organization’s public exposure and
-                  preparing your assessment output.
+                  {t.states.draft.description}
                 </p>
               </div>
 
               <div className="mt-6 rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 p-6">
                 <div className="text-sm uppercase tracking-[0.16em] text-fuchsia-200">
-                  Delivery timing
+                  {t.deliveryTitle}
                 </div>
                 <p className="mt-3 text-sm leading-7 text-slate-200">
-                  Each assessment is reviewed before publication. Your report
-                  will be available within 2 business days, and often sooner.
+                  {t.states.draft.deliveryText}
                 </p>
               </div>
 
               <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
                 <div className="text-sm uppercase tracking-[0.16em] text-slate-400">
-                  Assessment reference
+                  {t.referenceTitle}
                 </div>
                 <div className="mt-2 break-all text-sm text-slate-300">
                   {assessment.id}
@@ -218,30 +260,28 @@ export default async function AssessmentStatusPage({
             <>
               <div className="mt-8 rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] p-6">
                 <div className="text-sm uppercase tracking-[0.16em] text-cyan-200">
-                  Final review
+                  {t.states.inReview.eyebrow}
                 </div>
                 <h2 className="mt-2 text-2xl font-semibold text-white">
-                  Your assessment is in final review
+                  {t.states.inReview.title}
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-slate-200">
-                  Your report is being finalized for publication. This review
-                  step helps ensure a clearer and more reliable output.
+                  {t.states.inReview.description}
                 </p>
               </div>
 
               <div className="mt-6 rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 p-6">
                 <div className="text-sm uppercase tracking-[0.16em] text-fuchsia-200">
-                  Delivery timing
+                  {t.deliveryTitle}
                 </div>
                 <p className="mt-3 text-sm leading-7 text-slate-200">
-                  Delivery is typically within 2 business days from order
-                  completion, and often earlier.
+                  {t.states.inReview.deliveryText}
                 </p>
               </div>
 
               <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
                 <div className="text-sm uppercase tracking-[0.16em] text-slate-400">
-                  Assessment reference
+                  {t.referenceTitle}
                 </div>
                 <div className="mt-2 break-all text-sm text-slate-300">
                   {assessment.id}
@@ -254,14 +294,13 @@ export default async function AssessmentStatusPage({
             <>
               <div className="mt-8 rounded-2xl border border-red-400/20 bg-red-400/10 p-6">
                 <div className="text-sm uppercase tracking-[0.16em] text-red-200">
-                  Archived
+                  {t.states.archived.eyebrow}
                 </div>
                 <h2 className="mt-2 text-2xl font-semibold text-white">
-                  This assessment has been archived
+                  {t.states.archived.title}
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-slate-200">
-                  This report is no longer the active published version. Contact
-                  support if you need assistance or a new assessment cycle.
+                  {t.states.archived.description}
                 </p>
               </div>
 
@@ -270,7 +309,7 @@ export default async function AssessmentStatusPage({
                   href="mailto:support@humansurface.com?subject=HumanSurface%20Archived%20Assessment%20Support"
                   className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
                 >
-                  Contact support
+                  {t.contactSupport}
                 </a>
               </div>
             </>
@@ -281,7 +320,7 @@ export default async function AssessmentStatusPage({
               href="/client"
               className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
             >
-              Back to client area
+              {t.backToClientArea}
             </Link>
           </div>
         </div>

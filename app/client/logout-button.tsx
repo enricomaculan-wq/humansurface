@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { createSupabaseAuthBrowserClient } from '@/lib/supabase-auth-browser'
 
-export default function LogoutButton() {
+export default function LogoutButton({ label }: { label: string }) {
   const router = useRouter()
 
   async function handleLogout() {
@@ -18,7 +18,7 @@ export default function LogoutButton() {
       onClick={handleLogout}
       className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white"
     >
-      Logout
+      {label}
     </button>
   )
 }

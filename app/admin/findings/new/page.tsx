@@ -16,6 +16,10 @@ type AssessmentRow = {
   } | null
 }
 
+type AssessmentQueryRow = Omit<AssessmentRow, 'organizations'> & {
+  organizations: AssessmentRow['organizations'] | AssessmentRow['organizations'][]
+}
+
 type PersonRow = {
   id: string
   organization_id: string
@@ -77,7 +81,9 @@ export default function NewFindingPage() {
         return
       }
 
-    const assessmentRows: AssessmentRow[] = (assessmentsData ?? []).map((item: any) => ({
+      const assessmentRows: AssessmentRow[] = (
+        (assessmentsData ?? []) as AssessmentQueryRow[]
+      ).map((item) => ({
         id: item.id,
         organization_id: item.organization_id,
         status: item.status,
@@ -86,15 +92,15 @@ export default function NewFindingPage() {
         organizations: Array.isArray(item.organizations)
             ? item.organizations[0] ?? null
             : item.organizations ?? null,
-    }))
+      }))
 
-    const peopleRows: PersonRow[] = (peopleData ?? []).map((item: any) => ({
+      const peopleRows: PersonRow[] = ((peopleData ?? []) as PersonRow[]).map((item) => ({
         id: item.id,
         organization_id: item.organization_id,
         full_name: item.full_name,
         role_title: item.role_title,
         department: item.department,
-    }))
+      }))
 
       setAssessments(assessmentRows)
       setPeople(peopleRows)

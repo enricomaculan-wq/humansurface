@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation'
+import { requireAdminUser } from '@/lib/auth'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 
@@ -87,6 +89,18 @@ function ScoreCard({
 }
 
 export default async function DashboardPage() {
+  try {
+    await requireAdminUser()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unauthorized'
+
+    if (message === 'Unauthorized') {
+      redirect('/login')
+    }
+
+    redirect('/client')
+  }
+
   const supabase = await createSupabaseServerClient()
   const [
     { data: organizations, error: organizationsError },

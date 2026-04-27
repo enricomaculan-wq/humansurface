@@ -9,6 +9,17 @@ const FETCH_TIMEOUT_MS = 12000
 const MAX_RESULTS_PER_QUERY = 5
 const MAX_TOTAL_RESULTS = 20
 
+type BraveSearchPayload = {
+  web?: {
+    results?: Array<{
+      url?: string
+      title?: string
+      description?: string
+      snippet?: string
+    }>
+  }
+}
+
 function cleanText(text: string) {
   return text.replace(/\s+/g, ' ').trim()
 }
@@ -180,11 +191,11 @@ async function searchBraveWeb(query: string) {
     throw new Error(`Brave search failed with HTTP ${response.status}`)
   }
 
-  return await response.json()
+  return (await response.json()) as BraveSearchPayload
 }
 
 function parseBraveResults(
-  payload: any,
+  payload: BraveSearchPayload,
   query: string,
   companyDomain: string,
   companyName: string,

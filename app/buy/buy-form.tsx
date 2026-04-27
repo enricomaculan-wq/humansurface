@@ -1,8 +1,85 @@
 'use client'
 
 import { useState } from 'react'
+import { useI18n } from '@/app/components/i18n-provider'
+import type { Locale } from '@/lib/i18n/config'
+
+const formCopy: Record<
+  Locale,
+  {
+    fullNameLabel: string
+    fullNamePlaceholder: string
+    companyNameLabel: string
+    companyNamePlaceholder: string
+    domainLabel: string
+    domainPlaceholder: string
+    emailLabel: string
+    emailPlaceholder: string
+    roleLabel: string
+    rolePlaceholder: string
+    companySizeLabel: string
+    companySizePlaceholder: string
+    notesLabel: string
+    notesPlaceholder: string
+    reviewNotice: string
+    successMessage: string
+    submit: string
+    submitting: string
+  }
+> = {
+  en: {
+    fullNameLabel: 'Full name',
+    fullNamePlaceholder: 'Example: Mario Rossi',
+    companyNameLabel: 'Company name',
+    companyNamePlaceholder: 'Example: HumanSurface Srl',
+    domainLabel: 'Primary company domain to review',
+    domainPlaceholder: 'example.com',
+    emailLabel: 'Work email',
+    emailPlaceholder: 'name@company.com',
+    roleLabel: 'Your role in the assessment',
+    rolePlaceholder: 'Example: CEO, CFO, IT Manager, consultant',
+    companySizeLabel: 'Company size',
+    companySizePlaceholder: 'Select company size',
+    notesLabel: 'Assessment context',
+    notesPlaceholder:
+      'What prompted this request? Example: visible team pages, finance fraud concerns, executive exposure, client/audit requirement, or recent phishing activity.',
+    reviewNotice:
+      'We use this intake to prepare the intro call. No credentials, inbox access, or internal system access are needed to confirm fit and scope.',
+    successMessage:
+      'Thanks — your intake has been received. We will review the context and reply within 1-2 business days to arrange the assessment call.',
+    submit: 'Request assessment call',
+    submitting: 'Sending intake...',
+  },
+  it: {
+    fullNameLabel: 'Nome e cognome',
+    fullNamePlaceholder: 'Esempio: Mario Rossi',
+    companyNameLabel: 'Nome azienda',
+    companyNamePlaceholder: 'Esempio: HumanSurface Srl',
+    domainLabel: 'Dominio aziendale principale da rivedere',
+    domainPlaceholder: 'esempio.com',
+    emailLabel: 'Email di lavoro',
+    emailPlaceholder: 'nome@azienda.com',
+    roleLabel: 'Il tuo ruolo nell’assessment',
+    rolePlaceholder: 'Esempio: CEO, CFO, IT Manager, consulente',
+    companySizeLabel: 'Dimensione azienda',
+    companySizePlaceholder: 'Seleziona la dimensione aziendale',
+    notesLabel: 'Contesto dell’assessment',
+    notesPlaceholder:
+      'Cosa ha motivato la richiesta? Esempio: team page visibili, dubbi su frodi finance, esposizione executive, requisito cliente/audit o phishing recente.',
+    reviewNotice:
+      'Usiamo questo intake per preparare la call introduttiva. Non servono credenziali, accesso alle inbox o accesso ai sistemi interni per confermare aderenza e scope.',
+    successMessage:
+      'Grazie: abbiamo ricevuto il tuo intake. Rivedremo il contesto e risponderemo entro 1-2 giorni lavorativi per organizzare la call assessment.',
+    submit: 'Richiedi call assessment',
+    submitting: 'Invio intake...',
+  },
+}
 
 export default function BuyForm() {
+  const { dictionary, locale } = useI18n()
+  const t = dictionary.buy.form
+  const c = formCopy[locale]
+
   const [fullName, setFullName] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [domain, setDomain] = useState('')
@@ -14,6 +91,41 @@ export default function BuyForm() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
+  function getCallRequestErrorMessage(status: number, message: unknown) {
+    if (status === 429) {
+      return t.tooManyRequests
+    }
+
+    const normalizedMessage =
+      typeof message === 'string' ? message.trim().toLowerCase() : ''
+
+    if (status === 400) {
+      if (normalizedMessage.includes('full name')) {
+        return t.fullNameRequired
+      }
+
+      if (normalizedMessage.includes('company name')) {
+        return t.companyNameRequired
+      }
+
+      if (
+        normalizedMessage.includes('company domain') ||
+        normalizedMessage.includes('valid domain')
+      ) {
+        return t.domainInvalid
+      }
+
+      if (
+        normalizedMessage.includes('work email') ||
+        normalizedMessage.includes('valid email')
+      ) {
+        return t.emailInvalid
+      }
+    }
+
+    return t.errorFallback
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
@@ -21,6 +133,9 @@ export default function BuyForm() {
     setSuccess(false)
 
     try {
+      const formData = new FormData(e.currentTarget)
+      const website = String(formData.get('website') ?? '')
+
       const response = await fetch('/api/call-request', {
         method: 'POST',
         headers: {
@@ -34,13 +149,14 @@ export default function BuyForm() {
           role,
           companySize,
           notes,
+          website,
         }),
       })
 
       const result = await response.json()
 
       if (!response.ok) {
-        setError(result?.error || 'Error while sending the request.')
+        setError(getCallRequestErrorMessage(response.status, result?.error))
         setLoading(false)
         return
       }
@@ -56,81 +172,90 @@ export default function BuyForm() {
       setCompanySize('')
       setNotes('')
     } catch {
-      setError('Network error. Please try again.')
+      setError(t.networkError)
       setLoading(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="absolute left-[-10000px] h-px w-px opacity-0"
+      />
+
       <div>
-        <label className="mb-2 block text-sm text-slate-300">Full name</label>
+        <label className="mb-2 block text-sm text-slate-300">{c.fullNameLabel}</label>
         <input
           type="text"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
-          placeholder="Example: Mario Rossi"
+          placeholder={c.fullNamePlaceholder}
           required
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-slate-300">Company name</label>
+        <label className="mb-2 block text-sm text-slate-300">{c.companyNameLabel}</label>
         <input
           type="text"
           value={companyName}
           onChange={(e) => setCompanyName(e.target.value)}
           className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
-          placeholder="Example: HumanSurface Srl"
+          placeholder={c.companyNamePlaceholder}
           required
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-slate-300">Company domain</label>
+        <label className="mb-2 block text-sm text-slate-300">{c.domainLabel}</label>
         <input
           type="text"
           value={domain}
           onChange={(e) => setDomain(e.target.value)}
           className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
-          placeholder="example.com"
+          placeholder={c.domainPlaceholder}
           required
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-slate-300">Work email</label>
+        <label className="mb-2 block text-sm text-slate-300">{c.emailLabel}</label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
-          placeholder="name@company.com"
+          placeholder={c.emailPlaceholder}
           required
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-slate-300">Role</label>
+        <label className="mb-2 block text-sm text-slate-300">{c.roleLabel}</label>
         <input
           type="text"
           value={role}
           onChange={(e) => setRole(e.target.value)}
           className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
-          placeholder="Example: CEO, IT Manager, CFO"
+          placeholder={c.rolePlaceholder}
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm text-slate-300">Company size</label>
+        <label className="mb-2 block text-sm text-slate-300">{c.companySizeLabel}</label>
         <select
           value={companySize}
           onChange={(e) => setCompanySize(e.target.value)}
           className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
         >
           <option value="" className="bg-slate-900">
-            Select company size
+            {c.companySizePlaceholder}
           </option>
           <option value="1-10" className="bg-slate-900">
             1-10
@@ -152,19 +277,18 @@ export default function BuyForm() {
 
       <div>
         <label className="mb-2 block text-sm text-slate-300">
-          What would you like to assess?
+          {c.notesLabel}
         </label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="min-h-[120px] w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-300/30"
-          placeholder="Priorities, concerns, urgency, business context..."
+          placeholder={c.notesPlaceholder}
         />
       </div>
 
       <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-3 text-sm text-slate-200">
-        We review each request manually and usually reply within 1 business day to
-        arrange a short intro call.
+        {c.reviewNotice}
       </div>
 
       {error ? (
@@ -175,8 +299,7 @@ export default function BuyForm() {
 
       {success ? (
         <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
-          Thanks — your request has been received. We will get back to you shortly
-          to arrange a call.
+          {c.successMessage}
         </div>
       ) : null}
 
@@ -185,7 +308,7 @@ export default function BuyForm() {
         disabled={loading}
         className="w-full rounded-2xl border border-cyan-300/30 bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:opacity-60"
       >
-        {loading ? 'Sending request...' : 'Request a call'}
+        {loading ? c.submitting : c.submit}
       </button>
     </form>
   )

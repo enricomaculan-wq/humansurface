@@ -2,6 +2,9 @@ import { redirect } from 'next/navigation'
 import { createSupabaseAuthServerClient } from '@/lib/supabase-auth-server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { formatDateTime } from '@/lib/date'
+import LanguageToggle from '@/app/components/language-toggle'
+import { getDictionary, getRequestLocale } from '@/lib/i18n/server'
+import type { Dictionary } from '@/lib/i18n/dictionaries/en'
 import LogoutButton from './logout-button'
 
 type AssessmentStatus = 'draft' | 'in_review' | 'published' | 'archived'
@@ -64,9 +67,44 @@ function normalizeAssessmentStatus(value: string | null | undefined): Assessment
   }
 }
 
-function formatStatusLabel(value: string | null | undefined) {
-  if (!value) return 'Unknown'
-  return value.replace(/_/g, ' ')
+function formatStatusLabel(
+  value: string | null | undefined,
+  dictionary: Dictionary,
+) {
+  const normalized = (value ?? 'unknown').toLowerCase()
+
+  switch (normalized) {
+    case 'archived':
+      return dictionary.common.status.archived
+    case 'completed':
+      return dictionary.common.status.completed
+    case 'draft':
+      return dictionary.common.status.draft
+    case 'expired':
+      return dictionary.common.status.expired
+    case 'failed':
+      return dictionary.common.status.failed
+    case 'in_review':
+      return dictionary.common.status.inReview
+    case 'paid':
+      return dictionary.common.status.paid
+    case 'pending':
+      return dictionary.common.status.pending
+    case 'pending_payment':
+      return dictionary.common.status.pendingPayment
+    case 'processing':
+      return dictionary.common.status.processing
+    case 'published':
+      return dictionary.common.status.published
+    case 'queued':
+      return dictionary.common.status.queued
+    case 'running':
+      return dictionary.common.status.running
+    case 'unknown':
+      return dictionary.common.status.unknown
+    default:
+      return value ? value.replace(/_/g, ' ') : dictionary.common.status.unknown
+  }
 }
 
 function getBadgeClasses(value: string | null) {
@@ -97,9 +135,11 @@ function getBadgeClasses(value: string | null) {
 function LabeledStatusBadge({
   label,
   value,
+  dictionary,
 }: {
   label: string
   value: string | null
+  dictionary: Dictionary
 }) {
   return (
     <div
@@ -108,12 +148,39 @@ function LabeledStatusBadge({
       )}`}
     >
       <span className="uppercase tracking-[0.14em] opacity-70">{label}</span>
-      <span className="font-medium uppercase">{formatStatusLabel(value)}</span>
+      <span className="font-medium uppercase">
+        {formatStatusLabel(value, dictionary)}
+      </span>
     </div>
   )
 }
 
-function RiskBadge({ value }: { value: string | null }) {
+function getRiskLabel(value: string | null | undefined, dictionary: Dictionary) {
+  const normalized = (value ?? 'unknown').toLowerCase()
+
+  switch (normalized) {
+    case 'critical':
+      return dictionary.common.risk.critical
+    case 'high':
+      return dictionary.common.risk.high
+    case 'medium':
+      return dictionary.common.risk.medium
+    case 'moderate':
+      return dictionary.common.risk.moderate
+    case 'low':
+      return dictionary.common.risk.low
+    default:
+      return dictionary.common.risk.unknown
+  }
+}
+
+function RiskBadge({
+  value,
+  dictionary,
+}: {
+  value: string | null
+  dictionary: Dictionary
+}) {
   const normalized = (value ?? 'unknown').toLowerCase()
 
   const cls =
@@ -129,23 +196,26 @@ function RiskBadge({ value }: { value: string | null }) {
 
   return (
     <span className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${cls}`}>
-      {value ?? 'unknown'}
+      {getRiskLabel(value, dictionary)}
     </span>
   )
 }
 
-function getAssessmentAvailabilityMessage(status: AssessmentStatus | null) {
+function getAssessmentAvailabilityMessage(
+  status: AssessmentStatus | null,
+  copy: Dictionary['clientArea'],
+) {
   switch (status) {
     case 'draft':
-      return 'Your assessment is being prepared. Delivery is typically within 2 business days, often sooner.'
+      return copy.availability.draft
     case 'in_review':
-      return 'Your assessment is in final review. Your report will become available once publication is complete.'
+      return copy.availability.inReview
     case 'published':
-      return 'Your assessment report is now available.'
+      return copy.availability.published
     case 'archived':
-      return 'This assessment has been archived. Contact support if you need a new assessment cycle.'
+      return copy.availability.archived
     default:
-      return 'Assessment status is currently unavailable.'
+      return copy.availability.unknown
   }
 }
 
@@ -169,6 +239,10 @@ function pickAssessmentScore(
 }
 
 export default async function ClientPage() {
+  const locale = await getRequestLocale()
+  const dictionary = await getDictionary(locale)
+  const t = dictionary.clientArea
+
   const supabase = await createSupabaseAuthServerClient()
   const {
     data: { user },
@@ -239,7 +313,7 @@ export default async function ClientPage() {
     assessmentsById = new Map(assessments.map((item) => [item.id, item]))
   }
 
-  let overallScoresByAssessmentId = new Map<
+  const overallScoresByAssessmentId = new Map<
     string,
     { score_value: number; risk_level: string }
   >()
@@ -279,17 +353,20 @@ export default async function ClientPage() {
   return (
     <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
       <div className="mx-auto max-w-5xl">
+        <div className="mb-4 hidden justify-end md:flex">
+          <LanguageToggle />
+        </div>
+
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="text-sm uppercase tracking-[0.2em] text-cyan-300">
-              Client area
+              {t.eyebrow}
             </div>
             <h1 className="mt-2 text-4xl font-semibold tracking-tight">
-              Your assessments
+              {t.title}
             </h1>
             <p className="mt-3 text-slate-400">
-              Track the publication status of your HumanSurface assessments and
-              access reports once they are released.
+              {t.description}
             </p>
             <p className="mt-2 text-sm text-slate-500">{user.email}</p>
           </div>
@@ -299,17 +376,17 @@ export default async function ClientPage() {
               href="/buy"
               className="inline-flex items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
             >
-              Request assessment
+              {t.requestAssessment}
             </a>
 
             <a
               href="mailto:support@humansurface.com?subject=HumanSurface%20Support"
               className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
             >
-              Contact support
+              {dictionary.common.actions.contactSupport}
             </a>
 
-            <LogoutButton />
+            <LogoutButton label={dictionary.common.actions.logout} />
           </div>
         </div>
 
@@ -317,13 +394,11 @@ export default async function ClientPage() {
           {orders.length === 0 ? (
             <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
               <h2 className="text-2xl font-semibold text-white">
-                No assessment account linked yet
+                {t.noLinkedTitle}
               </h2>
 
               <p className="mt-4 max-w-2xl leading-7 text-slate-400">
-                This account is not linked to any company profile yet. You can
-                request a new HumanSurface assessment or contact support if you
-                already purchased one with a different email address.
+                {t.noLinkedText}
               </p>
 
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
@@ -331,14 +406,14 @@ export default async function ClientPage() {
                   href="/buy"
                   className="inline-flex items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
                 >
-                  Request assessment
+                  {t.requestAssessment}
                 </a>
 
                 <a
                   href="mailto:support@humansurface.com?subject=Client%20account%20linking%20support"
                   className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
                 >
-                  Contact support
+                  {dictionary.common.actions.contactSupport}
                 </a>
               </div>
             </div>
@@ -359,6 +434,7 @@ export default async function ClientPage() {
               const canOpenReport = normalizedAssessmentStatus === 'published'
               const availabilityMessage = getAssessmentAvailabilityMessage(
                 normalizedAssessmentStatus,
+                t,
               )
 
               return (
@@ -374,53 +450,70 @@ export default async function ClientPage() {
                       <div className="mt-1 text-slate-400">{order.domain}</div>
 
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <LabeledStatusBadge label="Payment" value={order.status} />
-                        <LabeledStatusBadge label="Billing" value={order.billing_status} />
+                        <LabeledStatusBadge
+                          label={t.paymentLabel}
+                          value={order.status}
+                          dictionary={dictionary}
+                        />
+                        <LabeledStatusBadge
+                          label={t.billingLabel}
+                          value={order.billing_status}
+                          dictionary={dictionary}
+                        />
                         {assessment?.status ? (
                           <LabeledStatusBadge
-                            label="Assessment"
+                            label={t.assessmentLabel}
                             value={normalizedAssessmentStatus ?? assessment.status}
+                            dictionary={dictionary}
                           />
                         ) : null}
                       </div>
 
                       <div className="mt-3 text-sm text-slate-500">
-                        Created: {formatDateTime(order.created_at)}
+                        {t.createdLabel}: {formatDateTime(order.created_at, locale)}
                       </div>
 
                       {assessment ? (
                         <div className="mt-4 rounded-2xl border border-white/10 bg-[#071022] px-4 py-4">
                           <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                            Assessment summary
+                            {t.summaryTitle}
                           </div>
 
                           <div className="mt-3 flex flex-wrap items-center gap-6">
                             <div>
-                              <div className="text-xs text-slate-500">Overall score</div>
+                              <div className="text-xs text-slate-500">
+                                {t.overallScoreLabel}
+                              </div>
                               <div className="text-2xl font-semibold text-white">
                                 {overallScore?.score_value ?? assessment.overall_score}
                               </div>
                             </div>
 
                             <div>
-                              <div className="text-xs text-slate-500">Risk level</div>
+                              <div className="text-xs text-slate-500">
+                                {t.riskLevelLabel}
+                              </div>
                               <div className="mt-1">
                                 <RiskBadge
                                   value={
                                     overallScore?.risk_level ?? assessment.overall_risk_level
                                   }
+                                  dictionary={dictionary}
                                 />
                               </div>
                             </div>
 
                             {canOpenReport ? (
                               <div>
-                                <div className="text-xs text-slate-500">Published</div>
+                                <div className="text-xs text-slate-500">
+                                  {t.publishedLabel}
+                                </div>
                                 <div className="mt-1 text-sm text-slate-300">
                                   {formatDateTime(
                                     assessment.published_at ??
                                       assessment.created_at ??
                                       order.created_at,
+                                    locale,
                                   )}
                                 </div>
                               </div>
@@ -433,8 +526,7 @@ export default async function ClientPage() {
                         </div>
                       ) : (
                         <div className="mt-4 rounded-2xl border border-white/10 bg-[#071022] px-4 py-4 text-sm text-slate-300">
-                          Your order has been recorded. The assessment will
-                          appear here as soon as it is created.
+                          {t.orderRecordedText}
                         </div>
                       )}
                     </div>
@@ -445,7 +537,7 @@ export default async function ClientPage() {
                           href={`/assessment/status/${order.assessment_id}`}
                           className="inline-flex items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950"
                         >
-                          View status
+                          {t.viewStatus}
                         </a>
                       ) : null}
 
@@ -454,7 +546,7 @@ export default async function ClientPage() {
                           href={`/assessment/report/${order.assessment_id}`}
                           className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
                         >
-                          Open report
+                          {t.openReport}
                         </a>
                       ) : null}
                     </div>
@@ -468,14 +560,13 @@ export default async function ClientPage() {
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-2xl">
                 <div className="text-sm uppercase tracking-[0.18em] text-cyan-300">
-                  Need another assessment?
+                  {t.anotherEyebrow}
                 </div>
                 <h2 className="mt-2 text-2xl font-semibold text-white">
-                  Request a new HumanSurface assessment
+                  {t.anotherTitle}
                 </h2>
                 <p className="mt-3 leading-7 text-slate-400">
-                  You can request another assessment for a different company,
-                  domain, or a new review cycle for the same organization.
+                  {t.anotherText}
                 </p>
               </div>
 
@@ -484,14 +575,14 @@ export default async function ClientPage() {
                   href="/buy"
                   className="inline-flex items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
                 >
-                  Request assessment
+                  {t.requestAssessment}
                 </a>
 
                 <a
                   href="mailto:support@humansurface.com?subject=HumanSurface%20New%20Assessment%20Request"
                   className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
                 >
-                  Contact support
+                  {dictionary.common.actions.contactSupport}
                 </a>
               </div>
             </div>
