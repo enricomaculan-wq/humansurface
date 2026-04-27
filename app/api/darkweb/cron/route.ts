@@ -7,10 +7,12 @@ export async function POST() {
       triggerType: 'cron',
       limit: 100,
     })
+    const { ok, ...summary } = result
 
     return NextResponse.json({
+      ok,
       mode: 'cron',
-      ...result,
+      ...summary,
     })
   } catch (error) {
     return NextResponse.json(
