@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import {
   type LucideIcon,
   Shield,
+  ShieldCheck,
   Radar,
   Users,
   Mail,
@@ -63,11 +64,6 @@ type Translation = {
   chip2: string
   chip3: string
 
-  launchOffer: string
-  launchText: string
-  priceVat: string
-  standardPrice: string
-  activationNote: string
   trustSignals: Array<{
     title: string
     text: string
@@ -178,12 +174,9 @@ type Translation = {
   pricingEyebrow: string
   pricingTitle: string
   pricingText: string
-  assessmentName: string
-  pricingDescription: string
   buyFlow: string
   simpleAndFast: string
   launchCustomers: string
-  pricingIncluded: string[]
   requestSteps: string[]
 
   finalEyebrow: string
@@ -198,23 +191,39 @@ type Translation = {
   footerText: string
 }
 
+type PricingPlan = {
+  name: string
+  price: string
+  priceSuffix: string
+  description: string
+  href: string
+  cta: string
+  items: string[]
+  featured?: boolean
+}
+
+type PricingPlansCopy = {
+  note: string
+  plans: PricingPlan[]
+}
+
 const copy: Record<Locale, Translation> = {
   en: {
     navHow: 'How it works',
-    navSample: 'Sample report',
+    navSample: 'Example report',
     navDashboard: 'Dashboard',
     navPricing: 'Pricing',
     login: 'Login',
-    getAssessment: 'Request assessment call',
-    seeSampleReport: 'See sample report',
+    getAssessment: 'Request preliminary review',
+    seeSampleReport: 'View example report',
     company: 'Company',
     resources: 'Resources',
     privacy: 'Privacy',
     terms: 'Terms',
     contact: 'Contact',
-    sampleReport: 'Sample report',
+    sampleReport: 'Example report',
     dashboardPreview: 'Dashboard preview',
-    buyAssessment: 'Request assessment call',
+    buyAssessment: 'Request assessment',
     brandTagline: 'Human attack surface visibility',
 
     heroBadge: 'Reviewed public-exposure assessment for phishing and fraud risk',
@@ -226,12 +235,6 @@ const copy: Record<Locale, Translation> = {
     chip2: 'Manual review before delivery',
     chip3: 'Built for SMEs, professional firms, and visible teams',
 
-    launchOffer: 'Reviewed launch assessment',
-    launchText:
-      'Request an intro call for the €190 launch assessment. We confirm fit and scope before activation, then deliver a reviewed report with prioritized actions.',
-    priceVat: '+ VAT',
-    standardPrice: '€290 standard',
-    activationNote: 'Activation happens after scope confirmation.',
     trustSignals: [
       {
         title: 'Clear scope before activation',
@@ -371,58 +374,47 @@ const copy: Record<Locale, Translation> = {
     delta7: '7-day delta',
 
     pricingEyebrow: 'Pricing',
-    pricingTitle: 'Request an intro call for the reviewed launch assessment.',
+    pricingTitle: 'Choose the assessment scope before activation.',
     pricingText:
-      'The €190 + VAT launch assessment starts with a short consultation to confirm fit and scope before activation.',
-    assessmentName: 'HumanSurface Assessment',
-    pricingDescription:
-      'A one-time assessment designed to reveal the public exposure that can increase phishing, impersonation, and fraud risk for your company.',
+      'Start with Assessment Base at €190 + VAT, or add a cautious review of available leak/dark web signals with Assessment + Dark Web at €390 + VAT.',
     buyFlow: 'Request flow',
     simpleAndFast: 'Consultation first, assessment after scope is clear',
-    launchCustomers: 'Launch assessment available for selected early customers.',
-    pricingIncluded: [
-      'Company domain and public web presence review',
-      'External people, role, and contact exposure analysis',
-      'Impersonation, finance-fraud, and HR/social engineering scoring',
-      'Executive-ready report',
-      'Likely attack scenarios',
-      'Prioritized remediation actions',
-    ],
+    launchCustomers: 'Assessment plans available for selected early customers.',
     requestSteps: [
       'Share company details and the reason for the assessment',
       'We review the intake and reply within 1–2 business days',
       'Intro call confirms fit, scope, and activation path',
     ],
 
-    finalEyebrow: 'Request the launch assessment',
+    finalEyebrow: 'Request assessment',
     finalTitle: 'Start with a HumanSurface assessment call.',
     finalText:
       'Tell us what prompted the request. We will review the context and arrange a short intro call before activating the assessment.',
-    launchPrice: 'Launch offer: €190 + VAT',
+    launchPrice: 'Plans: Base €190 + VAT, Dark Web €390 + VAT',
     securePayment: 'Scope confirmed before activation',
     assessmentFirst: 'Reviewed report with remediation priorities',
     introCallLabel: 'Intro call first',
-    buyOnline: 'Request the launch assessment call',
+    buyOnline: 'Book a call',
 
     footerText:
       'HumanSurface helps organizations identify public exposure that can enable phishing, impersonation, and human-targeted fraud.',
   },
   it: {
     navHow: 'Come funziona',
-    navSample: 'Demo Report',
+    navSample: 'Esempio report',
     navDashboard: 'Dashboard',
     navPricing: 'Prezzi',
     login: 'Login',
-    getAssessment: 'Richiedi call assessment',
-    seeSampleReport: 'Demo report',
+    getAssessment: 'Richiedi verifica preliminare',
+    seeSampleReport: 'Vedi esempio report',
     company: 'Azienda',
     resources: 'Risorse',
     privacy: 'Privacy',
     terms: 'Termini',
     contact: 'Contatti',
-    sampleReport: 'Demo Report',
+    sampleReport: 'Esempio report',
     dashboardPreview: 'Anteprima dashboard',
-    buyAssessment: 'Richiedi call assessment',
+    buyAssessment: 'Richiedi assessment',
     brandTagline: 'Visibilità della superficie d’attacco umana',
 
     heroBadge: 'Assessment revisionato dell’esposizione pubblica per phishing e frodi',
@@ -434,12 +426,6 @@ const copy: Record<Locale, Translation> = {
     chip2: 'Revisione manuale prima della consegna',
     chip3: 'Pensato per PMI, studi professionali e team visibili',
 
-    launchOffer: 'Assessment lancio revisionato',
-    launchText:
-      'Richiedi una call introduttiva per l’assessment lancio da €190. Confermiamo aderenza e scope prima dell’attivazione, poi consegniamo un report revisionato con azioni prioritarie.',
-    priceVat: '+ IVA',
-    standardPrice: '€290 standard',
-    activationNote: 'L’attivazione avviene dopo la conferma dello scope.',
     trustSignals: [
       {
         title: 'Scope chiaro prima dell’attivazione',
@@ -578,38 +564,27 @@ const copy: Record<Locale, Translation> = {
     delta7: 'Delta 7 giorni',
 
     pricingEyebrow: 'Prezzi',
-    pricingTitle: 'Richiedi una call introduttiva per l’assessment lancio revisionato.',
+    pricingTitle: 'Scegli lo scope dell’assessment prima dell’attivazione.',
     pricingText:
-      'L’assessment lancio da €190 + IVA parte con una breve consulenza per confermare aderenza e scope prima dell’attivazione.',
-    assessmentName: 'Assessment HumanSurface',
-    pricingDescription:
-      'Un assessment una tantum progettato per mostrare l’esposizione pubblica che può aumentare il rischio di phishing, impersonificazione e frodi.',
+      'Parti con Assessment Base a €190 + IVA, oppure aggiungi una verifica prudente di segnali leak/dark web disponibili con Assessment + Dark Web a €390 + IVA.',
     buyFlow: 'Flusso richiesta',
     simpleAndFast: 'Prima consulenza, assessment dopo scope chiaro',
-    launchCustomers: 'Assessment lancio disponibile per una selezione di primi clienti.',
-    pricingIncluded: [
-      'Revisione del dominio aziendale e della presenza web pubblica',
-      'Analisi esterna di esposizione di persone, ruoli e contatti',
-      'Score per impersonificazione, frodi finance e HR/social engineering',
-      'Report executive-ready',
-      'Scenari di attacco probabili',
-      'Azioni di remediation prioritarie',
-    ],
+    launchCustomers: 'Piani assessment disponibili per una selezione di primi clienti.',
     requestSteps: [
       'Condividi dati aziendali e motivo della richiesta',
       'Rivediamo l’intake e rispondiamo entro 1-2 giorni lavorativi',
       'La call conferma aderenza, scope e percorso di attivazione',
     ],
 
-    finalEyebrow: 'Richiedi l’assessment lancio',
+    finalEyebrow: 'Richiedi assessment',
     finalTitle: 'Inizia con una call assessment HumanSurface.',
     finalText:
       'Raccontaci cosa ha motivato la richiesta. Rivedremo il contesto e organizzeremo una breve call introduttiva prima di attivare l’assessment.',
-    launchPrice: 'Offerta lancio: €190 + IVA',
+    launchPrice: 'Piani: Base €190 + IVA, Dark Web €390 + IVA',
     securePayment: 'Scope confermato prima dell’attivazione',
     assessmentFirst: 'Report revisionato con priorità di remediation',
     introCallLabel: 'Prima call introduttiva',
-    buyOnline: 'Richiedi la call per l’assessment lancio',
+    buyOnline: 'Prenota una call',
 
     footerText:
       'HumanSurface aiuta le organizzazioni a identificare l’esposizione pubblica che può favorire phishing, impersonificazione e frodi mirate alle persone.',
@@ -684,41 +659,219 @@ function SeverityBadge({
   )
 }
 
-function LaunchPricingCard({
-  t,
+function getCompactScoreLabelLines(label: string) {
+  if (label === 'Impersonificazione' || label === 'Impersonation') {
+    return ['Imperson.']
+  }
+
+  if (label === 'Frodi finance') {
+    return ['Frodi']
+  }
+
+  if (label === 'Finance fraud') {
+    return ['Fraud']
+  }
+
+  if (label === 'HR / Social') {
+    return ['HR/Social']
+  }
+
+  return [label]
+}
+
+function CompactScoreLabel({
+  lines,
+  tone = 'dark',
 }: {
-  t: Translation
+  lines: string[]
+  tone?: 'dark' | 'light'
 }) {
+  const color = tone === 'light' ? 'text-slate-500' : 'text-slate-400'
+
   return (
-    <div className="mt-8 max-w-xl rounded-[28px] border border-cyan-300/20 bg-cyan-300/[0.08] p-5 shadow-[0_0_40px_rgba(34,211,238,0.10)]">
-      <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-cyan-200">
-        {t.launchOffer}
+    <div
+      className={`flex h-6 flex-col justify-start text-[10px] uppercase leading-4 tracking-[0.12em] ${color} sm:text-[9px] md:text-[10px]`}
+    >
+      {lines.map((line) => (
+        <span key={line} className="whitespace-nowrap">
+          {line}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function getPricingPlans(locale: Locale): PricingPlansCopy {
+  if (locale === 'it') {
+    return {
+      note:
+        'L’attivazione avviene dopo conferma dello scope. Non eseguiamo scansioni invasive e non richiediamo accesso ai sistemi interni.',
+      plans: [
+        {
+          name: 'Assessment Base',
+          price: '€190',
+          priceSuffix: '+ IVA',
+          description:
+            'Per capire quali informazioni pubbliche aumentano il rischio di impersonificazione e social engineering.',
+          href: '/buy?plan=base',
+          cta: 'Richiedi assessment base',
+          items: [
+            'Esposizione pubblica di persone, ruoli e contatti',
+            'Rischio impersonificazione AI-assisted',
+            'Superficie pubblica visibile',
+            'Priorità operative',
+            'Report sintetico + call di conferma scope',
+          ],
+        },
+        {
+          name: 'Assessment + Dark Web',
+          price: '€390',
+          priceSuffix: '+ IVA',
+          description:
+            'Include il Base e una verifica prudente di segnali leak/dark web collegati all’azienda.',
+          href: '/buy?plan=dark-web',
+          cta: 'Richiedi assessment con Dark Web',
+          items: [
+            'Tutto ciò che è incluso nell’Assessment Base',
+            'Verifica segnali leak/dark web collegati',
+            'Controllo esposizioni credenziali note, quando disponibili',
+            'Riferimenti aziendali in fonti OSINT/dark web disponibili',
+            'Priorità operative sulle esposizioni critiche',
+          ],
+          featured: true,
+        },
+      ],
+    }
+  }
+
+  return {
+    note:
+      'Activation happens after scope confirmation. We do not perform invasive scans and do not require access to internal systems.',
+    plans: [
+      {
+        name: 'Base Assessment',
+        price: '€190',
+        priceSuffix: '+ VAT',
+        description:
+          'Understand which public information increases impersonation and social engineering risk.',
+        href: '/buy?plan=base',
+        cta: 'Request base assessment',
+        items: [
+          'Public exposure of people, roles, and contacts',
+          'AI-assisted impersonation risk',
+          'Visible public surface',
+          'Operational priorities',
+          'Synthetic report + scope confirmation call',
+        ],
+      },
+      {
+        name: 'Assessment + Dark Web',
+        price: '€390',
+        priceSuffix: '+ VAT',
+        description:
+          'Includes Base plus a cautious review of leak/dark web signals connected to the company.',
+        href: '/buy?plan=dark-web',
+        cta: 'Request Dark Web assessment',
+        items: [
+          'Everything included in the Base Assessment',
+          'Review of leak/dark web signals linked to company domains/emails',
+          'Known credential exposure checks, when available',
+          'Company references in available OSINT/dark web sources',
+          'Operational priorities for critical exposures',
+        ],
+        featured: true,
+      },
+    ],
+  }
+}
+
+function PricingPlans({
+  locale,
+  compact = false,
+}: {
+  locale: Locale
+  compact?: boolean
+}) {
+  const pricing = getPricingPlans(locale)
+
+  return (
+    <div className={compact ? 'mt-8 max-w-3xl' : ''}>
+      <div
+        className={`grid auto-rows-fr items-stretch gap-4 ${
+          compact ? 'sm:grid-cols-2' : 'lg:grid-cols-2'
+        }`}
+      >
+        {pricing.plans.map((plan) => (
+          <GlassCard
+            key={plan.name}
+            className={`flex h-full min-h-full flex-col ${compact ? 'p-4' : 'p-5'} ${
+              plan.featured
+                ? 'border-fuchsia-300/20 bg-fuchsia-300/[0.06]'
+                : 'border-cyan-300/20 bg-cyan-300/[0.07]'
+            }`}
+          >
+            <div className={compact ? 'min-h-[116px]' : 'min-h-[128px]'}>
+              <h3 className={`${compact ? 'text-lg' : 'text-xl'} font-semibold leading-7 text-white`}>
+                {plan.name}
+              </h3>
+              <p className={`${compact ? 'mt-2 text-xs leading-5' : 'mt-3 text-sm leading-6'} text-slate-300`}>
+                {plan.description}
+              </p>
+            </div>
+
+            <div className={`${compact ? 'min-h-[58px]' : 'min-h-[70px]'} flex items-end gap-3`}>
+              <div className={compact ? 'text-4xl font-semibold tracking-tight text-white' : 'text-5xl font-semibold tracking-tight text-white'}>
+                {plan.price}
+              </div>
+              <div className="pb-1 text-base text-slate-300">{plan.priceSuffix}</div>
+            </div>
+
+            <div className={`${compact ? 'mt-4 min-h-[224px] gap-2 text-xs leading-5' : 'mt-5 min-h-[240px] gap-2 text-sm leading-6'} flex flex-1 flex-col text-slate-200`}>
+              {plan.items.map((item) => (
+                <div
+                  key={item}
+                  className={`${compact ? 'rounded-xl px-3 py-2' : 'rounded-2xl px-3 py-2'} border border-white/10 bg-[#030815]/35`}
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-auto pt-6">
+              <Link
+                href={plan.href}
+                className={`inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-center text-sm font-semibold transition ${
+                  plan.featured
+                    ? 'border-fuchsia-400/70 bg-fuchsia-600 text-white shadow-[0_0_28px_rgba(192,38,211,0.18)] hover:bg-fuchsia-500'
+                    : 'border-cyan-300/30 bg-cyan-300 text-slate-950 hover:bg-cyan-200'
+                }`}
+              >
+                {plan.cta} <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </GlassCard>
+        ))}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-end gap-3">
-        <div className="text-5xl font-semibold tracking-tight text-white">€190</div>
-        <div className="pb-1 text-lg text-slate-300">{t.priceVat}</div>
-        <div className="pb-1 text-sm text-slate-500 line-through">{t.standardPrice}</div>
+      <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-6 text-slate-300">
+        {pricing.note}
       </div>
-      <div className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-cyan-200/80">
-        {t.activationNote}
-      </div>
-
-      <p className="mt-4 text-sm leading-7 text-slate-300">{t.launchText}</p>
     </div>
   )
 }
 
 function LandingHero({
   t,
+  locale,
 }: {
   t: Translation
+  locale: Locale
 }) {
   return (
     <section className="relative">
-      <div className="mx-auto grid max-w-7xl gap-14 px-6 py-20 lg:grid-cols-2 lg:px-8 lg:py-28">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 lg:grid-cols-[0.98fr_1.02fr] lg:items-start lg:gap-12 lg:px-8 lg:py-20">
         <motion.div
-          className="flex flex-col justify-center"
+          className="flex flex-col"
           initial="hidden"
           animate="show"
           variants={stagger}
@@ -744,28 +897,28 @@ function LandingHero({
             {t.heroText}
           </motion.p>
 
-          <motion.div variants={fadeUp}>
-            <LaunchPricingCard t={t} />
-          </motion.div>
-
-          <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-4 sm:flex-row">
+          <motion.div variants={fadeUp} className="mt-7 flex flex-col gap-4 sm:flex-row">
             <Link
               id="request-assessment"
-              href="/buy"
+              href="/buy?plan=base"
               className="inline-flex min-w-[210px] items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 shadow-[0_0_36px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
             >
               {t.getAssessment} <ArrowRight className="h-4 w-4" />
             </Link>
 
-            <a
-              href="#sample-report"
+            <Link
+              href="/esempio-report"
               className="inline-flex min-w-[210px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-center text-sm font-semibold text-white backdrop-blur transition hover:border-cyan-300/20 hover:bg-cyan-300/10"
             >
               {t.seeSampleReport}
-            </a>
+            </Link>
           </motion.div>
 
-          <motion.div variants={fadeUp} className="mt-8 flex flex-wrap gap-3">
+          <motion.div variants={fadeUp}>
+            <PricingPlans locale={locale} compact />
+          </motion.div>
+
+          <motion.div variants={fadeUp} className="mt-6 flex flex-wrap gap-3">
             <DataChip>{t.chip1}</DataChip>
             <DataChip>{t.chip2}</DataChip>
             <DataChip>{t.chip3}</DataChip>
@@ -773,7 +926,7 @@ function LandingHero({
         </motion.div>
 
         <motion.div
-          className="flex items-center justify-center"
+          className="flex items-start justify-center lg:pt-12"
           initial={{ opacity: 0, scale: 0.96, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -802,19 +955,34 @@ function LandingHero({
 
                   <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-3">
                     {[
-                      [t.preview.impersonation, '81', t.preview.highShort],
-                      [t.preview.financeFraud, '68', t.preview.mediumShort],
-                      [t.preview.hrSocial, '74', t.preview.highShort],
-                    ].map(([label, score, level]) => (
+                      {
+                        key: t.preview.impersonation,
+                        labelLines: getCompactScoreLabelLines(t.preview.impersonation),
+                        score: '81',
+                        level: t.preview.highShort,
+                      },
+                      {
+                        key: t.preview.financeFraud,
+                        labelLines: getCompactScoreLabelLines(t.preview.financeFraud),
+                        score: '68',
+                        level: t.preview.mediumShort,
+                      },
+                      {
+                        key: t.preview.hrSocial,
+                        labelLines: getCompactScoreLabelLines(t.preview.hrSocial),
+                        score: '74',
+                        level: t.preview.highShort,
+                      },
+                    ].map(({ key, labelLines, score, level }) => (
                       <div
-                        key={label}
-                        className="min-h-[150px] rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                        key={key}
+                        className="flex min-h-[150px] min-w-0 flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-4"
                       >
-                        <div className="text-[10px] uppercase leading-5 tracking-[0.16em] text-slate-400">
-                          {label}
+                        <CompactScoreLabel lines={labelLines} />
+                        <div className="mt-3 text-2xl font-semibold leading-none tabular-nums">
+                          {score}
                         </div>
-                        <div className="mt-2 text-2xl font-semibold">{score}</div>
-                        <div className="mt-1 text-[10px] tracking-[0.2em] text-cyan-200/80">
+                        <div className="mt-2 text-[10px] tracking-[0.2em] text-cyan-200/80">
                           {level}
                         </div>
                       </div>
@@ -969,9 +1137,24 @@ function InternalDashboardPreview({
 
               <div className="mt-5 grid gap-4 md:grid-cols-3">
                 {[
-                  { label: t.preview.impersonation, value: 81, icon: Fingerprint },
-                  { label: t.preview.financeFraud, value: 68, icon: FileWarning },
-                  { label: t.preview.hrSocial, value: 74, icon: Mail },
+                  {
+                    label: t.preview.impersonation,
+                    labelLines: getCompactScoreLabelLines(t.preview.impersonation),
+                    value: 81,
+                    icon: Fingerprint,
+                  },
+                  {
+                    label: t.preview.financeFraud,
+                    labelLines: getCompactScoreLabelLines(t.preview.financeFraud),
+                    value: 68,
+                    icon: FileWarning,
+                  },
+                  {
+                    label: t.preview.hrSocial,
+                    labelLines: getCompactScoreLabelLines(t.preview.hrSocial),
+                    value: 74,
+                    icon: Mail,
+                  },
                 ].map((item) => {
                   const Icon = item.icon
                   return (
@@ -987,7 +1170,9 @@ function InternalDashboardPreview({
                           {t.preview.score}
                         </span>
                       </div>
-                      <div className="mt-4 text-sm text-slate-300">{item.label}</div>
+                      <div className="mt-4">
+                        <CompactScoreLabel lines={item.labelLines} />
+                      </div>
                       <div className="mt-1 text-3xl font-semibold">{item.value}</div>
                     </div>
                   )
@@ -1291,6 +1476,209 @@ export default function HumanSurfaceLandingPage() {
           '7-day change tracking',
         ]
 
+  const education =
+    locale === 'it'
+      ? {
+          discoverEyebrow: 'Cosa scopriamo',
+          discoverTitle:
+            'Le informazioni pubbliche che possono aumentare il rischio operativo.',
+          discoverText:
+            'HumanSurface mette in ordine ciò che è visibile dall’esterno: contatti, ruoli, tecnologie, processi e segnali che possono rendere più credibili phishing, frodi e impersonificazione.',
+          discoverItems: [
+            [
+              'Superficie pubblica esposta',
+              'Pagine, documenti, profili, form e riferimenti aziendali accessibili senza autenticazione.',
+              Radar,
+            ],
+            [
+              'Email e ruoli visibili',
+              'Contatti diretti, pattern email prevedibili e funzioni aziendali riconoscibili.',
+              Mail,
+            ],
+            [
+              'Tecnologie e segnali esterni',
+              'Tecnologie dichiarate o deducibili, più segnali di leak o esposizione quando disponibili.',
+              Fingerprint,
+            ],
+            [
+              'Informazioni su figure chiave',
+              'Dettagli pubblici su responsabilità, fornitori, processi e comunicazioni potenzialmente abusabili.',
+              Users,
+            ],
+          ] satisfies Array<[string, string, LucideIcon]>,
+          usefulEyebrow: 'Perché è utile',
+          usefulTitle:
+            'Aiuta a distinguere ciò che serve al business da ciò che crea rischio.',
+          usefulText:
+            'Non si tratta di sparire dal web. L’obiettivo è capire quali informazioni pubbliche sono necessarie e quali, combinate tra loro, possono facilitare social engineering o richieste fraudolente.',
+          usefulItems: [
+            'Prioritizzare le esposizioni che rendono più credibili richieste false.',
+            'Ridurre il contesto disponibile per phishing mirato e frodi operative.',
+            'Dare a management, security e operations una lista chiara di azioni.',
+          ],
+          methodEyebrow: 'Come funziona',
+          methodTitle:
+            'Un assessment basato su dati pubblici, review umana e priorità operative.',
+          methodSteps: [
+            [
+              'Analisi esterna',
+              'Raccogliamo segnali pubblici e OSINT pertinenti al dominio e alla presenza aziendale.',
+            ],
+            [
+              'Interpretazione del rischio',
+              'Colleghiamo persone, ruoli, contatti e processi a scenari realistici di abuso.',
+            ],
+            [
+              'Report e remediation',
+              'Consegnamo score, finding revisionati e azioni pratiche ordinate per priorità.',
+            ],
+          ],
+          aiEyebrow: 'Il rischio impersonificazione nell’era dell’IA',
+          aiTitle:
+            'L’IA generativa rende più semplice trasformare contesto pubblico in messaggi credibili.',
+          aiText:
+            'Con l’intelligenza artificiale generativa, informazioni pubbliche apparentemente innocue possono essere trasformate in messaggi credibili, phishing mirato o tentativi di impersonificazione verso figure chiave dell’azienda. HumanSurface aiuta a capire quali informazioni sono visibili dall’esterno e quali possono aumentare il rischio operativo.',
+          aiSignals: [
+            'Ruoli, responsabilità e relazioni aziendali utili a costruire pretesti plausibili.',
+            'Email, fornitori, documenti e processi che possono rendere credibile una richiesta.',
+            'Contesto pubblico combinabile in messaggi personalizzati contro finance, HR, executive e operations.',
+          ],
+          assuranceEyebrow:
+            'Non invasivo e orientato alla riduzione del rischio',
+          assuranceTitle:
+            'Ridurre il rischio prima che venga sfruttato, senza accedere ai sistemi interni.',
+          assuranceItems: [
+            'Analisi da fonti pubbliche e segnali OSINT.',
+            'Nessuna scansione invasiva senza autorizzazione.',
+            'Nessuna credenziale o accesso ai sistemi interni richiesto.',
+            'Nessun dato sensibile pubblicato nei materiali dimostrativi.',
+          ],
+          exampleLink: 'Apri esempio report',
+          methodLink: 'Leggi il metodo',
+          cta: 'Richiedi una verifica preliminare',
+        }
+      : {
+          discoverEyebrow: 'What we uncover',
+          discoverTitle:
+            'The public information that can increase operational risk.',
+          discoverText:
+            'HumanSurface organizes what is visible from the outside: contacts, roles, technologies, processes, and signals that can make phishing, fraud, and impersonation more credible.',
+          discoverItems: [
+            [
+              'Exposed public surface',
+              'Pages, documents, profiles, forms, and company references reachable without authentication.',
+              Radar,
+            ],
+            [
+              'Visible emails and roles',
+              'Direct contacts, predictable email patterns, and recognizable business functions.',
+              Mail,
+            ],
+            [
+              'Technologies and external signals',
+              'Declared or inferable technologies, plus leak or exposure signals when available.',
+              Fingerprint,
+            ],
+            [
+              'Key-role information',
+              'Public details about responsibilities, suppliers, processes, and communications that may be abused.',
+              Users,
+            ],
+          ] satisfies Array<[string, string, LucideIcon]>,
+          usefulEyebrow: 'Why it matters',
+          usefulTitle:
+            'It separates business-useful visibility from risk-increasing exposure.',
+          usefulText:
+            'The goal is not to disappear from the web. The goal is to understand which public information is useful to the business and which combinations can support social engineering or fraudulent requests.',
+          usefulItems: [
+            'Prioritize exposures that make false requests more believable.',
+            'Reduce the context available for targeted phishing and operational fraud.',
+            'Give management, security, and operations a clear action list.',
+          ],
+          methodEyebrow: 'How it works',
+          methodTitle:
+            'An assessment based on public data, human review, and operational priorities.',
+          methodSteps: [
+            [
+              'External analysis',
+              'We collect relevant public and OSINT signals around the domain and company footprint.',
+            ],
+            [
+              'Risk interpretation',
+              'We connect people, roles, contacts, and processes to realistic abuse scenarios.',
+            ],
+            [
+              'Report and remediation',
+              'We deliver scores, reviewed findings, and practical actions ordered by priority.',
+            ],
+          ],
+          aiEyebrow: 'Impersonation risk in the AI era',
+          aiTitle:
+            'Generative AI makes it easier to turn public context into credible messages.',
+          aiText:
+            'With generative AI, seemingly harmless public information can be transformed into credible messages, targeted phishing, or impersonation attempts against key company figures. HumanSurface helps clarify which information is visible from the outside and which signals can increase operational risk.',
+          aiSignals: [
+            'Roles, responsibilities, and company relationships that help build plausible pretexts.',
+            'Emails, suppliers, documents, and processes that can make a request feel legitimate.',
+            'Public context that can be combined into personalized messages against finance, HR, executives, and operations.',
+          ],
+          assuranceEyebrow: 'Non-invasive and risk-reduction oriented',
+          assuranceTitle:
+            'Reduce risk before it is exploited, without internal system access.',
+          assuranceItems: [
+            'Analysis from public sources and OSINT signals.',
+            'No invasive scanning without authorization.',
+            'No credentials or internal system access required.',
+            'No sensitive data published in demo materials.',
+          ],
+          exampleLink: 'Open example report',
+          methodLink: 'Read the method',
+          cta: 'Request a preliminary review',
+        }
+
+  const darkWebEducation =
+    locale === 'it'
+      ? {
+          eyebrow: 'Verifica Dark Web',
+          title: 'Cosa include la verifica Dark Web',
+          text:
+            'La verifica Dark Web non promette di trovare ogni dato esposto. Cerca segnali e indicatori collegati a dominio, email aziendali e riferimenti pubblici, usando fonti disponibili e dati già esposti. L’obiettivo è capire se esistono elementi che aumentano il rischio di accessi non autorizzati, impersonificazione, frodi o social engineering.',
+          includeTitle: 'Cosa cerchiamo',
+          includeItems: [
+            'Email aziendali presenti in leak noti o fonti disponibili',
+            'Possibili credenziali o riferimenti da verificare',
+            'Domini, brand o riferimenti aziendali citati in contesti a rischio',
+            'Priorità operative per ridurre esposizione e abuso',
+          ],
+          notTitle: 'Cosa non facciamo',
+          notItems: [
+            'Non promettiamo copertura completa del dark web',
+            'Non acquistiamo dati rubati',
+            'Non richiediamo accesso ai sistemi interni',
+            'Non pubblichiamo dati sensibili nel report',
+          ],
+        }
+      : {
+          eyebrow: 'Dark Web Review',
+          title: 'What the Dark Web review includes',
+          text:
+            'The Dark Web review does not promise to find every exposed data point. It looks for signals and indicators linked to domains, company emails, and public references, using available sources and already exposed data. The goal is to understand whether there are elements that increase the risk of unauthorized access, impersonation, fraud, or social engineering.',
+          includeTitle: 'What we look for',
+          includeItems: [
+            'Company emails appearing in known leaks or available sources',
+            'Possible credentials or references to verify',
+            'Domains, brand names, or company references mentioned in risky contexts',
+            'Operational priorities to reduce exposure and abuse',
+          ],
+          notTitle: 'What we do not do',
+          notItems: [
+            'We do not promise complete dark web coverage',
+            'We do not buy stolen data',
+            'We do not require internal system access',
+            'We do not publish sensitive data in the report',
+          ],
+        }
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#040816] text-white">
       <div className="pointer-events-none fixed inset-0 opacity-80">
@@ -1317,9 +1705,12 @@ export default function HumanSurfaceLandingPage() {
             <a href="#how-it-works" className="transition hover:text-cyan-200">
               {t.navHow}
             </a>
-            <a href="#sample-report" className="transition hover:text-cyan-200">
+            <Link href="/esempio-report" className="transition hover:text-cyan-200">
               {t.navSample}
-            </a>
+            </Link>
+            <Link href="/metodo" className="transition hover:text-cyan-200">
+              {locale === 'it' ? 'Metodo' : 'Method'}
+            </Link>
             <a href="#dashboard-preview" className="transition hover:text-cyan-200">
               {t.navDashboard}
             </a>
@@ -1349,7 +1740,7 @@ export default function HumanSurfaceLandingPage() {
       </header>
 
       <main className="relative z-10">
-        <LandingHero t={t} />
+        <LandingHero t={t} locale={locale} />
 
         <section className="border-y border-cyan-300/10 bg-[#061024]/70 backdrop-blur">
           <div className="mx-auto grid max-w-7xl gap-4 px-6 py-6 text-center text-sm text-slate-300 md:grid-cols-4 lg:px-8">
@@ -1368,6 +1759,245 @@ export default function HumanSurfaceLandingPage() {
                 <p className="mt-3 text-sm leading-7 text-slate-300">{item.text}</p>
               </GlassCard>
             ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.15 }}
+            variants={stagger}
+          >
+            <SectionTitle
+              eyebrow={education.discoverEyebrow}
+              title={education.discoverTitle}
+              description={education.discoverText}
+            />
+
+            <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+              {education.discoverItems.map(([title, description, Icon]) => (
+                <motion.div key={title} variants={fadeUp}>
+                  <GlassCard className="h-full p-6 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.04]">
+                    <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 text-cyan-200">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-xl font-semibold leading-7">{title}</h3>
+                    <p className="mt-3 text-sm leading-7 text-slate-300">
+                      {description}
+                    </p>
+                  </GlassCard>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </section>
+
+        <section className="bg-white/[0.02]">
+          <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.15 }}
+              variants={stagger}
+              className="grid gap-8 lg:grid-cols-[1fr_1.05fr]"
+            >
+              <motion.div variants={fadeUp}>
+                <SectionTitle
+                  eyebrow={darkWebEducation.eyebrow}
+                  title={darkWebEducation.title}
+                  description={darkWebEducation.text}
+                />
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="grid gap-4 md:grid-cols-2">
+                <GlassCard className="border-cyan-300/20 bg-cyan-300/[0.06] p-6">
+                  <div className="mb-5 flex items-center gap-3 text-cyan-100">
+                    <FileWarning className="h-5 w-5" />
+                    <h3 className="text-lg font-semibold">{darkWebEducation.includeTitle}</h3>
+                  </div>
+                  <div className="grid gap-3">
+                    {darkWebEducation.includeItems.map((item) => (
+                      <div
+                        key={item}
+                        className="rounded-2xl border border-cyan-200/10 bg-[#030815]/50 px-4 py-3 text-sm leading-7 text-slate-200"
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="border-fuchsia-300/20 bg-fuchsia-300/[0.06] p-6">
+                  <div className="mb-5 flex items-center gap-3 text-fuchsia-100">
+                    <ShieldCheck className="h-5 w-5" />
+                    <h3 className="text-lg font-semibold">{darkWebEducation.notTitle}</h3>
+                  </div>
+                  <div className="grid gap-3">
+                    {darkWebEducation.notItems.map((item) => (
+                      <div
+                        key={item}
+                        className="rounded-2xl border border-fuchsia-200/10 bg-[#030815]/50 px-4 py-3 text-sm leading-7 text-slate-200"
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </GlassCard>
+              </motion.div>
+            </motion.div>
+          </div>
+        </section>
+
+        <section className="bg-white/[0.02]">
+          <div className="mx-auto grid max-w-7xl gap-10 px-6 py-20 lg:grid-cols-[0.95fr_1.05fr] lg:px-8">
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.15 }}
+              variants={stagger}
+            >
+              <SectionTitle
+                eyebrow={education.usefulEyebrow}
+                title={education.usefulTitle}
+                description={education.usefulText}
+              />
+
+              <motion.div variants={fadeUp} className="mt-8 space-y-3">
+                {education.usefulItems.map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-7 text-slate-200"
+                  >
+                    {item}
+                  </div>
+                ))}
+              </motion.div>
+            </motion.div>
+
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.15 }}
+              variants={stagger}
+              className="lg:pt-2"
+            >
+              <SectionTitle
+                eyebrow={education.methodEyebrow}
+                title={education.methodTitle}
+              />
+
+              <div className="mt-8 grid gap-4">
+                {education.methodSteps.map(([title, description], idx) => (
+                  <motion.div key={title} variants={fadeUp}>
+                    <GlassCard className="p-5">
+                      <div className="flex gap-4">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 text-sm font-semibold text-cyan-200">
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-white">{title}</h3>
+                          <p className="mt-2 text-sm leading-7 text-slate-300">
+                            {description}
+                          </p>
+                        </div>
+                      </div>
+                    </GlassCard>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.15 }}
+            variants={stagger}
+            className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center"
+          >
+            <motion.div variants={fadeUp}>
+              <SectionTitle
+                eyebrow={education.aiEyebrow}
+                title={education.aiTitle}
+                description={education.aiText}
+              />
+            </motion.div>
+
+            <motion.div variants={fadeUp}>
+              <GlassCard className="border-fuchsia-300/20 bg-fuchsia-300/[0.06] p-6">
+                <div className="mb-5 flex items-center gap-3 text-fuchsia-100">
+                  <TriangleAlert className="h-5 w-5" />
+                  <div className="text-sm font-medium uppercase tracking-[0.16em]">
+                    AI-assisted impersonation
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {education.aiSignals.map((item) => (
+                    <div
+                      key={item}
+                      className="rounded-2xl border border-fuchsia-200/10 bg-[#030815]/50 px-4 py-3 text-sm leading-7 text-slate-200"
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </motion.div>
+          </motion.div>
+        </section>
+
+        <section className="bg-white/[0.02]">
+          <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.15 }}
+              variants={stagger}
+              className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center"
+            >
+              <motion.div variants={fadeUp}>
+                <SectionTitle
+                  eyebrow={education.assuranceEyebrow}
+                  title={education.assuranceTitle}
+                />
+
+                <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+                  <Link
+                    href="/buy"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+                  >
+                    {education.cta} <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    href="/esempio-report"
+                    className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
+                  >
+                    {education.exampleLink}
+                  </Link>
+                  <Link
+                    href="/metodo"
+                    className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
+                  >
+                    {education.methodLink}
+                  </Link>
+                </div>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="grid gap-4 md:grid-cols-2">
+                {education.assuranceItems.map((item) => (
+                  <GlassCard key={item} className="h-full p-5">
+                    <div className="flex gap-3">
+                      <Shield className="mt-1 h-5 w-5 shrink-0 text-cyan-200" />
+                      <p className="text-sm leading-7 text-slate-200">{item}</p>
+                    </div>
+                  </GlassCard>
+                ))}
+              </motion.div>
+            </motion.div>
           </div>
         </section>
 
@@ -1486,18 +2116,30 @@ export default function HumanSurfaceLandingPage() {
 
                   <div className="mt-6 grid gap-4 sm:grid-cols-3">
                     {[
-                      [t.preview.overall, '72/100'],
-                      [t.preview.impersonation, '81'],
-                      [t.preview.financeFraud, '68'],
-                    ].map(([label, score]) => (
+                      {
+                        key: t.preview.overall,
+                        labelLines: ['Score'],
+                        score: '72/100',
+                      },
+                      {
+                        key: t.preview.impersonation,
+                        labelLines: ['Imperson.'],
+                        score: '81',
+                      },
+                      {
+                        key: t.preview.financeFraud,
+                        labelLines: [locale === 'it' ? 'Frodi' : 'Fraud'],
+                        score: '68',
+                      },
+                    ].map(({ key, labelLines, score }) => (
                       <div
-                        key={label}
-                        className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200"
+                        key={key}
+                        className="flex min-h-[108px] min-w-0 flex-col rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200"
                       >
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                          {label}
+                        <CompactScoreLabel lines={labelLines} tone="light" />
+                        <div className="mt-auto whitespace-nowrap text-2xl font-semibold leading-none tabular-nums">
+                          {score}
                         </div>
-                        <div className="mt-2 text-2xl font-semibold">{score}</div>
                       </div>
                     ))}
                   </div>
@@ -1663,58 +2305,8 @@ export default function HumanSurfaceLandingPage() {
               description={t.pricingText}
             />
 
-            <motion.div
-              variants={fadeUp}
-              className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]"
-            >
-              <GlassCard className="border-cyan-300/20 bg-cyan-300/[0.08] p-8 shadow-[0_0_50px_rgba(34,211,238,0.08)]">
-                <div className="mb-4 inline-flex rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs uppercase tracking-[0.16em] text-cyan-200">
-                  {t.launchOffer}
-                </div>
-
-                <h3 className="text-3xl font-semibold">{t.assessmentName}</h3>
-
-                <div className="mt-6 flex flex-wrap items-end gap-3">
-                  <div className="text-6xl font-semibold tracking-tight text-white">€190</div>
-                  <div className="pb-2 text-xl text-slate-300">{t.priceVat}</div>
-                  <div className="pb-2 text-base text-slate-500 line-through">
-                    {t.standardPrice}
-                  </div>
-                </div>
-                <div className="mt-2 text-sm font-medium text-cyan-100">
-                  {t.activationNote}
-                </div>
-
-                <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-                  {t.pricingDescription}
-                </p>
-
-                <div className="mt-8 grid gap-3 text-slate-200">
-                  {t.pricingIncluded.map((item) => (
-                    <div
-                      key={item}
-                      className="rounded-2xl border border-white/10 bg-[#030815]/40 px-4 py-3"
-                    >
-                      {item}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-                  <Link
-                    href="/buy"
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
-                  >
-                    {t.getAssessment} <ArrowRight className="h-4 w-4" />
-                  </Link>
-                  <a
-                    href="#sample-report"
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-semibold text-white transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.08]"
-                  >
-                    {t.seeSampleReport}
-                  </a>
-                </div>
-              </GlassCard>
+            <motion.div variants={fadeUp} className="mt-12 grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+              <PricingPlans locale={locale} />
 
               <GlassCard className="p-8">
                 <div className="rounded-[24px] border border-white/10 bg-[#071022] p-6">
@@ -1740,7 +2332,7 @@ export default function HumanSurfaceLandingPage() {
 
                   <div className="mt-6">
                     <Link
-                      href="/buy"
+                      href="/buy?plan=base"
                       className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 shadow-[0_0_36px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
                     >
                       {t.getAssessment} <ChevronRight className="h-4 w-4" />
@@ -1789,17 +2381,27 @@ export default function HumanSurfaceLandingPage() {
 
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link
-                    href="/buy"
+                    href="/buy?plan=base"
                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
                   >
-                    {t.getAssessment} <ChevronRight className="h-4 w-4" />
+                    {locale === 'it' ? 'Richiedi assessment base' : 'Request base assessment'}{' '}
+                    <ChevronRight className="h-4 w-4" />
                   </Link>
-                  <a
-                    href="/sample-report.pdf"
+                  <Link
+                    href="/buy?plan=dark-web"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/30 bg-fuchsia-200 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-fuchsia-100"
+                  >
+                    {locale === 'it'
+                      ? 'Richiedi assessment con Dark Web'
+                      : 'Request Dark Web assessment'}{' '}
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    href="/esempio-report"
                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-5 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/15"
                   >
                     {t.seeSampleReport}
-                  </a>
+                  </Link>
                 </div>
               </div>
 
@@ -1815,19 +2417,37 @@ export default function HumanSurfaceLandingPage() {
                     <Mail className="h-5 w-5 text-cyan-200" />
                   </div>
 
-                  <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] p-5">
-                    <div className="text-sm uppercase tracking-[0.16em] text-cyan-200">
-                      {t.launchOffer}
-                    </div>
-                    <div className="mt-2 text-4xl font-semibold text-white">
-                      €190 {t.priceVat}
-                    </div>
-                    <div className="mt-2 text-sm font-medium text-cyan-100">
-                      {t.activationNote}
-                    </div>
-                    <div className="mt-3 text-sm leading-7 text-slate-300">
-                      {copy[locale].launchText}
-                    </div>
+                  <div className="grid gap-3">
+                    {getPricingPlans(locale).plans.map((plan) => (
+                      <Link
+                        key={plan.name}
+                        href={plan.href}
+                        className={`rounded-2xl border p-4 transition ${
+                          plan.featured
+                            ? 'border-fuchsia-300/20 bg-fuchsia-300/[0.08] hover:bg-fuchsia-300/[0.12]'
+                            : 'border-cyan-300/20 bg-cyan-300/[0.08] hover:bg-cyan-300/[0.12]'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold text-white">
+                              {plan.name}
+                            </div>
+                            <div className="mt-1 text-xs leading-5 text-slate-400">
+                              {plan.description}
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <div className="text-2xl font-semibold text-white">
+                              {plan.price}
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              {plan.priceSuffix}
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
                   </div>
 
                   <div className="mt-6 space-y-3 text-sm text-slate-300">
@@ -1843,7 +2463,7 @@ export default function HumanSurfaceLandingPage() {
 
                   <div className="mt-6">
                     <Link
-                      href="/buy"
+                      href="/buy?plan=base"
                       className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-300 px-6 py-4 text-sm font-semibold text-slate-950 shadow-[0_0_36px_rgba(34,211,238,0.20)] transition hover:-translate-y-0.5 hover:bg-cyan-200"
                     >
                       {t.getAssessment} <ArrowRight className="h-4 w-4" />
@@ -1890,9 +2510,12 @@ export default function HumanSurfaceLandingPage() {
               {t.resources}
             </div>
             <div className="mt-4 space-y-3 text-slate-400">
-              <a href="/sample-report.pdf" className="block hover:text-cyan-200">
+              <Link href="/esempio-report" className="block hover:text-cyan-200">
                 {t.sampleReport}
-              </a>
+              </Link>
+              <Link href="/metodo" className="block hover:text-cyan-200">
+                {locale === 'it' ? 'Metodo' : 'Method'}
+              </Link>
               <a href="#dashboard-preview" className="block hover:text-cyan-200">
                 {t.dashboardPreview}
               </a>
