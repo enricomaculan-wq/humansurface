@@ -25,6 +25,8 @@ const formCopy: Record<
     successMessage: string
     submit: string
     submitting: string
+    selectedPlanPrefix: string
+    selectedPlanNotice: string
   }
 > = {
   en: {
@@ -47,8 +49,11 @@ const formCopy: Record<
       'We use this intake to prepare the intro call. No credentials, inbox access, or internal system access are needed to confirm fit and scope.',
     successMessage:
       'Thanks — your intake has been received. We will review the context and reply within 1-2 business days to arrange the assessment call.',
-    submit: 'Request assessment call',
+    submit: 'Book a call',
     submitting: 'Sending intake...',
+    selectedPlanPrefix: 'Selected plan',
+    selectedPlanNotice:
+      'We will include this scope in the intake and confirm it on the call.',
   },
   it: {
     fullNameLabel: 'Nome e cognome',
@@ -70,12 +75,19 @@ const formCopy: Record<
       'Usiamo questo intake per preparare la call introduttiva. Non servono credenziali, accesso alle inbox o accesso ai sistemi interni per confermare aderenza e scope.',
     successMessage:
       'Grazie: abbiamo ricevuto il tuo intake. Rivedremo il contesto e risponderemo entro 1-2 giorni lavorativi per organizzare la call assessment.',
-    submit: 'Richiedi call assessment',
+    submit: 'Prenota una call',
     submitting: 'Invio intake...',
+    selectedPlanPrefix: 'Piano selezionato',
+    selectedPlanNotice:
+      'Inseriremo questo scope nell’intake e lo confermeremo durante la call.',
   },
 }
 
-export default function BuyForm() {
+export default function BuyForm({
+  selectedPlanLabel,
+}: {
+  selectedPlanLabel?: string | null
+}) {
   const { dictionary, locale } = useI18n()
   const t = dictionary.buy.form
   const c = formCopy[locale]
@@ -148,7 +160,11 @@ export default function BuyForm() {
           email,
           role,
           companySize,
-          notes,
+          notes: selectedPlanLabel
+            ? `${c.selectedPlanPrefix}: ${selectedPlanLabel}${
+                notes.trim() ? `\n${notes.trim()}` : ''
+              }`
+            : notes,
           website,
         }),
       })
@@ -187,6 +203,13 @@ export default function BuyForm() {
         aria-hidden="true"
         className="absolute left-[-10000px] h-px w-px opacity-0"
       />
+
+      {selectedPlanLabel ? (
+        <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] px-4 py-3 text-sm leading-6 text-cyan-50">
+          <strong>{c.selectedPlanPrefix}:</strong> {selectedPlanLabel}.{' '}
+          {c.selectedPlanNotice}
+        </div>
+      ) : null}
 
       <div>
         <label className="mb-2 block text-sm text-slate-300">{c.fullNameLabel}</label>
