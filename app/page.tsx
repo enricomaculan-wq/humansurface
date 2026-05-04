@@ -934,7 +934,7 @@ function LandingHero({
           <div className="relative w-full max-w-2xl">
             <div className="absolute -inset-2 rounded-[34px] bg-[radial-gradient(circle,rgba(34,211,238,0.18),transparent_65%)] blur-2xl" />
             <GlassCard className="relative p-4 shadow-[0_0_80px_rgba(34,211,238,0.10)] sm:p-6">
-              <div className="rounded-[24px] border border-white/10 bg-[#071022]/95 p-5">
+              <div className="hs-technical rounded-[24px] border border-white/10 bg-[#071022]/95 p-5">
                 <div className="flex items-center justify-between gap-4 border-b border-white/8 pb-4">
                   <div className="flex min-w-0 items-center gap-2 text-xs uppercase tracking-[0.2em] text-cyan-200/70">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.8)]" />
@@ -1108,7 +1108,7 @@ function InternalDashboardPreview({
       >
         <motion.div variants={fadeUp}>
           <GlassCard className="overflow-hidden p-5">
-            <div className="rounded-[24px] border border-white/10 bg-[#071022] p-5">
+            <div className="hs-technical rounded-[24px] border border-white/10 bg-[#071022] p-5">
               <div className="flex flex-col gap-4 border-b border-white/8 pb-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <div className="text-xs uppercase tracking-[0.2em] text-cyan-300">
@@ -1244,7 +1244,7 @@ function InternalDashboardPreview({
 
         <motion.div variants={fadeUp} className="grid gap-6">
           <GlassCard className="p-5">
-            <div className="rounded-[24px] border border-white/10 bg-[#071022] p-5">
+            <div className="hs-technical rounded-[24px] border border-white/10 bg-[#071022] p-5">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs uppercase tracking-[0.18em] text-cyan-300">
@@ -1290,7 +1290,7 @@ function InternalDashboardPreview({
           </GlassCard>
 
           <GlassCard className="p-5">
-            <div className="rounded-[24px] border border-white/10 bg-[#071022] p-5">
+            <div className="hs-technical rounded-[24px] border border-white/10 bg-[#071022] p-5">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs uppercase tracking-[0.18em] text-cyan-300">
@@ -1680,7 +1680,7 @@ export default function HumanSurfaceLandingPage() {
         }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#040816] text-white">
+    <div className="hs-light min-h-screen overflow-x-hidden bg-[#040816] text-white">
       <div className="pointer-events-none fixed inset-0 opacity-80">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_28%),radial-gradient(circle_at_70%_20%,rgba(168,85,247,0.12),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.10),transparent_30%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:radial-gradient(circle_at_center,black,transparent_78%)]" />

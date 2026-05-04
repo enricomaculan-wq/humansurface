@@ -13,7 +13,7 @@ export default async function SignupPage({
   const email = params.email ?? ''
 
   return (
-    <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
+    <main className="hs-light min-h-screen bg-[#040816] px-6 py-10 text-white">
       <div className="mx-auto max-w-xl">
         <div className="mb-4 hidden justify-end md:flex">
           <LanguageToggle />

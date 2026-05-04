@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import AdminTopbar from '@/app/components/admin/admin-topbar'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 type AssessmentStatus = 'draft' | 'in_review' | 'published' | 'archived'
@@ -18,6 +19,29 @@ type Organization = {
   id: string
   name: string
   domain: string
+}
+
+type DarkwebScoreSnapshot = {
+  assessment_id: string | null
+  run_id: string | null
+  score: number
+  risk_level: string
+  total_findings: number
+  created_at: string
+}
+
+type DarkwebFindingReviewSignal = {
+  assessment_id: string | null
+  run_id: string | null
+  severity: string
+  status: string
+  requires_review: boolean
+}
+
+type DarkwebAssessmentSignal = {
+  latestScore: DarkwebScoreSnapshot | null
+  reviewRequiredCount: number
+  highSeverityCount: number
 }
 
 function normalizeAssessmentStatus(value: string | null | undefined): AssessmentStatus | null {
@@ -123,13 +147,21 @@ function EmptyState({ label }: { label: string }) {
 function AssessmentCard({
   assessment,
   organization,
+  darkwebSignal,
   priority = false,
 }: {
   assessment: Assessment
   organization: Organization | null
+  darkwebSignal?: DarkwebAssessmentSignal
   priority?: boolean
 }) {
   const normalizedStatus = normalizeAssessmentStatus(assessment.status) ?? assessment.status
+  const latestDarkwebScore = darkwebSignal?.latestScore ?? null
+  const darkwebFindingCount =
+    latestDarkwebScore?.total_findings ??
+    ((darkwebSignal?.reviewRequiredCount ?? 0) + (darkwebSignal?.highSeverityCount ?? 0) > 0
+      ? darkwebSignal?.reviewRequiredCount ?? 0
+      : 0)
 
   return (
     <div
@@ -164,6 +196,39 @@ function AssessmentCard({
         </div>
       </div>
 
+      <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+              Dark web
+            </div>
+            <div className="mt-2 text-sm text-slate-300">
+              {latestDarkwebScore ? (
+                <>
+                  Score {latestDarkwebScore.score} · {darkwebFindingCount} finding
+                  {darkwebFindingCount === 1 ? '' : 's'} ·{' '}
+                  {darkwebSignal?.reviewRequiredCount ?? 0} need
+                  {(darkwebSignal?.reviewRequiredCount ?? 0) === 1 ? 's' : ''} review
+                </>
+              ) : (
+                'No dark web output'
+              )}
+            </div>
+          </div>
+
+          {latestDarkwebScore ? (
+            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+              <RiskBadge value={latestDarkwebScore.risk_level} />
+              {(darkwebSignal?.highSeverityCount ?? 0) > 0 ? (
+                <span className="rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-1 text-xs font-medium uppercase text-fuchsia-200">
+                  {darkwebSignal?.highSeverityCount} high severity
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
       <div className="mt-5 flex flex-wrap gap-3">
         <Link
           href={`/admin/assessments/${assessment.id}`}
@@ -195,12 +260,14 @@ function AssessmentSection({
   subtitle,
   assessments,
   organizations,
+  darkwebSignals,
   priority = false,
 }: {
   title: string
   subtitle: string
   assessments: Assessment[]
   organizations: Organization[]
+  darkwebSignals: Map<string, DarkwebAssessmentSignal>
   priority?: boolean
 }) {
   return (
@@ -229,6 +296,7 @@ function AssessmentSection({
                 key={assessment.id}
                 assessment={assessment}
                 organization={organization}
+                darkwebSignal={darkwebSignals.get(assessment.id)}
                 priority={priority}
               />
             )
@@ -249,6 +317,78 @@ export default async function AssessmentsPage() {
 
   const assessments = (assessmentsData ?? []) as Assessment[]
   const organizations = (organizationsData ?? []) as Organization[]
+  const assessmentIds = assessments.map((assessment) => assessment.id)
+
+  const [
+    { data: darkwebScoreSnapshotsData, error: darkwebScoreSnapshotsError },
+    { data: darkwebFindingsData, error: darkwebFindingsError },
+  ] =
+    assessmentIds.length > 0
+      ? await Promise.all([
+          supabaseAdmin
+            .from('darkweb_score_snapshots')
+            .select('assessment_id, run_id, score, risk_level, total_findings, created_at')
+            .in('assessment_id', assessmentIds)
+            .order('created_at', { ascending: false }),
+          supabaseAdmin
+            .from('darkweb_findings')
+            .select('assessment_id, run_id, severity, status, requires_review')
+            .in('assessment_id', assessmentIds)
+            .neq('status', 'suppressed'),
+        ])
+      : [
+          { data: [], error: null },
+          { data: [], error: null },
+        ]
+
+  if (darkwebScoreSnapshotsError) {
+    throw new Error(
+      `Dark web score snapshots read failed: ${darkwebScoreSnapshotsError.message}`,
+    )
+  }
+
+  if (darkwebFindingsError) {
+    throw new Error(`Dark web findings read failed: ${darkwebFindingsError.message}`)
+  }
+
+  const darkwebSignals = new Map<string, DarkwebAssessmentSignal>()
+
+  for (const assessment of assessments) {
+    darkwebSignals.set(assessment.id, {
+      latestScore: null,
+      reviewRequiredCount: 0,
+      highSeverityCount: 0,
+    })
+  }
+
+  for (const snapshot of (darkwebScoreSnapshotsData ?? []) as DarkwebScoreSnapshot[]) {
+    if (!snapshot.assessment_id) continue
+
+    const signal = darkwebSignals.get(snapshot.assessment_id)
+    if (signal && !signal.latestScore) {
+      signal.latestScore = snapshot
+    }
+  }
+
+  for (const finding of (darkwebFindingsData ?? []) as DarkwebFindingReviewSignal[]) {
+    if (!finding.assessment_id) continue
+
+    const signal = darkwebSignals.get(finding.assessment_id)
+    if (!signal) continue
+    if (!signal.latestScore?.run_id || finding.run_id !== signal.latestScore.run_id) continue
+
+    if (finding.requires_review && finding.status === 'new') {
+      signal.reviewRequiredCount += 1
+    }
+
+    if (finding.severity === 'high' || finding.severity === 'critical') {
+      signal.highSeverityCount += 1
+    }
+  }
+
+  const darkwebReviewRequiredAssessments = assessments.filter(
+    (assessment) => (darkwebSignals.get(assessment.id)?.reviewRequiredCount ?? 0) > 0,
+  )
 
   const inReviewAssessments = assessments.filter(
     (assessment) => normalizeAssessmentStatus(assessment.status) === 'in_review',
@@ -274,18 +414,35 @@ export default async function AssessmentsPage() {
       />
 
       <div className="space-y-6">
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <MetricCard label="Needs review" value={inReviewAssessments.length} accent="fuchsia" />
           <MetricCard label="Draft" value={draftAssessments.length} accent="cyan" />
           <MetricCard label="Published" value={publishedAssessments.length} accent="emerald" />
           <MetricCard label="Archived" value={archivedAssessments.length} />
+          <MetricCard
+            label="Dark web review"
+            value={darkwebReviewRequiredAssessments.length}
+            accent="fuchsia"
+          />
         </section>
+
+        {darkwebReviewRequiredAssessments.length > 0 ? (
+          <AssessmentSection
+            title="Dark web review"
+            subtitle="Assessments with new dark web findings that still need analyst validation."
+            assessments={darkwebReviewRequiredAssessments}
+            organizations={organizations}
+            darkwebSignals={darkwebSignals}
+            priority
+          />
+        ) : null}
 
         <AssessmentSection
           title="Needs review"
           subtitle="Assessments ready for admin validation before client publication."
           assessments={inReviewAssessments}
           organizations={organizations}
+          darkwebSignals={darkwebSignals}
           priority
         />
 
@@ -294,6 +451,7 @@ export default async function AssessmentsPage() {
           subtitle="Assessments still being prepared or not yet ready for final review."
           assessments={draftAssessments}
           organizations={organizations}
+          darkwebSignals={darkwebSignals}
         />
 
         <AssessmentSection
@@ -301,6 +459,7 @@ export default async function AssessmentsPage() {
           subtitle="Assessments already released to clients."
           assessments={publishedAssessments}
           organizations={organizations}
+          darkwebSignals={darkwebSignals}
         />
 
         <AssessmentSection
@@ -308,6 +467,7 @@ export default async function AssessmentsPage() {
           subtitle="Historical assessments no longer active."
           assessments={archivedAssessments}
           organizations={organizations}
+          darkwebSignals={darkwebSignals}
         />
       </div>
     </>

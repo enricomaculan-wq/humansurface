@@ -1,8 +1,15 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { formatDateTime } from '@/lib/date'
 import { getImmediateRecommendationsFromTasks } from '@/lib/assessments/assessment-remediation'
+import {
+  buildDarkwebPresentationSummary,
+  type DarkwebPresentationFinding,
+  type DarkwebPresentationSummary,
+  type DarkwebPresentationScoreSnapshot,
+} from '@/lib/darkweb/presentation'
 
 type Assessment = {
   id: string
@@ -102,6 +109,13 @@ type RemediationTask = {
   status: string
   created_at: string
 }
+
+type DarkwebScoreSnapshot = DarkwebPresentationScoreSnapshot & {
+  id: string
+  run_id: string | null
+}
+
+type DarkwebFinding = DarkwebPresentationFinding
 
 function normalizeLabel(value: string | null | undefined, fallback = '—') {
   if (!value) return fallback
@@ -355,6 +369,150 @@ function PeopleScoresSection({
   )
 }
 
+function DarkwebReportSection({
+  summary,
+  scoreSnapshot,
+}: {
+  summary: DarkwebPresentationSummary
+  scoreSnapshot: DarkwebScoreSnapshot | null
+}) {
+  return (
+    <section className="rounded-[28px] border border-fuchsia-400/20 bg-fuchsia-400/[0.06] p-6 backdrop-blur-xl">
+      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div className="text-sm uppercase tracking-[0.18em] text-fuchsia-200">
+            Dark web review
+          </div>
+          <h2 className="mt-2 text-2xl font-semibold text-white">
+            Dark web exposure summary
+          </h2>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
+            Internal review section from dark web findings. Kept separate from public
+            exposure findings and not merged into the shared client report flow.
+          </p>
+        </div>
+
+        <span className="rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-1 text-xs font-semibold uppercase text-fuchsia-100">
+          admin review
+        </span>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-white/10 bg-[#030815] p-4">
+          <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+            Score and risk
+          </div>
+          <div className="mt-2 text-3xl font-semibold text-white">
+            {scoreSnapshot ? scoreSnapshot.score : '—'}
+          </div>
+          <div className="mt-3">
+            <RiskBadge value={scoreSnapshot?.risk_level ?? 'low'} />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-[#030815] p-4">
+          <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+            Findings
+          </div>
+          <div className="mt-2 text-3xl font-semibold text-white">
+            {summary.totalFindings}
+          </div>
+          <div className="mt-3 text-xs leading-5 text-slate-500">
+            {summary.criticalOrHighCount} high-severity finding
+            {summary.criticalOrHighCount === 1 ? '' : 's'}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-[#030815] p-4">
+          <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
+            Review queue
+          </div>
+          <div className="mt-2 text-3xl font-semibold text-white">
+            {summary.reviewRequiredCount}
+          </div>
+          <div className="mt-3 text-xs leading-5 text-slate-500">
+            Require analyst review
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-white/10 bg-[#030815] p-5">
+        <h3 className="text-xl font-semibold text-white">{summary.headline}</h3>
+        <p className="mt-3 max-w-5xl text-sm leading-7 text-slate-300">
+          {summary.keyTakeaway}
+        </p>
+        <p className="mt-3 text-sm leading-7 text-slate-400">
+          <span className="text-slate-500">Recommended action: </span>
+          {summary.recommendedAction}
+        </p>
+      </div>
+
+      {summary.groups.length > 0 ? (
+        <div className="mt-5 grid gap-4 lg:grid-cols-3">
+          {summary.groups.slice(0, 3).map((group) => (
+            <div key={group.key} className="rounded-2xl border border-white/10 bg-[#030815] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-medium text-white">{group.label}</div>
+                  <div className="mt-2 text-sm leading-6 text-slate-400">
+                    {group.description}
+                  </div>
+                </div>
+                <RiskBadge value={group.highestSeverity} />
+              </div>
+              <div className="mt-3 text-xs uppercase tracking-[0.16em] text-slate-500">
+                {group.count} finding{group.count === 1 ? '' : 's'} ·{' '}
+                {group.reviewCount} need review
+              </div>
+              <div className="mt-3 text-sm leading-6 text-slate-300">
+                {group.remediation}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {summary.findings.length > 0 ? (
+        <div className="mt-5 space-y-3">
+          {summary.findings.slice(0, 5).map((finding) => (
+            <article
+              key={finding.id}
+              className="rounded-2xl border border-white/10 bg-[#030815] p-4"
+            >
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-4xl">
+                  <div className="font-medium text-white">{finding.title}</div>
+                  <div className="mt-2 text-sm leading-6 text-slate-400">
+                    {finding.reviewerSummary}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-slate-500">
+                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
+                      {finding.categoryLabel}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
+                      {finding.confidenceLabel}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1">
+                      {finding.reviewLabel}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-start gap-2 lg:items-end">
+                  <RiskBadge value={finding.severity} />
+                  <span className="text-right text-xs leading-5 text-slate-500">
+                    {finding.severityLabel}
+                  </span>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
 function pickAssessmentScore(
   scores: Score[],
   scoreType: string,
@@ -437,6 +595,67 @@ export default async function AssessmentReportPage({
   const assessment = assessmentData as Assessment | null
   if (!assessment) notFound()
 
+  const { data: darkwebScoreSnapshotsData, error: darkwebScoreSnapshotsError } =
+    await supabaseAdmin
+      .from('darkweb_score_snapshots')
+      .select(`
+        id,
+        run_id,
+        score,
+        risk_level,
+        total_findings,
+        critical_findings,
+        high_findings,
+        credential_findings,
+        fraud_relevant_findings,
+        created_at
+      `)
+      .eq('assessment_id', assessment.id)
+      .eq('organization_id', assessment.organization_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+  if (darkwebScoreSnapshotsError) {
+    throw new Error(
+      `Dark web score snapshots read failed: ${darkwebScoreSnapshotsError.message}`,
+    )
+  }
+
+  const latestDarkwebScore =
+    ((darkwebScoreSnapshotsData ?? []) as DarkwebScoreSnapshot[])[0] ?? null
+  const { data: darkwebFindingsData, error: darkwebFindingsError } =
+    latestDarkwebScore?.run_id
+      ? await supabaseAdmin
+          .from('darkweb_findings')
+          .select(`
+            id,
+            source_type,
+            source_name,
+            category,
+            matched_term,
+            matched_entity_type,
+            confidence,
+            severity,
+            title,
+            summary,
+            evidence_snippet,
+            raw_reference,
+            requires_review,
+            status,
+            created_at
+          `)
+          .eq('assessment_id', assessment.id)
+          .eq('organization_id', assessment.organization_id)
+          .eq('run_id', latestDarkwebScore.run_id)
+          .neq('status', 'suppressed')
+          .order('created_at', { ascending: false })
+          .limit(20)
+      : { data: [], error: null }
+
+  if (darkwebFindingsError) {
+    throw new Error(`Dark web findings read failed: ${darkwebFindingsError.message}`)
+  }
+
   const scanDiagnostics = assessment.scan_diagnostics ?? null
   const scannedUrls = scanDiagnostics?.scannedUrls ?? []
   const failedUrls = scanDiagnostics?.failedUrls ?? []
@@ -466,6 +685,13 @@ export default async function AssessmentReportPage({
   const people = (peopleData ?? []) as Person[]
   const scores = (scoresData ?? []) as Score[]
   const remediationTasks = (remediationData ?? []) as RemediationTask[]
+  const darkwebFindings = (darkwebFindingsData ?? []) as DarkwebFinding[]
+  const darkwebSummary = buildDarkwebPresentationSummary({
+    findings: darkwebFindings,
+    scoreSnapshot: latestDarkwebScore,
+  })
+  const shouldShowDarkwebReportSection =
+    darkwebSummary.totalFindings > 0 || latestDarkwebScore !== null
 
   const organization =
     organizations.find((org) => org.id === assessment.organization_id) ?? null
@@ -718,6 +944,13 @@ export default async function AssessmentReportPage({
               {executiveSummary}
             </p>
           </SectionCard>
+
+          {shouldShowDarkwebReportSection ? (
+            <DarkwebReportSection
+              summary={darkwebSummary}
+              scoreSnapshot={latestDarkwebScore}
+            />
+          ) : null}
 
           <SectionCard
             title="Top findings"

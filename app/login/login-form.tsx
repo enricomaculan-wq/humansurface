@@ -37,7 +37,7 @@ export default function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
+    <main className="hs-light min-h-screen bg-[#040816] px-6 py-10 text-white">
       <div className="mx-auto flex min-h-[80vh] max-w-md items-center">
         <div className="w-full rounded-[28px] border border-white/10 bg-white/[0.04] p-8 backdrop-blur-xl">
           <div className="mb-6">

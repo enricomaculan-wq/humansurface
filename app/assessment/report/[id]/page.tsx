@@ -505,7 +505,7 @@ export default async function CustomerAssessmentReportPage({
   ].join(' ')
 
   return (
-    <main className="min-h-screen bg-[#040816] px-6 py-10 text-white print:bg-white print:px-0 print:py-0 print:text-black">
+    <main className="hs-light min-h-screen bg-[#040816] px-6 py-10 text-white print:bg-white print:px-0 print:py-0 print:text-black">
       <div className="mx-auto max-w-7xl print:max-w-none">
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between print:mb-6">
           <div>

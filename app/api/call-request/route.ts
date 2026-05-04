@@ -161,23 +161,31 @@ async function sendAdminCallRequestNotification(input: {
     </div>
   `
 
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: notificationFromEmail,
-      to: [adminNotificationEmail],
-      subject,
-      html,
-    }),
-  })
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: notificationFromEmail,
+        to: [adminNotificationEmail],
+        subject,
+        html,
+      }),
+    })
 
-  if (!response.ok) {
-    const text = await response.text()
-    console.error('Call request admin email failed', text)
+    if (!response.ok) {
+      const text = await response.text()
+      console.error('Call request admin email failed', {
+        status: response.status,
+        statusText: response.statusText,
+        body: text,
+      })
+    }
+  } catch (error) {
+    console.error('Call request admin email failed', error)
   }
 }
 
@@ -243,8 +251,18 @@ export async function POST(req: NextRequest) {
     })
 
     if (error) {
+      console.error('Call request insert failed', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      })
+
       return NextResponse.json(
-        { error: `Failed to save request: ${error.message}` },
+        {
+          error: 'Failed to save request.',
+          code: 'CALL_REQUEST_SAVE_FAILED',
+        },
         { status: 500 },
       )
     }
@@ -264,10 +282,12 @@ export async function POST(req: NextRequest) {
       message: 'Call request submitted successfully.',
     })
   } catch (error) {
+    console.error('Call request route failed', error)
+
     return NextResponse.json(
       {
-        error:
-          error instanceof Error ? error.message : 'Unexpected server error.',
+        error: 'Unexpected server error.',
+        code: 'CALL_REQUEST_UNEXPECTED_ERROR',
       },
       { status: 500 },
     )

@@ -163,7 +163,7 @@ export default async function DashboardPage() {
     scoresForLatest.find((s) => s.score_type === 'hr_social_engineering_risk') ?? null
 
   return (
-    <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
+    <main className="hs-light min-h-screen bg-[#040816] px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
           <div className="text-sm uppercase tracking-[0.2em] text-cyan-300">

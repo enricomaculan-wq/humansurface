@@ -6,7 +6,7 @@ export default async function PrivacyPage() {
   const t = dictionary.legal
 
   return (
-    <main className="min-h-screen bg-[#040816] px-6 py-10 text-white">
+    <main className="hs-light min-h-screen bg-[#040816] px-6 py-10 text-white">
       <div className="mx-auto max-w-4xl rounded-[32px] border border-white/10 bg-white/[0.04] p-8 backdrop-blur-xl">
         <div className="mb-4 hidden justify-end md:flex">
           <LanguageToggle />

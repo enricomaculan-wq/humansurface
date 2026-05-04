@@ -175,7 +175,7 @@ export default async function BuyPage({
   const selectedPlan = t.plans.find((plan) => plan.key === selectedPlanKey) ?? null
 
   return (
-    <main className="min-h-screen bg-[#040816] px-6 py-14 text-white">
+    <main className="hs-light min-h-screen bg-[#040816] px-6 py-14 text-white">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between gap-4">
           <Link

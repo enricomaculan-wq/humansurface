@@ -254,7 +254,7 @@ export default async function MethodPage() {
   const t = copy[locale]
 
   return (
-    <main className="min-h-screen bg-[#040816] text-white">
+    <main className="hs-light min-h-screen bg-[#040816] text-white">
       <div className="pointer-events-none fixed inset-0 opacity-80">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_28%),radial-gradient(circle_at_75%_25%,rgba(168,85,247,0.10),transparent_24%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:radial-gradient(circle_at_center,black,transparent_78%)]" />
